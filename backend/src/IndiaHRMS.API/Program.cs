@@ -29,14 +29,19 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     // ─── Serilog ───────────────────────────────────────────────────────────────
+    // builder.Host.UseSerilog((ctx, lc) => lc
+    //     .ReadFrom.Configuration(ctx.Configuration)
+    //     .Enrich.FromLogContext()
+    //     .WriteTo.Console()
+    //     .WriteTo.MSSqlServer(
+    //         connectionString: ctx.Configuration.GetConnectionString("DefaultConnection"),
+    //         tableName: "Logs",
+    //         autoCreateSqlTable: true));
+
     builder.Host.UseSerilog((ctx, lc) => lc
-        .ReadFrom.Configuration(ctx.Configuration)
-        .Enrich.FromLogContext()
-        .WriteTo.Console()
-        .WriteTo.MSSqlServer(
-            connectionString: ctx.Configuration.GetConnectionString("DefaultConnection"),
-            tableName: "Logs",
-            autoCreateSqlTable: true));
+    .ReadFrom.Configuration(ctx.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console());
 
     // ─── Database ─────────────────────────────────────────────────────────────
     builder.Services.AddDbContext<AppDbContext>(options =>

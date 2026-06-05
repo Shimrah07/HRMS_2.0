@@ -144,7 +144,7 @@ public class UserManagementController : ControllerBase
         {
             var existing = user.UserRoles.FirstOrDefault(ur => ur.RoleId == roleId);
             if (existing != null) existing.IsActive = true;
-            else user.UserRoles.Add(new UserRole { UserId = id, RoleId = roleId });
+            else _context.UserRoles.Add(new UserRole { UserId = id, RoleId = roleId });
         }
 
         await _context.SaveChangesAsync(ct);
@@ -245,7 +245,7 @@ public class UserManagementController : ControllerBase
 
         _context.RolePermissions.RemoveRange(role.RolePermissions);
         foreach (var permId in permissionIds)
-            role.RolePermissions.Add(new RolePermission { RoleId = roleId, PermissionId = permId });
+            _context.RolePermissions.Add(new RolePermission { RoleId = roleId, PermissionId = permId });
 
         await _context.SaveChangesAsync(ct);
 

@@ -11194,11 +11194,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.API\\IndiaHRMS.API.csproj",
+      "projectUniqueName": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.API\\IndiaHRMS.API.csproj",
       "projectName": "IndiaHRMS.API",
-      "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.API\\IndiaHRMS.API.csproj",
+      "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.API\\IndiaHRMS.API.csproj",
       "packagesPath": "C:\\Users\\26050047\\.nuget\\packages\\",
-      "outputPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.API\\obj\\",
+      "outputPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.API\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -11219,14 +11219,14 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\IndiaHRMS.Application.csproj": {
-              "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\IndiaHRMS.Application.csproj"
+            "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\IndiaHRMS.Application.csproj": {
+              "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\IndiaHRMS.Application.csproj"
             },
-            "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj": {
-              "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj"
+            "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj": {
+              "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj"
             },
-            "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj": {
-              "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj"
+            "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj": {
+              "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj"
             }
           }
         }
