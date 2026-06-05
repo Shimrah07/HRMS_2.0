@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "n8oGd9gfmjQ=",
+  "dgSpecHash": "/wkWoElevBU=",
   "success": true,
-  "projectFilePath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
+  "projectFilePath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\26050047\\.nuget\\packages\\automapper\\13.0.1\\automapper.13.0.1.nupkg.sha512",
     "C:\\Users\\26050047\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
@@ -178,9 +178,9 @@
       "code": "NU1603",
       "level": "Warning",
       "message": "IndiaHRMS.Infrastructure depends on QuestPDF (>= 2024.12.5) but QuestPDF 2024.12.5 was not found. QuestPDF 2025.1.0 was resolved instead.",
-      "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
+      "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
       "warningLevel": 1,
-      "filePath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
+      "filePath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
       "libraryId": "QuestPDF",
       "targetGraphs": [
         "net8.0"
@@ -190,9 +190,9 @@
       "code": "NU1903",
       "level": "Warning",
       "message": "Package 'AutoMapper' 13.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x",
-      "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
+      "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
       "warningLevel": 1,
-      "filePath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
+      "filePath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
       "libraryId": "AutoMapper",
       "targetGraphs": [
         "net8.0"
@@ -202,9 +202,9 @@
       "code": "NU1902",
       "level": "Warning",
       "message": "Package 'MailKit' 4.9.0 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-9j88-vvj5-vhgr",
-      "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
+      "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
       "warningLevel": 1,
-      "filePath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
+      "filePath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
       "libraryId": "MailKit",
       "targetGraphs": [
         "net8.0"

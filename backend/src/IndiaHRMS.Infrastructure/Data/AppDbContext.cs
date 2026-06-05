@@ -219,6 +219,10 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.ReportingManager).WithMany(x => x.DirectReports).HasForeignKey(x => x.ReportingManagerId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<EmployeeEducation>(e => e.HasKey(x => x.EduId));
+        modelBuilder.Entity<EmployeeExperience>(e => e.HasKey(x => x.ExpId));
+        modelBuilder.Entity<PFNominee>(e => e.HasKey(x => x.NomineeId));
+
         // ─── EmployeeDocuments ─────────────────────────────────────────────────
         modelBuilder.Entity<EmployeeDocument>(e =>
         {
@@ -252,6 +256,11 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.Employee).WithMany(x => x.AttendanceRecords).HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<ShiftMaster>(e => e.HasKey(x => x.ShiftId));
+        modelBuilder.Entity<EmployeeShift>(e => e.HasKey(x => x.EmpShiftId));
+        modelBuilder.Entity<HolidayCalendar>(e => e.HasKey(x => x.HolidayId));
+        modelBuilder.Entity<AttendanceRegularization>(e => e.HasKey(x => x.RegId));
+
         // ─── Leave ─────────────────────────────────────────────────────────────
         modelBuilder.Entity<LeaveBalance>(e =>
         {
@@ -279,6 +288,8 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.Approver).WithMany().HasForeignKey(x => x.ApproverId).OnDelete(DeleteBehavior.SetNull);
         });
 
+        modelBuilder.Entity<LeaveType>(e => e.HasKey(x => x.LeaveTypeId));
+
         // ─── Payroll ───────────────────────────────────────────────────────────
         modelBuilder.Entity<EmployeeSalary>(e =>
         {
@@ -289,6 +300,30 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.Structure).WithMany(x => x.EmployeeSalaries).HasForeignKey(x => x.StructureId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.RevisedByUser).WithMany().HasForeignKey(x => x.RevisedBy).OnDelete(DeleteBehavior.SetNull);
         });
+
+        modelBuilder.Entity<StructureComponent>(e =>
+    {
+    e.HasKey(x => x.Id);
+
+    e.HasOne(x => x.Structure)
+        .WithMany(x => x.StructureComponents)
+        .HasForeignKey(x => x.StructureId);
+
+    e.HasOne(x => x.Component)
+        .WithMany(x => x.StructureComponents)
+        .HasForeignKey(x => x.ComponentId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+    e.HasOne(x => x.PercentageOfComponent)
+        .WithMany()
+        .HasForeignKey(x => x.PercentageOfComponentId)
+        .OnDelete(DeleteBehavior.Restrict);
+});
+
+        modelBuilder.Entity<SalaryComponent>(e => e.HasKey(x => x.ComponentId));
+        modelBuilder.Entity<SalaryStructure>(e => e.HasKey(x => x.StructureId));
+        modelBuilder.Entity<PayrollComponentValue>(e => e.HasKey(x => x.ValueId));
+        modelBuilder.Entity<TaxDeclaration>(e => e.HasKey(x => x.DeclarationId));
 
         modelBuilder.Entity<PayrollRun>(e =>
         {
@@ -338,6 +373,8 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedBy).OnDelete(DeleteBehavior.SetNull);
         });
 
+        modelBuilder.Entity<Candidate>(e => e.HasKey(x => x.CandidateId));
+
         // ─── JobApplication ────────────────────────────────────────────────────
         modelBuilder.Entity<JobApplication>(e =>
         {
@@ -369,6 +406,8 @@ public class AppDbContext : DbContext
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
         });
 
+        modelBuilder.Entity<PIP>(e => e.HasKey(x => x.PIPId));
+
         modelBuilder.Entity<EmployeeGoal>(e =>
         {
             e.HasKey(x => x.GoalId);
@@ -386,6 +425,9 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.Reviewer).WithMany().HasForeignKey(x => x.ReviewerId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<TrainingProgram>(e => e.HasKey(x => x.ProgramId));
+        modelBuilder.Entity<TrainingSchedule>(e => e.HasKey(x => x.ScheduleId));
+
         // ─── Training ──────────────────────────────────────────────────────────
         modelBuilder.Entity<TrainingNomination>(e =>
         {
@@ -394,6 +436,8 @@ public class AppDbContext : DbContext
             e.Property(x => x.Rating).HasColumnType("decimal(3,1)");
             e.HasOne(x => x.NominatedByUser).WithMany().HasForeignKey(x => x.NominatedBy).OnDelete(DeleteBehavior.Restrict);
         });
+
+        modelBuilder.Entity<NoDuesClearing>(e => e.HasKey(x => x.NoDuesId));
 
         // ─── Separation ────────────────────────────────────────────────────────
         modelBuilder.Entity<Separation>(e =>
@@ -419,5 +463,7 @@ public class AppDbContext : DbContext
             e.HasIndex(x => new { x.CompanyId, x.SettingKey }).IsUnique();
             e.Property(x => x.SettingKey).HasMaxLength(100).IsRequired();
         });
+
+        modelBuilder.Entity<EmailTemplate>(e => e.HasKey(x => x.TemplateId));
     }
 }

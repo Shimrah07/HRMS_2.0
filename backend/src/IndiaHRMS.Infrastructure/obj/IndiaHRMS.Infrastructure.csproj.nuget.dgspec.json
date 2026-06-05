@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj": {}
+    "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj": {}
   },
   "projects": {
-    "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\IndiaHRMS.Application.csproj": {
+    "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\IndiaHRMS.Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\IndiaHRMS.Application.csproj",
+        "projectUniqueName": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\IndiaHRMS.Application.csproj",
         "projectName": "IndiaHRMS.Application",
-        "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\IndiaHRMS.Application.csproj",
+        "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\IndiaHRMS.Application.csproj",
         "packagesPath": "C:\\Users\\26050047\\.nuget\\packages\\",
-        "outputPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\obj\\",
+        "outputPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -32,11 +32,11 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\IndiaHRMS.Domain.csproj": {
-                "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\IndiaHRMS.Domain.csproj"
+              "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\IndiaHRMS.Domain.csproj": {
+                "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\IndiaHRMS.Domain.csproj"
               },
-              "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj": {
-                "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj"
+              "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj": {
+                "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj"
               }
             }
           }
@@ -98,14 +98,14 @@
         }
       }
     },
-    "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\IndiaHRMS.Domain.csproj": {
+    "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\IndiaHRMS.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\IndiaHRMS.Domain.csproj",
+        "projectUniqueName": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\IndiaHRMS.Domain.csproj",
         "projectName": "IndiaHRMS.Domain",
-        "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\IndiaHRMS.Domain.csproj",
+        "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\IndiaHRMS.Domain.csproj",
         "packagesPath": "C:\\Users\\26050047\\.nuget\\packages\\",
-        "outputPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\obj\\",
+        "outputPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -126,8 +126,8 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj": {
-                "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj"
+              "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj": {
+                "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj"
               }
             }
           }
@@ -167,14 +167,14 @@
         }
       }
     },
-    "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj": {
+    "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
+        "projectUniqueName": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
         "projectName": "IndiaHRMS.Infrastructure",
-        "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
+        "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\IndiaHRMS.Infrastructure.csproj",
         "packagesPath": "C:\\Users\\26050047\\.nuget\\packages\\",
-        "outputPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\obj\\",
+        "outputPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -195,11 +195,11 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\IndiaHRMS.Application.csproj": {
-                "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\IndiaHRMS.Application.csproj"
+              "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\IndiaHRMS.Application.csproj": {
+                "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Application\\IndiaHRMS.Application.csproj"
               },
-              "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\IndiaHRMS.Domain.csproj": {
-                "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\IndiaHRMS.Domain.csproj"
+              "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\IndiaHRMS.Domain.csproj": {
+                "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Domain\\IndiaHRMS.Domain.csproj"
               }
             }
           }
@@ -291,14 +291,14 @@
         }
       }
     },
-    "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj": {
+    "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj",
+        "projectUniqueName": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj",
         "projectName": "IndiaHRMS.Shared",
-        "projectPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj",
+        "projectPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\IndiaHRMS.Shared.csproj",
         "packagesPath": "C:\\Users\\26050047\\.nuget\\packages\\",
-        "outputPath": "D:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\obj\\",
+        "outputPath": "d:\\HRMS_2.0\\backend\\src\\IndiaHRMS.Shared\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

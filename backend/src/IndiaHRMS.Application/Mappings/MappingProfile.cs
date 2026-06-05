@@ -40,6 +40,10 @@ public class HRMSMappingProfile : Profile
             .ForMember(d => d.DeptId, o => o.Ignore())
             .ForMember(d => d.CompanyId, o => o.Ignore())
             .ForMember(d => d.IsActive, o => o.Ignore());
+        CreateMap<UpdateDepartmentRequest, Department>()
+            .ForMember(d => d.DeptId, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.Ignore());
 
         // ─── Designation ───────────────────────────────────────────────────────
         CreateMap<Designation, DesignationDto>()
@@ -48,11 +52,19 @@ public class HRMSMappingProfile : Profile
             .ForMember(d => d.DesignationId, o => o.Ignore())
             .ForMember(d => d.CompanyId, o => o.Ignore())
             .ForMember(d => d.IsActive, o => o.Ignore());
+        CreateMap<UpdateDesignationRequest, Designation>()
+            .ForMember(d => d.DesignationId, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.Ignore());
 
         // ─── Location ──────────────────────────────────────────────────────────
         CreateMap<Location, LocationDto>()
             .ForMember(d => d.EmployeeCount, o => o.MapFrom(s => s.Employees.Count(e => e.IsActive)));
         CreateMap<CreateLocationRequest, Location>()
+            .ForMember(d => d.LocationId, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.Ignore());
+        CreateMap<UpdateLocationRequest, Location>()
             .ForMember(d => d.LocationId, o => o.Ignore())
             .ForMember(d => d.CompanyId, o => o.Ignore())
             .ForMember(d => d.IsActive, o => o.Ignore());
@@ -101,6 +113,13 @@ public class HRMSMappingProfile : Profile
             .ForMember(d => d.CompanyId, o => o.Ignore())
             .ForMember(d => d.EmploymentStatus, o => o.MapFrom(_ => EmploymentStatus.Active))
             .ForMember(d => d.IsActive, o => o.MapFrom(_ => true))
+            .ForMember(d => d.ProfilePhoto, o => o.Ignore());
+
+        CreateMap<UpdateEmployeeRequest, Employee>()
+            .ForMember(d => d.EmployeeId, o => o.Ignore())
+            .ForMember(d => d.EmployeeCode, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.Ignore())
             .ForMember(d => d.ProfilePhoto, o => o.Ignore());
 
         // ─── Employee Sub-entities ──────────────────────────────────────────────
