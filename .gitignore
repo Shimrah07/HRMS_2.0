@@ -1,0 +1,21 @@
+# .NET build artifacts
+bin/
+obj/
+.vs/
+TestResults/
+
+# React/Vite artifacts
+node_modules/
+dist/
+.vite/
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+
+# IDE files
+.idea/
+.vscode/
