@@ -1,0 +1,15 @@
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\bin\Debug\net8.0\IndiaHRMS.Domain.deps.json
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\bin\Debug\net8.0\IndiaHRMS.Domain.dll
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\bin\Debug\net8.0\IndiaHRMS.Domain.pdb
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\bin\Debug\net8.0\IndiaHRMS.Shared.dll
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\bin\Debug\net8.0\IndiaHRMS.Shared.pdb
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\obj\Debug\net8.0\IndiaHRMS.Domain.csproj.AssemblyReference.cache
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\obj\Debug\net8.0\IndiaHRMS.Domain.GeneratedMSBuildEditorConfig.editorconfig
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\obj\Debug\net8.0\IndiaHRMS.Domain.AssemblyInfoInputs.cache
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\obj\Debug\net8.0\IndiaHRMS.Domain.AssemblyInfo.cs
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\obj\Debug\net8.0\IndiaHRMS.Domain.csproj.CoreCompileInputs.cache
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\obj\Debug\net8.0\IndiaHRM.E6D986FD.Up2Date
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\obj\Debug\net8.0\IndiaHRMS.Domain.dll
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\obj\Debug\net8.0\refint\IndiaHRMS.Domain.dll
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\obj\Debug\net8.0\IndiaHRMS.Domain.pdb
+d:\HRMS_2.0\backend\src\IndiaHRMS.Domain\obj\Debug\net8.0\ref\IndiaHRMS.Domain.dll

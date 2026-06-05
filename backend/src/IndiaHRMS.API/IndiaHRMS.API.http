@@ -1,0 +1,6 @@
+@IndiaHRMS.API_HostAddress = http://localhost:5110
+
+GET {{IndiaHRMS.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

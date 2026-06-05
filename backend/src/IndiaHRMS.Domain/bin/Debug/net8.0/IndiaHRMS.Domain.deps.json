@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "IndiaHRMS.Domain/1.0.0": {
+        "dependencies": {
+          "IndiaHRMS.Shared": "1.0.0"
+        },
+        "runtime": {
+          "IndiaHRMS.Domain.dll": {}
+        }
+      },
+      "IndiaHRMS.Shared/1.0.0": {
+        "runtime": {
+          "IndiaHRMS.Shared.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "IndiaHRMS.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "IndiaHRMS.Shared/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
