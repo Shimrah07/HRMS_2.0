@@ -54,8 +54,12 @@ public class EmployeeController : ControllerBase
             query = query.Where(e => e.CompanyId == _currentUser.CompanyId);
 
         if (!string.IsNullOrEmpty(request.Search))
-            query = query.Where(e => e.FirstName.Contains(request.Search) || e.LastName.Contains(request.Search) ||
-                e.EmployeeCode.Contains(request.Search) || (e.OfficialEmail != null && e.OfficialEmail.Contains(request.Search)));
+        {
+            var search = request.Search.Trim();
+            query = query.Where(e => e.FirstName.Contains(search) || e.LastName.Contains(search) ||
+                (e.FirstName + " " + e.LastName).Contains(search) ||
+                e.EmployeeCode.Contains(search) || (e.OfficialEmail != null && e.OfficialEmail.Contains(search)));
+        }
 
         if (request.DeptId.HasValue) query = query.Where(e => e.DeptId == request.DeptId);
         if (request.LocationId.HasValue) query = query.Where(e => e.LocationId == request.LocationId);
@@ -160,6 +164,35 @@ public class EmployeeController : ControllerBase
                 user.UserRoles.Add(new UserRole { RoleId = employeeRole.RoleId });
 
             _context.Users.Add(user);
+
+            // Create welcome notification for the new employee
+            var welcomeNotif = new Notification
+            {
+                NotificationId = Guid.NewGuid(),
+                UserId = user.UserId,
+                Title = "Welcome to IndiaHRMS",
+                Message = $"Welcome to Acme Technologies Pvt Ltd! Your profile is created. Your initial username is '{user.Username}'. Please complete your profile details.",
+                Type = NotificationType.System,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Notifications.Add(welcomeNotif);
+        }
+
+        // Notify the HR Admin / Creator
+        if (_currentUser.UserId.HasValue)
+        {
+            var creatorNotif = new Notification
+            {
+                NotificationId = Guid.NewGuid(),
+                UserId = _currentUser.UserId.Value,
+                Title = "Employee Created Successfully",
+                Message = $"New employee {employee.FirstName} {employee.LastName} ({employee.EmployeeCode}) has been successfully onboarded.",
+                Type = NotificationType.NewJoinerToday,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Notifications.Add(creatorNotif);
         }
 
         await _context.SaveChangesAsync(ct);
@@ -313,6 +346,175 @@ public class EmployeeController : ControllerBase
         var dto = _mapper.Map<BankDetailDto>(bank);
         dto.MaskedAccountNumber = _encryption.MaskValue(bank.AccountNumber);
         return Ok(ApiResponse<BankDetailDto>.Ok(dto));
+    }
+
+    [HttpDelete("{id:guid}/bank-details/{bankId:guid}")]
+    [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteBankDetail(Guid id, Guid bankId, CancellationToken ct)
+    {
+        var bank = await _context.EmployeeBankDetails.FirstOrDefaultAsync(b => b.BankDetailId == bankId && b.EmployeeId == id, ct);
+        if (bank == null) return NotFound(ApiResponse<object>.Fail("Bank detail not found."));
+        bank.IsActive = false;
+        bank.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<object>.Ok(null, "Bank detail removed."));
+    }
+
+    // ─── Education ────────────────────────────────────────────────────────────
+
+    [HttpGet("{id:guid}/educations")]
+    [Filters.RequirePermission(PermissionCodes.Employee.View)]
+    public async Task<ActionResult<ApiResponse<List<EducationDto>>>> GetEducations(Guid id, CancellationToken ct)
+    {
+        var records = await _context.EmployeeEducations.Where(e => e.EmployeeId == id).ToListAsync(ct);
+        return Ok(ApiResponse<List<EducationDto>>.Ok(_mapper.Map<List<EducationDto>>(records)));
+    }
+
+    [HttpPost("{id:guid}/educations")]
+    [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
+    public async Task<ActionResult<ApiResponse<EducationDto>>> AddEducation(Guid id, [FromBody] AddEducationRequest request, CancellationToken ct)
+    {
+        var employee = await _context.Employees.FindAsync(new object[] { id }, ct);
+        if (employee == null) return NotFound(ApiResponse<EducationDto>.Fail("Employee not found."));
+        var edu = _mapper.Map<EmployeeEducation>(request);
+        edu.EmployeeId = id;
+        _context.EmployeeEducations.Add(edu);
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<EducationDto>.Ok(_mapper.Map<EducationDto>(edu)));
+    }
+
+    [HttpPut("{id:guid}/educations/{eduId:guid}")]
+    [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
+    public async Task<ActionResult<ApiResponse<EducationDto>>> UpdateEducation(Guid id, Guid eduId, [FromBody] UpdateEducationRequest request, CancellationToken ct)
+    {
+        var edu = await _context.EmployeeEducations.FirstOrDefaultAsync(e => e.EduId == eduId && e.EmployeeId == id, ct);
+        if (edu == null) return NotFound(ApiResponse<EducationDto>.Fail("Education record not found."));
+        _mapper.Map(request, edu);
+        edu.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<EducationDto>.Ok(_mapper.Map<EducationDto>(edu)));
+    }
+
+    [HttpDelete("{id:guid}/educations/{eduId:guid}")]
+    [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteEducation(Guid id, Guid eduId, CancellationToken ct)
+    {
+        var edu = await _context.EmployeeEducations.FirstOrDefaultAsync(e => e.EduId == eduId && e.EmployeeId == id, ct);
+        if (edu == null) return NotFound(ApiResponse<object>.Fail("Education record not found."));
+        _context.EmployeeEducations.Remove(edu);
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<object>.Ok(null, "Education record deleted."));
+    }
+
+    // ─── Experience ───────────────────────────────────────────────────────────
+
+    [HttpGet("{id:guid}/experiences")]
+    [Filters.RequirePermission(PermissionCodes.Employee.View)]
+    public async Task<ActionResult<ApiResponse<List<ExperienceDto>>>> GetExperiences(Guid id, CancellationToken ct)
+    {
+        var records = await _context.EmployeeExperiences.Where(e => e.EmployeeId == id).ToListAsync(ct);
+        return Ok(ApiResponse<List<ExperienceDto>>.Ok(_mapper.Map<List<ExperienceDto>>(records)));
+    }
+
+    [HttpPost("{id:guid}/experiences")]
+    [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
+    public async Task<ActionResult<ApiResponse<ExperienceDto>>> AddExperience(Guid id, [FromBody] AddExperienceRequest request, CancellationToken ct)
+    {
+        var employee = await _context.Employees.FindAsync(new object[] { id }, ct);
+        if (employee == null) return NotFound(ApiResponse<ExperienceDto>.Fail("Employee not found."));
+        var exp = _mapper.Map<EmployeeExperience>(request);
+        exp.EmployeeId = id;
+        _context.EmployeeExperiences.Add(exp);
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<ExperienceDto>.Ok(_mapper.Map<ExperienceDto>(exp)));
+    }
+
+    [HttpPut("{id:guid}/experiences/{expId:guid}")]
+    [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
+    public async Task<ActionResult<ApiResponse<ExperienceDto>>> UpdateExperience(Guid id, Guid expId, [FromBody] UpdateExperienceRequest request, CancellationToken ct)
+    {
+        var exp = await _context.EmployeeExperiences.FirstOrDefaultAsync(e => e.ExpId == expId && e.EmployeeId == id, ct);
+        if (exp == null) return NotFound(ApiResponse<ExperienceDto>.Fail("Experience record not found."));
+        _mapper.Map(request, exp);
+        exp.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<ExperienceDto>.Ok(_mapper.Map<ExperienceDto>(exp)));
+    }
+
+    [HttpDelete("{id:guid}/experiences/{expId:guid}")]
+    [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteExperience(Guid id, Guid expId, CancellationToken ct)
+    {
+        var exp = await _context.EmployeeExperiences.FirstOrDefaultAsync(e => e.ExpId == expId && e.EmployeeId == id, ct);
+        if (exp == null) return NotFound(ApiResponse<object>.Fail("Experience record not found."));
+        _context.EmployeeExperiences.Remove(exp);
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<object>.Ok(null, "Experience record deleted."));
+    }
+
+    // ─── PF Nominees ─────────────────────────────────────────────────────────
+
+    [HttpGet("{id:guid}/nominees")]
+    [Filters.RequirePermission(PermissionCodes.Employee.View)]
+    public async Task<ActionResult<ApiResponse<List<PFNomineeDto>>>> GetNominees(Guid id, CancellationToken ct)
+    {
+        var nominees = await _context.PFNominees.Where(n => n.EmployeeId == id).ToListAsync(ct);
+        return Ok(ApiResponse<List<PFNomineeDto>>.Ok(_mapper.Map<List<PFNomineeDto>>(nominees)));
+    }
+
+    [HttpPost("{id:guid}/nominees")]
+    [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
+    public async Task<ActionResult<ApiResponse<PFNomineeDto>>> AddNominee(Guid id, [FromBody] AddPFNomineeRequest request, CancellationToken ct)
+    {
+        var employee = await _context.Employees.FindAsync(new object[] { id }, ct);
+        if (employee == null) return NotFound(ApiResponse<PFNomineeDto>.Fail("Employee not found."));
+        var nominee = _mapper.Map<PFNominee>(request);
+        nominee.EmployeeId = id;
+        _context.PFNominees.Add(nominee);
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<PFNomineeDto>.Ok(_mapper.Map<PFNomineeDto>(nominee)));
+    }
+
+    [HttpPut("{id:guid}/nominees/{nomineeId:guid}")]
+    [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
+    public async Task<ActionResult<ApiResponse<PFNomineeDto>>> UpdateNominee(Guid id, Guid nomineeId, [FromBody] UpdatePFNomineeRequest request, CancellationToken ct)
+    {
+        var nominee = await _context.PFNominees.FirstOrDefaultAsync(n => n.NomineeId == nomineeId && n.EmployeeId == id, ct);
+        if (nominee == null) return NotFound(ApiResponse<PFNomineeDto>.Fail("Nominee not found."));
+        _mapper.Map(request, nominee);
+        nominee.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<PFNomineeDto>.Ok(_mapper.Map<PFNomineeDto>(nominee)));
+    }
+
+    [HttpDelete("{id:guid}/nominees/{nomineeId:guid}")]
+    [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteNominee(Guid id, Guid nomineeId, CancellationToken ct)
+    {
+        var nominee = await _context.PFNominees.FirstOrDefaultAsync(n => n.NomineeId == nomineeId && n.EmployeeId == id, ct);
+        if (nominee == null) return NotFound(ApiResponse<object>.Fail("Nominee not found."));
+        _context.PFNominees.Remove(nominee);
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<object>.Ok(null, "Nominee deleted."));
+    }
+
+    // ─── Document Download ────────────────────────────────────────────────────
+
+    [HttpGet("{id:guid}/documents/{docId:guid}/download")]
+    [Filters.RequirePermission(PermissionCodes.Employee.View)]
+    public async Task<IActionResult> DownloadDocument(Guid id, Guid docId, CancellationToken ct)
+    {
+        var doc = await _context.EmployeeDocuments.FirstOrDefaultAsync(d => d.DocId == docId && d.EmployeeId == id, ct);
+        if (doc == null) return NotFound();
+        if (!System.IO.File.Exists(doc.FilePath))
+            return NotFound("File not found on disk.");
+        var contentType = doc.DocName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)
+            ? "application/pdf"
+            : doc.DocName.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || doc.DocName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || doc.DocName.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+                ? "image/jpeg"
+                : "application/octet-stream";
+        var fileBytes = await System.IO.File.ReadAllBytesAsync(doc.FilePath, ct);
+        return File(fileBytes, contentType, doc.DocName);
     }
 
     // ─── My Profile (ESS) ─────────────────────────────────────────────────────

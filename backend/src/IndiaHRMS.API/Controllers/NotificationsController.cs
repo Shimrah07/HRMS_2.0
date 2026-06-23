@@ -83,4 +83,14 @@ public class NotificationsController : ControllerBase
         await _context.SaveChangesAsync(ct);
         return Ok(ApiResponse<object>.Ok(null));
     }
+
+    [HttpDelete("clear-all")]
+    public async Task<ActionResult<ApiResponse<object>>> ClearAll(CancellationToken ct)
+    {
+        if (!_currentUser.UserId.HasValue) return Unauthorized(ApiResponse<object>.Fail("Unauthorized."));
+        var userNotifications = _context.Notifications.Where(n => n.UserId == _currentUser.UserId);
+        _context.Notifications.RemoveRange(userNotifications);
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<object>.Ok(null, "All notifications cleared."));
+    }
 }

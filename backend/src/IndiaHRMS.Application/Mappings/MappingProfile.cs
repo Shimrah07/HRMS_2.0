@@ -3,6 +3,7 @@ using IndiaHRMS.Application.DTOs.Auth;
 using IndiaHRMS.Application.DTOs.Employee;
 using IndiaHRMS.Application.DTOs.Organization;
 using IndiaHRMS.Application.DTOs.User;
+using IndiaHRMS.Application.DTOs.Performance;
 using IndiaHRMS.Domain.Entities;
 using IndiaHRMS.Domain.Enums;
 
@@ -127,8 +128,37 @@ public class HRMSMappingProfile : Profile
         CreateMap<EmployeeBankDetail, BankDetailDto>()
             .ForMember(d => d.MaskedAccountNumber, o => o.Ignore());
         CreateMap<EmployeeEducation, EducationDto>();
+        CreateMap<AddEducationRequest, EmployeeEducation>()
+            .ForMember(d => d.EduId, o => o.Ignore())
+            .ForMember(d => d.EmployeeId, o => o.Ignore())
+            .ForMember(d => d.Employee, o => o.Ignore());
+        CreateMap<UpdateEducationRequest, EmployeeEducation>()
+            .ForMember(d => d.EduId, o => o.Ignore())
+            .ForMember(d => d.EmployeeId, o => o.Ignore())
+            .ForMember(d => d.Employee, o => o.Ignore());
         CreateMap<EmployeeExperience, ExperienceDto>();
+        CreateMap<AddExperienceRequest, EmployeeExperience>()
+            .ForMember(d => d.ExpId, o => o.Ignore())
+            .ForMember(d => d.EmployeeId, o => o.Ignore())
+            .ForMember(d => d.IsVerified, o => o.MapFrom(_ => false))
+            .ForMember(d => d.Employee, o => o.Ignore());
+        CreateMap<UpdateExperienceRequest, EmployeeExperience>()
+            .ForMember(d => d.ExpId, o => o.Ignore())
+            .ForMember(d => d.EmployeeId, o => o.Ignore())
+            .ForMember(d => d.IsVerified, o => o.Ignore())
+            .ForMember(d => d.Employee, o => o.Ignore());
         CreateMap<PFNominee, PFNomineeDto>();
+        CreateMap<AddPFNomineeRequest, PFNominee>()
+            .ForMember(d => d.NomineeId, o => o.Ignore())
+            .ForMember(d => d.EmployeeId, o => o.Ignore())
+            .ForMember(d => d.AadharNumber, o => o.Ignore())
+            .ForMember(d => d.Employee, o => o.Ignore());
+        CreateMap<UpdatePFNomineeRequest, PFNominee>()
+            .ForMember(d => d.NomineeId, o => o.Ignore())
+            .ForMember(d => d.EmployeeId, o => o.Ignore())
+            .ForMember(d => d.AadharNumber, o => o.Ignore())
+            .ForMember(d => d.Employee, o => o.Ignore());
+
 
         // ─── Audit Log ─────────────────────────────────────────────────────────
         CreateMap<AuditLog, AuditLogDto>()
@@ -137,5 +167,66 @@ public class HRMSMappingProfile : Profile
         // ─── Notification ──────────────────────────────────────────────────────
         CreateMap<Notification, NotificationDto>()
             .ForMember(d => d.Type, o => o.MapFrom(s => s.Type.ToString()));
+
+        // ─── Performance ──────────────────────────────────────────────────────
+        CreateMap<AppraisalCycle, AppraisalCycleDto>();
+        CreateMap<CreateAppraisalCycleRequest, AppraisalCycle>()
+            .ForMember(d => d.CycleId, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.EmployeeGoals, o => o.Ignore())
+            .ForMember(d => d.PerformanceReviews, o => o.Ignore());
+
+        CreateMap<EmployeeGoal, EmployeeGoalDto>()
+            .ForMember(d => d.EmployeeName, o => o.MapFrom(s => $"{s.Employee.FirstName} {s.Employee.LastName}"));
+        CreateMap<CreateGoalRequest, EmployeeGoal>()
+            .ForMember(d => d.GoalId, o => o.Ignore())
+            .ForMember(d => d.Status, o => o.MapFrom(_ => "Active"))
+            .ForMember(d => d.SelfRating, o => o.Ignore())
+            .ForMember(d => d.ManagerRating, o => o.Ignore())
+            .ForMember(d => d.Cycle, o => o.Ignore())
+            .ForMember(d => d.Employee, o => o.Ignore());
+        CreateMap<UpdateGoalRequest, EmployeeGoal>()
+            .ForMember(d => d.GoalId, o => o.Ignore())
+            .ForMember(d => d.CycleId, o => o.Ignore())
+            .ForMember(d => d.EmployeeId, o => o.Ignore())
+            .ForMember(d => d.Cycle, o => o.Ignore())
+            .ForMember(d => d.Employee, o => o.Ignore());
+
+        CreateMap<PerformanceReview, PerformanceReviewDto>()
+            .ForMember(d => d.CycleName, o => o.MapFrom(s => s.Cycle.CycleName))
+            .ForMember(d => d.EmployeeName, o => o.MapFrom(s => $"{s.Employee.FirstName} {s.Employee.LastName}"))
+            .ForMember(d => d.EmployeeCode, o => o.MapFrom(s => s.Employee.EmployeeCode))
+            .ForMember(d => d.DesignationTitle, o => o.MapFrom(s => s.Employee.Designation.Title))
+            .ForMember(d => d.DepartmentName, o => o.MapFrom(s => s.Employee.Department.DeptName))
+            .ForMember(d => d.ReviewerName, o => o.MapFrom(s => $"{s.Reviewer.FirstName} {s.Reviewer.LastName}"));
+        CreateMap<CreateReviewRequest, PerformanceReview>()
+            .ForMember(d => d.ReviewId, o => o.Ignore())
+            .ForMember(d => d.ReviewerId, o => o.Ignore())
+            .ForMember(d => d.SubmittedAt, o => o.Ignore())
+            .ForMember(d => d.Cycle, o => o.Ignore())
+            .ForMember(d => d.Employee, o => o.Ignore())
+            .ForMember(d => d.Reviewer, o => o.Ignore());
+
+        CreateMap<PIP, PipDto>()
+            .ForMember(d => d.EmployeeName, o => o.MapFrom(s => $"{s.Employee.FirstName} {s.Employee.LastName}"))
+            .ForMember(d => d.EmployeeCode, o => o.MapFrom(s => s.Employee.EmployeeCode))
+            .ForMember(d => d.DesignationTitle, o => o.MapFrom(s => s.Employee.Designation.Title))
+            .ForMember(d => d.DepartmentName, o => o.MapFrom(s => s.Employee.Department.DeptName))
+            .ForMember(d => d.InitiatorName, o => o.Ignore());
+        CreateMap<CreatePipRequest, PIP>()
+            .ForMember(d => d.PIPId, o => o.Ignore())
+            .ForMember(d => d.Status, o => o.MapFrom(_ => PIPStatus.Active))
+            .ForMember(d => d.InitiatedBy, o => o.Ignore())
+            .ForMember(d => d.ClosedAt, o => o.Ignore())
+            .ForMember(d => d.Employee, o => o.Ignore());
+        CreateMap<UpdatePipRequest, PIP>()
+            .ForMember(d => d.PIPId, o => o.Ignore())
+            .ForMember(d => d.EmployeeId, o => o.Ignore())
+            .ForMember(d => d.StartDate, o => o.Ignore())
+            .ForMember(d => d.EndDate, o => o.Ignore())
+            .ForMember(d => d.Reason, o => o.Ignore())
+            .ForMember(d => d.InitiatedBy, o => o.Ignore())
+            .ForMember(d => d.ClosedAt, o => o.Ignore())
+            .ForMember(d => d.Employee, o => o.Ignore());
     }
 }

@@ -186,6 +186,8 @@ try
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.MigrateAsync();
         Log.Information("Database migrated successfully.");
+        await DatabaseSeeder.SeedAsync(db);
+        Log.Information("Database seeded successfully.");
     }
 
     // ─── Middleware Pipeline ──────────────────────────────────────────────────

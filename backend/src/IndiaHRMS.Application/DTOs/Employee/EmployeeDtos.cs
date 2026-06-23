@@ -19,6 +19,7 @@ public class EmployeeListDto
     public string DepartmentName { get; set; } = string.Empty;
     public string DesignationTitle { get; set; } = string.Empty;
     public string LocationName { get; set; } = string.Empty;
+    public Guid? ReportingManagerId { get; set; }
     public string? ReportingManagerName { get; set; }
     public EmploymentType EmploymentType { get; set; }
     public EmploymentStatus EmploymentStatus { get; set; }
@@ -254,6 +255,66 @@ public class ExperienceDto
 public class PFNomineeDto
 {
     public Guid NomineeId { get; set; }
+    public string NomineeName { get; set; } = string.Empty;
+    public Relationship Relationship { get; set; }
+    public DateOnly? DateOfBirth { get; set; }
+    public decimal Percentage { get; set; }
+}
+
+// ─── Request DTOs for Education ───────────────────────────────────────────────
+
+public class AddEducationRequest
+{
+    public string Degree { get; set; } = string.Empty;
+    public string Institution { get; set; } = string.Empty;
+    public string? University { get; set; }
+    public int? PassingYear { get; set; }
+    public decimal? Percentage { get; set; }
+    public bool IsHighest { get; set; }
+}
+
+public class UpdateEducationRequest
+{
+    public string Degree { get; set; } = string.Empty;
+    public string Institution { get; set; } = string.Empty;
+    public string? University { get; set; }
+    public int? PassingYear { get; set; }
+    public decimal? Percentage { get; set; }
+    public bool IsHighest { get; set; }
+}
+
+// ─── Request DTOs for Experience ──────────────────────────────────────────────
+
+public class AddExperienceRequest
+{
+    public string CompanyName { get; set; } = string.Empty;
+    public string? Designation { get; set; }
+    public DateOnly FromDate { get; set; }
+    public DateOnly? ToDate { get; set; }
+    public string? ReasonForLeaving { get; set; }
+}
+
+public class UpdateExperienceRequest
+{
+    public string CompanyName { get; set; } = string.Empty;
+    public string? Designation { get; set; }
+    public DateOnly FromDate { get; set; }
+    public DateOnly? ToDate { get; set; }
+    public string? ReasonForLeaving { get; set; }
+}
+
+// ─── Request DTOs for PF Nominees ────────────────────────────────────────────
+
+public class AddPFNomineeRequest
+{
+    public string NomineeName { get; set; } = string.Empty;
+    public Relationship Relationship { get; set; }
+    public DateOnly? DateOfBirth { get; set; }
+    public decimal Percentage { get; set; }
+}
+
+public class UpdatePFNomineeRequest
+{
     public string NomineeName { get; set; } = string.Empty;
     public Relationship Relationship { get; set; }
     public DateOnly? DateOfBirth { get; set; }
