@@ -10,6 +10,7 @@ const useAuthStore = create(
       isAuthenticated: false,
       permissions: [],
       roles: [],
+      mustChangePassword: false,
 
       setAuth: (data) => {
         const { accessToken, refreshToken, user, roles, permissions } = data
@@ -22,6 +23,7 @@ const useAuthStore = create(
           isAuthenticated: true,
           permissions: permissions || user?.permissions || [],
           roles: roles || user?.roles || [],
+          mustChangePassword: user?.mustChangePassword ?? false,
         })
       },
 
@@ -29,6 +31,19 @@ const useAuthStore = create(
         localStorage.setItem('accessToken', accessToken)
         if (refreshToken) localStorage.setItem('refreshToken', refreshToken)
         set({ accessToken, ...(refreshToken && { refreshToken }) })
+      },
+
+      updateUser: (fields) => {
+        set((state) => ({
+          user: state.user ? { ...state.user, ...fields } : null
+        }))
+      },
+
+      clearMustChangePassword: () => {
+        set((state) => ({
+          mustChangePassword: false,
+          user: state.user ? { ...state.user, mustChangePassword: false } : null,
+        }))
       },
 
       logout: () => {
@@ -41,6 +56,7 @@ const useAuthStore = create(
           isAuthenticated: false,
           permissions: [],
           roles: [],
+          mustChangePassword: false,
         })
       },
 
@@ -61,6 +77,11 @@ const useAuthStore = create(
         return roleList.some((r) => roles.includes(r))
       },
 
+      hasAnyPermission: (...codes) => {
+        const { permissions } = get()
+        return codes.some((c) => permissions.includes(c))
+      },
+
       isSuperAdmin: () => {
         return get().roles.includes('SUPER_ADMIN')
       },
@@ -74,6 +95,7 @@ const useAuthStore = create(
         isAuthenticated: state.isAuthenticated,
         permissions: state.permissions,
         roles: state.roles,
+        mustChangePassword: state.mustChangePassword,
       }),
     }
   )

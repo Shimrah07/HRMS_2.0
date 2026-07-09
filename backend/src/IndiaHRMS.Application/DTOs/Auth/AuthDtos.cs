@@ -33,5 +33,6 @@ public record UserInfoDto(
     Guid? CompanyId,
     string? CompanyName,
     List<string> Roles,
-    List<string> Permissions
+    List<string> Permissions,
+    bool MustChangePassword = false
 );

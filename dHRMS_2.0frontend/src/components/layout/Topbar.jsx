@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import useAuthStore from '../../store/authStore'
 import useUIStore from '../../store/uiStore'
+import { getAvatarUrl } from '../../constants/api'
 import { notificationService } from '../../services/notificationService'
 
 const { Header } = Layout
@@ -70,13 +71,13 @@ export default function Topbar() {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 16px 0 20px',
-        background: isDarkMode ? 'rgba(19, 24, 64, 0.88)' : 'rgba(255, 255, 255, 0.88)',
+        background: isDarkMode ? 'rgba(14, 7, 38, 0.88)' : 'rgba(255, 255, 255, 0.88)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(16,17,63,0.06)',
+        border: isDarkMode ? '1px solid rgba(160, 90, 255, 0.18)' : '1px solid rgba(16,17,63,0.06)',
         borderRadius: 14,
         boxShadow: isDarkMode
-          ? '0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.04)'
+          ? '0 8px 32px rgba(5,2,20,0.5), inset 0 0 0 1px rgba(160,90,255,0.08)'
           : '0 8px 32px rgba(16,17,63,0.05), inset 0 0 0 1px rgba(255,255,255,0.8)',
         transition: 'left 0.25s cubic-bezier(0.16,1,0.3,1), background 0.2s ease, box-shadow 0.2s ease',
       }}
@@ -86,8 +87,8 @@ export default function Topbar() {
         aria-label="Open command palette (Cmd+K)"
         onClick={openCommandPalette}
         style={{
-          background: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(16,17,63,0.04)',
-          border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(16,17,63,0.09)',
+          background: isDarkMode ? 'rgba(160,90,255,0.06)' : 'rgba(16,17,63,0.04)',
+          border: isDarkMode ? '1px solid rgba(160,90,255,0.18)' : '1px solid rgba(16,17,63,0.09)',
           borderRadius: 9,
           display: 'flex',
           alignItems: 'center',
@@ -102,11 +103,11 @@ export default function Topbar() {
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.borderColor = isDarkMode ? 'rgba(250,167,26,0.4)' : 'rgba(16,17,63,0.18)'
-          e.currentTarget.style.color = isDarkMode ? 'rgba(250,167,26,0.8)' : 'rgba(16,17,63,0.65)'
+          e.currentTarget.style.color = isDarkMode ? 'rgba(250,167,26,0.85)' : 'rgba(16,17,63,0.65)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(16,17,63,0.09)'
-          e.currentTarget.style.color = isDarkMode ? 'rgba(255,255,255,0.4)' : 'rgba(16,17,63,0.4)'
+          e.currentTarget.style.borderColor = isDarkMode ? 'rgba(160,90,255,0.18)' : 'rgba(16,17,63,0.09)'
+          e.currentTarget.style.color = isDarkMode ? 'rgba(240,244,255,0.45)' : 'rgba(16,17,63,0.4)'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -116,11 +117,11 @@ export default function Topbar() {
         <kbd
           style={{
             fontSize: 10.5,
-            background: isDarkMode ? 'rgba(255,255,255,0.07)' : 'rgba(16,17,63,0.06)',
+            background: isDarkMode ? 'rgba(160,90,255,0.1)' : 'rgba(16,17,63,0.06)',
             padding: '1px 5px',
             borderRadius: 5,
-            border: isDarkMode ? '1px solid rgba(255,255,255,0.14)' : '1px solid rgba(16,17,63,0.1)',
-            color: isDarkMode ? 'rgba(255,255,255,0.55)' : 'rgba(16,17,63,0.4)',
+            border: isDarkMode ? '1px solid rgba(160,90,255,0.2)' : '1px solid rgba(16,17,63,0.1)',
+            color: isDarkMode ? 'rgba(200,160,255,0.7)' : 'rgba(16,17,63,0.4)',
             fontFamily: 'inherit',
           }}
         >
@@ -204,23 +205,24 @@ export default function Topbar() {
               padding: '4px 10px 4px 4px',
               borderRadius: 10,
               cursor: 'pointer',
-              border: isDarkMode ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(16,17,63,0.09)',
+              border: isDarkMode ? '1px solid rgba(160, 90, 255, 0.2)' : '1px solid rgba(16,17,63,0.09)',
               marginLeft: 6,
               transition: 'border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = isDarkMode ? 'rgba(250,167,26,0.45)' : 'rgba(16,17,63,0.2)'
-              e.currentTarget.style.background = isDarkMode ? 'rgba(250,167,26,0.06)' : 'rgba(16,17,63,0.03)'
-              e.currentTarget.style.boxShadow = isDarkMode ? '0 0 0 3px rgba(250,167,26,0.1)' : '0 0 0 3px rgba(16,17,63,0.04)'
+              e.currentTarget.style.borderColor = isDarkMode ? 'rgba(250,167,26,0.5)' : 'rgba(16,17,63,0.2)'
+              e.currentTarget.style.background = isDarkMode ? 'rgba(250,167,26,0.07)' : 'rgba(16,17,63,0.03)'
+              e.currentTarget.style.boxShadow = isDarkMode ? '0 0 0 3px rgba(250,167,26,0.12)' : '0 0 0 3px rgba(16,17,63,0.04)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(16,17,63,0.09)'
+              e.currentTarget.style.borderColor = isDarkMode ? 'rgba(160,90,255,0.2)' : 'rgba(16,17,63,0.09)'
               e.currentTarget.style.background = 'transparent'
               e.currentTarget.style.boxShadow = 'none'
             }}
           >
             <Avatar
               size={30}
+              src={getAvatarUrl(user?.profilePhoto)}
               style={{
                 background: isDarkMode
                   ? 'linear-gradient(135deg, #FAA71A 0%, #f7c358 100%)'

@@ -92,16 +92,16 @@ public class PerformanceController : ControllerBase
         else
         {
             if (!_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin) && 
-                !_currentUser.HasRole(RoleCodes.DeptManager))
+                !_currentUser.HasRole(RoleCodes.DeptManager) && !_currentUser.HasRole(RoleCodes.ReportingManager))
             {
                 if (!_currentUser.EmployeeId.HasValue)
                     return BadRequest(ApiResponse<List<EmployeeGoalDto>>.Fail("No employee linked to this user account."));
                 query = query.Where(g => g.EmployeeId == _currentUser.EmployeeId.Value);
             }
-            else if (_currentUser.HasRole(RoleCodes.DeptManager) && 
+            else if ((_currentUser.HasRole(RoleCodes.DeptManager) || _currentUser.HasRole(RoleCodes.ReportingManager)) && 
                      !_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin))
             {
-                query = query.Where(g => g.Employee.ReportingManagerId == _currentUser.EmployeeId || g.EmployeeId == _currentUser.EmployeeId);
+                query = query.Where(g => g.Employee.ReportingManagerId == _currentUser.EmployeeId || g.Employee.L2ReportingManagerId == _currentUser.EmployeeId || g.EmployeeId == _currentUser.EmployeeId);
             }
         }
 
@@ -236,7 +236,7 @@ public class PerformanceController : ControllerBase
                 !_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin))
             {
                 var emp = await _context.Employees.FindAsync(new object[] { employeeId.Value }, ct);
-                if (emp == null || emp.ReportingManagerId != _currentUser.EmployeeId)
+                if (emp == null || (emp.ReportingManagerId != _currentUser.EmployeeId && emp.L2ReportingManagerId != _currentUser.EmployeeId))
                 {
                     return Forbid();
                 }
@@ -246,16 +246,16 @@ public class PerformanceController : ControllerBase
         else
         {
             if (!_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin) && 
-                !_currentUser.HasRole(RoleCodes.DeptManager))
+                !_currentUser.HasRole(RoleCodes.DeptManager) && !_currentUser.HasRole(RoleCodes.ReportingManager))
             {
                 if (!_currentUser.EmployeeId.HasValue)
                     return BadRequest(ApiResponse<List<PerformanceReviewDto>>.Fail("No employee profile linked to this user account."));
                 query = query.Where(r => r.EmployeeId == _currentUser.EmployeeId.Value);
             }
-            else if (_currentUser.HasRole(RoleCodes.DeptManager) && 
+            else if ((_currentUser.HasRole(RoleCodes.DeptManager) || _currentUser.HasRole(RoleCodes.ReportingManager)) && 
                      !_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin))
             {
-                query = query.Where(r => r.Employee.ReportingManagerId == _currentUser.EmployeeId || r.EmployeeId == _currentUser.EmployeeId || r.ReviewerId == _currentUser.EmployeeId);
+                query = query.Where(r => r.Employee.ReportingManagerId == _currentUser.EmployeeId || r.Employee.L2ReportingManagerId == _currentUser.EmployeeId || r.EmployeeId == _currentUser.EmployeeId || r.ReviewerId == _currentUser.EmployeeId);
             }
         }
 
@@ -276,7 +276,7 @@ public class PerformanceController : ControllerBase
             return BadRequest(ApiResponse<PerformanceReviewDto>.Fail("No employee profile linked."));
 
         if (request.EmployeeId != _currentUser.EmployeeId && 
-            !_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin, RoleCodes.DeptManager))
+            !_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin, RoleCodes.DeptManager, RoleCodes.ReportingManager))
         {
             return Forbid();
         }
@@ -285,7 +285,7 @@ public class PerformanceController : ControllerBase
         {
             var emp = await _context.Employees.FindAsync(new object[] { request.EmployeeId }, ct);
             if (emp == null) return NotFound(ApiResponse<PerformanceReviewDto>.Fail("Employee not found."));
-            if (emp.ReportingManagerId != _currentUser.EmployeeId && 
+            if (emp.ReportingManagerId != _currentUser.EmployeeId && emp.L2ReportingManagerId != _currentUser.EmployeeId && 
                 !_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin))
             {
                 return Forbid();
@@ -345,7 +345,7 @@ public class PerformanceController : ControllerBase
                 !_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin))
             {
                 var emp = await _context.Employees.FindAsync(new object[] { employeeId.Value }, ct);
-                if (emp == null || emp.ReportingManagerId != _currentUser.EmployeeId)
+                if (emp == null || (emp.ReportingManagerId != _currentUser.EmployeeId && emp.L2ReportingManagerId != _currentUser.EmployeeId))
                     return Forbid();
             }
             query = query.Where(p => p.EmployeeId == employeeId.Value);
@@ -353,16 +353,16 @@ public class PerformanceController : ControllerBase
         else
         {
             if (!_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin) && 
-                !_currentUser.HasRole(RoleCodes.DeptManager))
+                !_currentUser.HasRole(RoleCodes.DeptManager) && !_currentUser.HasRole(RoleCodes.ReportingManager))
             {
                 if (!_currentUser.EmployeeId.HasValue)
                     return BadRequest(ApiResponse<List<PipDto>>.Fail("No employee linked."));
                 query = query.Where(p => p.EmployeeId == _currentUser.EmployeeId.Value);
             }
-            else if (_currentUser.HasRole(RoleCodes.DeptManager) && 
+            else if ((_currentUser.HasRole(RoleCodes.DeptManager) || _currentUser.HasRole(RoleCodes.ReportingManager)) && 
                      !_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin))
             {
-                query = query.Where(p => p.Employee.ReportingManagerId == _currentUser.EmployeeId || p.EmployeeId == _currentUser.EmployeeId);
+                query = query.Where(p => p.Employee.ReportingManagerId == _currentUser.EmployeeId || p.Employee.L2ReportingManagerId == _currentUser.EmployeeId || p.EmployeeId == _currentUser.EmployeeId);
             }
         }
 
@@ -386,13 +386,13 @@ public class PerformanceController : ControllerBase
         if (!_currentUser.EmployeeId.HasValue)
             return BadRequest(ApiResponse<PipDto>.Fail("No employee linked."));
 
-        if (!_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin, RoleCodes.DeptManager))
+        if (!_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin, RoleCodes.DeptManager, RoleCodes.ReportingManager))
             return Forbid();
 
         if (!_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin))
         {
             var emp = await _context.Employees.FindAsync(new object[] { request.EmployeeId }, ct);
-            if (emp == null || emp.ReportingManagerId != _currentUser.EmployeeId)
+            if (emp == null || (emp.ReportingManagerId != _currentUser.EmployeeId && emp.L2ReportingManagerId != _currentUser.EmployeeId))
                 return Forbid();
         }
 
@@ -427,7 +427,7 @@ public class PerformanceController : ControllerBase
 
         bool isAdmin = _currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin);
         bool isInitiator = pip.InitiatedBy == _currentUser.EmployeeId;
-        bool isManager = pip.Employee.ReportingManagerId == _currentUser.EmployeeId;
+        bool isManager = pip.Employee.ReportingManagerId == _currentUser.EmployeeId || pip.Employee.L2ReportingManagerId == _currentUser.EmployeeId;
 
         if (!isAdmin && !isInitiator && !isManager)
             return Forbid();

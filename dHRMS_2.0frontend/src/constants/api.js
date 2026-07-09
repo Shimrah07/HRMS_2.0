@@ -1,5 +1,13 @@
-// API base URL (proxied through Vite to http://localhost:5110)
 export const API_BASE = ''
+
+export const getAvatarUrl = (photoPath) => {
+  if (!photoPath) return null
+  if (photoPath.startsWith('http://') || photoPath.startsWith('https://') || photoPath.startsWith('data:')) {
+    return photoPath
+  }
+  const cleanPath = photoPath.startsWith('/') ? photoPath.slice(1) : photoPath
+  return `/uploads/${cleanPath}`
+}
 
 export const API = {
   // Auth
@@ -19,6 +27,7 @@ export const API = {
     MANAGER: `${API_BASE}/dashboard/manager`,
     EMPLOYEE: `${API_BASE}/dashboard/employee`,
     ATTENDANCE_TODAY: `${API_BASE}/dashboard/attendance-today`,
+    RECRUITMENT: `${API_BASE}/dashboard/recruitment`,
   },
 
   // Employees
@@ -62,6 +71,25 @@ export const API = {
     SETTINGS: `${API_BASE}/organization/settings`,
     SETTING: (key) => `${API_BASE}/organization/settings/${key}`,
     AUDIT_LOGS: `${API_BASE}/organization/audit-logs`,
+    BUSINESS_UNITS: `${API_BASE}/organization/business-units`,
+    BUSINESS_UNIT: (id) => `${API_BASE}/organization/business-units/${id}`,
+    DIVISIONS: `${API_BASE}/organization/divisions`,
+    DIVISION: (id) => `${API_BASE}/organization/divisions/${id}`,
+    SUB_DEPARTMENTS: `${API_BASE}/organization/sub-departments`,
+    SUB_DEPARTMENT: (id) => `${API_BASE}/organization/sub-departments/${id}`,
+    TEAMS: `${API_BASE}/organization/teams`,
+    TEAM: (id) => `${API_BASE}/organization/teams/${id}`,
+    GRADES: `${API_BASE}/organization/grades`,
+    GRADE: (id) => `${API_BASE}/organization/grades/${id}`,
+    BANDS: `${API_BASE}/organization/bands`,
+    BAND: (id) => `${API_BASE}/organization/bands/${id}`,
+    JOB_FAMILIES: `${API_BASE}/organization/job-families`,
+    JOB_FAMILY: (id) => `${API_BASE}/organization/job-families/${id}`,
+    JOB_FUNCTIONS: `${API_BASE}/organization/job-functions`,
+    JOB_FUNCTION: (id) => `${API_BASE}/organization/job-functions/${id}`,
+    PROFIT_CENTERS: `${API_BASE}/organization/profit-centers`,
+    PROFIT_CENTER: (id) => `${API_BASE}/organization/profit-centers/${id}`,
+    SHIFTS: `${API_BASE}/organization/shifts`,
   },
 
   // Users
@@ -113,4 +141,62 @@ export const API = {
     PIPS: `${API_BASE}/performance/pips`,
     PIP_DETAIL: (id) => `${API_BASE}/performance/pips/${id}`,
   },
+  RECRUITMENT: {
+    REQUISITIONS: `${API_BASE}/job-requisitions`,
+    REQUISITION: (id) => `${API_BASE}/job-requisitions/${id}`,
+    REQUISITION_SUBMIT: (id) => `${API_BASE}/job-requisitions/${id}/submit`,
+    REQUISITION_APPROVE: (id) => `${API_BASE}/job-requisitions/${id}/approve`,
+    REQUISITION_INTERNAL_CHECK: (id) => `${API_BASE}/job-requisitions/${id}/internal-check`,
+    POSTINGS: `${API_BASE}/job-postings`,
+    POSTING_ADMIN: `${API_BASE}/job-postings/admin`,
+    POSTING: (id) => `${API_BASE}/job-postings/${id}`,
+    POSTING_PUBLISH: (id) => `${API_BASE}/job-postings/${id}/publish`,
+    POSTING_CLOSE: (id) => `${API_BASE}/job-postings/${id}/close`,
+  },
+  CANDIDATES: {
+    LIST: `${API_BASE}/candidates`,
+    DETAIL: (id) => `${API_BASE}/candidates/${id}`,
+    RESUME: (id) => `${API_BASE}/candidates/${id}/resume`,
+    IMPORT: `${API_BASE}/candidates/import`,
+  },
+  APPLICATIONS: {
+    LIST: `${API_BASE}/job-applications`,
+    DETAIL: (id) => `${API_BASE}/job-applications/${id}`,
+    CREATE: `${API_BASE}/job-applications`,
+    STAGE: (id) => `${API_BASE}/job-applications/${id}/stage`,
+  },
+  INTERVIEWS: {
+    LIST: `${API_BASE}/interviews`,
+    SCHEDULE: `${API_BASE}/interviews`,
+    FEEDBACK: `${API_BASE}/interviews/feedback`,
+  },
+  OFFERS: {
+    LIST: `${API_BASE}/offers`,
+    DETAIL: (id) => `${API_BASE}/offers/${id}`,
+    CREATE: `${API_BASE}/offers`,
+    APPROVE: (id) => `${API_BASE}/offers/${id}/approve`,
+    DOWNLOAD: (id) => `${API_BASE}/offers/${id}/download`,
+    ACCEPT: (id) => `${API_BASE}/offers/${id}/accept`,
+  },
+  BGV: {
+    LIST: `${API_BASE}/bgv`,
+    INITIATE: `${API_BASE}/bgv`,
+    CHECK: (id) => `${API_BASE}/bgv/${id}/check`,
+  },
+  ONBOARDING: {
+    LIST: `${API_BASE}/onboarding`,
+    DETAIL: (id) => `${API_BASE}/onboarding/${id}`,
+    CHECKLIST: (id) => `${API_BASE}/onboarding/${id}/checklist`,
+    ASSIGN: (id) => `${API_BASE}/onboarding/${id}/assign`,
+    CONVERT: (id) => `${API_BASE}/onboarding/${id}/convert`,
+    TASKS: (id) => `${API_BASE}/onboarding/${id}/tasks`,
+    UPDATE_TASK: (taskId) => `${API_BASE}/onboarding/tasks/${taskId}`,
+    DASHBOARD_SUMMARY: `${API_BASE}/dashboard/onboarding/summary`,
+  },
+  PROBATION: {
+    LIST: `${API_BASE}/probation`,
+    REVIEWS: (employeeId) => `${API_BASE}/probation/${employeeId}/reviews`,
+    SUBMIT_REVIEW: (reviewId) => `${API_BASE}/probation/reviews/${reviewId}`,
+    CONFIRM: (employeeId) => `${API_BASE}/probation/${employeeId}/confirm`,
+  }
 }

@@ -128,13 +128,14 @@ export default function StatCard({
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 12, marginBottom: 8 }}>
         <span
           style={{
-            fontSize: 30,
+            fontSize: (value && value.toString().length > 10) ? 20 : (value && value.toString().length > 8) ? 22 : 30,
             fontWeight: 800,
             color: 'var(--color-text-primary)',
             letterSpacing: '-0.03em',
             lineHeight: 1.05,
             transition: 'color 0.2s ease',
-            wordBreak: 'break-all',
+            wordBreak: 'normal',
+            whiteSpace: 'nowrap',
           }}
         >
           {typeof value === 'number' ? value.toLocaleString() : (value ?? '—')}

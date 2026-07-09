@@ -37,13 +37,42 @@ const AttendancePage = lazy(() => import('../pages/attendance/AttendancePage'))
 const LeavePage = lazy(() => import('../pages/leave/LeavePage'))
 const PerformancePage = lazy(() => import('../pages/performance/PerformancePage'))
 const RecruitmentPage = lazy(() => import('../pages/recruitment/RecruitmentPage'))
+const CreateMrfPage = lazy(() => import('../pages/recruitment/CreateMrfPage'))
+const CandidatesPage = lazy(() => import('../pages/recruitment/CandidatesPage'))
+const OffersPage = lazy(() => import('../pages/recruitment/OffersPage'))
+const OnboardingPage = lazy(() => import('../pages/recruitment/OnboardingPage'))
+const ProbationPage = lazy(() => import('../pages/recruitment/ProbationPage'))
+const ConfirmationPage = lazy(() => import('../pages/recruitment/ConfirmationPage'))
+const JobOpeningsPage = lazy(() => import('../pages/recruitment/JobOpeningsPage'))
+const AtsPipelinePage = lazy(() => import('../pages/recruitment/AtsPipelinePage'))
+const InterviewsPage = lazy(() => import('../pages/recruitment/InterviewsPage'))
 const NotFoundPage = lazy(() => import('../pages/errors/NotFoundPage'))
 const UnauthorizedPage = lazy(() => import('../pages/errors/UnauthorizedPage'))
+const ChangePasswordPage = lazy(() => import('../pages/auth/ChangePasswordPage'))
+const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('../pages/auth/ResetPasswordPage'))
 
 const router = createBrowserRouter([
   {
     path: '/login',
     element: wrap(LoginPage),
+  },
+  {
+    path: '/forgot-password',
+    element: wrap(ForgotPasswordPage),
+  },
+  {
+    path: '/reset-password',
+    element: wrap(ResetPasswordPage),
+  },
+  {
+    // Force password change — full screen, no sidebar, auth required
+    path: '/change-password',
+    element: (
+      <ProtectedRoute>
+        {wrap(ChangePasswordPage)}
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/',
@@ -82,7 +111,22 @@ const router = createBrowserRouter([
       { path: 'attendance', element: <ProtectedRoute permission={PERMISSIONS.ATTENDANCE.VIEW}>{wrap(AttendancePage)}</ProtectedRoute> },
       { path: 'leave', element: <ProtectedRoute permission={PERMISSIONS.LEAVE.VIEW}>{wrap(LeavePage)}</ProtectedRoute> },
       { path: 'performance', element: <ProtectedRoute permission={PERMISSIONS.PERFORMANCE.VIEW}>{wrap(PerformancePage)}</ProtectedRoute> },
-      { path: 'recruitment', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(RecruitmentPage)}</ProtectedRoute> },
+      {
+        path: 'recruitment',
+        children: [
+          { index: true, element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(RecruitmentPage)}</ProtectedRoute> },
+          { path: 'mrf/create', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.CREATE}>{wrap(CreateMrfPage)}</ProtectedRoute> },
+          { path: 'mrf/:id/edit', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.EDIT}>{wrap(CreateMrfPage)}</ProtectedRoute> },
+          { path: 'candidates', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(CandidatesPage)}</ProtectedRoute> },
+          { path: 'jobs', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(JobOpeningsPage)}</ProtectedRoute> },
+          { path: 'pipeline', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(AtsPipelinePage)}</ProtectedRoute> },
+          { path: 'interviews', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(InterviewsPage)}</ProtectedRoute> },
+          { path: 'offers', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(OffersPage)}</ProtectedRoute> },
+          { path: 'onboarding', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(OnboardingPage)}</ProtectedRoute> },
+          { path: 'probation', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(ProbationPage)}</ProtectedRoute> },
+          { path: 'confirmation', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(ConfirmationPage)}</ProtectedRoute> },
+        ]
+      },
       { path: '403', element: wrap(UnauthorizedPage) },
       { path: '*', element: wrap(NotFoundPage) },
     ],

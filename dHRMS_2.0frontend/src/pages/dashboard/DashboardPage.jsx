@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Row, Col, Card, Skeleton, Tag, Progress, Button, Space } from 'antd'
+import { Row, Col, Card, Skeleton, Tag, Progress, Button, Space, Statistic } from 'antd'
 import {
   TeamOutlined,
   UserAddOutlined,
@@ -56,6 +56,12 @@ function HRDashboard() {
   const { data: hrData, isLoading: hrLoading } = useQuery({
     queryKey: ['dashboard', 'hr'],
     queryFn: dashboardService.getHRDashboard,
+    select: (res) => res?.data,
+  })
+
+  const { data: recData, isLoading: recLoading } = useQuery({
+    queryKey: ['dashboard', 'recruitment'],
+    queryFn: dashboardService.getRecruitmentDashboard,
     select: (res) => res?.data,
   })
 
@@ -123,11 +129,11 @@ function HRDashboard() {
 
   const chartTooltipStyle = {
     borderRadius: 12,
-    border: isDarkMode ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(16,17,63,0.08)',
+    border: isDarkMode ? '1px solid rgba(160, 90, 255, 0.25)' : '1px solid rgba(16,17,63,0.08)',
     fontSize: 13,
-    background: isDarkMode ? 'rgba(10,11,28,0.95)' : 'rgba(255,255,255,0.95)',
+    background: isDarkMode ? 'rgba(14, 7, 38, 0.97)' : 'rgba(255,255,255,0.95)',
     boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
-    color: isDarkMode ? '#ffffff' : '#10113F',
+    color: isDarkMode ? '#F0F4FF' : '#10113F',
   }
 
   return (
@@ -140,6 +146,55 @@ function HRDashboard() {
           </Col>
         ))}
       </Row>
+
+      {/* Recruitment Hub Metrics Section */}
+      <div style={{ marginBottom: 24 }}>
+        <div className="hrms-section-label" style={{ marginBottom: 12 }}>
+          Recruitment & ATS KPIs
+        </div>
+        <Row gutter={[16, 16]} style={{ display: 'flex', flexWrap: 'wrap' }}>
+          <Col xs={24} sm={12} lg={6} style={{ display: 'flex', flexDirection: 'column' }}>
+            <Card bordered={false} style={{ background: 'var(--color-bg-container)', border: 'var(--border-glass)', borderRadius: 12 }}>
+              <Statistic 
+                title="Average Time to Hire" 
+                value={recData?.averageTimeToHire != null ? `${recData.averageTimeToHire} Days` : 'N/A'} 
+                prefix={<ClockCircleOutlined style={{ color: '#FAA71A' }} />} 
+                loading={recLoading}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6} style={{ display: 'flex', flexDirection: 'column' }}>
+            <Card bordered={false} style={{ background: 'var(--color-bg-container)', border: 'var(--border-glass)', borderRadius: 12 }}>
+              <Statistic 
+                title="Open Requisition Positions" 
+                value={recData?.openPositions ?? 0} 
+                prefix={<TeamOutlined style={{ color: '#3B82F6' }} />} 
+                loading={recLoading}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6} style={{ display: 'flex', flexDirection: 'column' }}>
+            <Card bordered={false} style={{ background: 'var(--color-bg-container)', border: 'var(--border-glass)', borderRadius: 12 }}>
+              <Statistic 
+                title="Candidate Conversion Rate" 
+                value={recData?.candidateConversionRate != null ? `${recData.candidateConversionRate}%` : 'N/A'} 
+                prefix={<RiseOutlined style={{ color: '#22C55E' }} />} 
+                loading={recLoading}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6} style={{ display: 'flex', flexDirection: 'column' }}>
+            <Card bordered={false} style={{ background: 'var(--color-bg-container)', border: 'var(--border-glass)', borderRadius: 12 }}>
+              <Statistic 
+                title="Offer Acceptance Rate" 
+                value={recData?.offerAcceptanceRate != null ? `${recData.offerAcceptanceRate}%` : 'N/A'} 
+                prefix={<CheckCircleOutlined style={{ color: '#A855F7' }} />} 
+                loading={recLoading}
+              />
+            </Card>
+          </Col>
+        </Row>
+      </div>
 
       {/* Workforce Insights Section */}
       <div style={{ marginBottom: 24 }}>
@@ -297,9 +352,9 @@ function HRDashboard() {
                         <stop offset="95%" stopColor={isDarkMode ? '#FAA71A' : '#10113F'} stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(16,17,63,0.06)'} />
-                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: isDarkMode ? 'rgba(255,255,255,0.55)' : 'rgba(16,17,63,0.45)' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: isDarkMode ? 'rgba(255,255,255,0.55)' : 'rgba(16,17,63,0.45)' }} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? 'rgba(160, 90, 255, 0.15)' : 'rgba(16,17,63,0.06)'} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: isDarkMode ? 'rgba(200,160,255,0.6)' : 'rgba(16,17,63,0.45)' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: isDarkMode ? 'rgba(200,160,255,0.6)' : 'rgba(16,17,63,0.45)' }} axisLine={false} tickLine={false} />
                     <Tooltip
                       contentStyle={chartTooltipStyle}
                       itemStyle={{ color: isDarkMode ? '#ffffff' : '#10113F' }}
@@ -343,9 +398,9 @@ function HRDashboard() {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
                     {attendancePie.map((d) => (
-                      <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(16,17,63,0.02)', borderRadius: 6, border: isDarkMode ? '1px solid rgba(255,255,255,0.05)' : 'none', transition: 'all 0.25s' }}>
+                      <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: isDarkMode ? 'rgba(140, 70, 255, 0.06)' : 'rgba(16,17,63,0.02)', borderRadius: 6, border: isDarkMode ? '1px solid rgba(160, 90, 255, 0.12)' : 'none', transition: 'all 0.25s' }}>
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: ATTENDANCE_COLORS[d.name.replace(' ', '')] || '#CBD5E1', flexShrink: 0 }} />
-                        <span style={{ fontSize: 12, color: isDarkMode ? 'rgba(255,255,255,0.6)' : 'rgba(16,17,63,0.6)', fontWeight: 500, transition: 'color 0.25s' }}>{d.name}</span>
+                        <span style={{ fontSize: 12, color: isDarkMode ? 'rgba(200,160,255,0.75)' : 'rgba(16,17,63,0.6)', fontWeight: 500, transition: 'color 0.25s' }}>{d.name}</span>
                         <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: 'var(--color-text-primary)', transition: 'color 0.25s' }}>{d.value}</span>
                       </div>
                     ))}
@@ -369,14 +424,14 @@ function HRDashboard() {
               ) : (
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={hrData?.headcountByDept || []} margin={{ top: 8, right: 24, left: 0, bottom: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(16,17,63,0.06)'} />
-                    <XAxis dataKey="departmentName" tick={{ fontSize: 11, fill: isDarkMode ? 'rgba(255,255,255,0.55)' : 'rgba(16,17,63,0.45)' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: isDarkMode ? 'rgba(255,255,255,0.55)' : 'rgba(16,17,63,0.45)' }} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? 'rgba(160, 90, 255, 0.15)' : 'rgba(16,17,63,0.06)'} />
+                    <XAxis dataKey="departmentName" tick={{ fontSize: 11, fill: isDarkMode ? 'rgba(200,160,255,0.6)' : 'rgba(16,17,63,0.45)' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: isDarkMode ? 'rgba(200,160,255,0.6)' : 'rgba(16,17,63,0.45)' }} axisLine={false} tickLine={false} />
                     <Tooltip
                       contentStyle={chartTooltipStyle}
                       itemStyle={{ color: isDarkMode ? '#ffffff' : '#10113F' }}
                       labelStyle={{ color: isDarkMode ? '#FAA71A' : '#10113F', fontWeight: 'bold' }}
-                      cursor={isDarkMode ? { fill: 'rgba(255, 255, 255, 0.04)' } : { fill: 'rgba(16, 17, 63, 0.025)' }}
+                      cursor={isDarkMode ? { fill: 'rgba(140, 70, 255, 0.08)' } : { fill: 'rgba(16, 17, 63, 0.025)' }}
                     />
                     <Bar
                       dataKey="count"
@@ -586,7 +641,7 @@ function EmployeeDashboard() {
             <Row gutter={[12, 12]}>
               {Object.entries(dashboardData.leaveBalances).map(([code, balance]) => (
                 <Col xs={12} sm={8} md={6} key={code}>
-                  <div style={{ background: isDarkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(16, 17, 63, 0.02)', border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(16, 17, 63, 0.06)', borderRadius: 12, padding: 16, textAlign: 'center', transition: 'all 0.25s' }}>
+                  <div style={{ background: isDarkMode ? 'rgba(140, 70, 255, 0.08)' : 'rgba(16, 17, 63, 0.02)', border: isDarkMode ? '1px solid rgba(160, 90, 255, 0.18)' : '1px solid rgba(16, 17, 63, 0.06)', borderRadius: 12, padding: 16, textAlign: 'center', transition: 'all 0.25s' }}>
                     <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-text-primary)', transition: 'color 0.25s' }}>{balance}</div>
                     <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 4, transition: 'color 0.25s' }}>{code}</div>
                   </div>
@@ -601,7 +656,7 @@ function EmployeeDashboard() {
           <Card title={<span style={{ fontWeight: 800, color: 'var(--color-text-primary)', fontSize: 15, transition: 'color 0.25s' }}><CalendarOutlined style={{ color: '#FAA71A', marginRight: 8 }} />Upcoming Holidays</span>} style={{ borderRadius: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {dashboardData.upcomingHolidays.map((h, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < dashboardData.upcomingHolidays.length - 1 ? (isDarkMode ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #F0F0F0') : 'none' }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < dashboardData.upcomingHolidays.length - 1 ? (isDarkMode ? '1px solid rgba(160, 90, 255, 0.15)' : '1px solid #F0F0F0') : 'none' }}>
                   <div>
                     <div style={{ fontWeight: 600, color: 'var(--color-text-primary)', transition: 'color 0.25s' }}>{h.name}</div>
                     <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', transition: 'color 0.25s' }}>{dayjs(h.date).format('dddd, D MMMM YYYY')}</div>
@@ -621,7 +676,8 @@ function EmployeeDashboard() {
           whileHover={{ y: -3 }}
           transition={{ type: 'spring', stiffness: 300, damping: 20 }}
         >
-          <Card
+          <div
+            className="premium-glass-card"
             style={{
               borderRadius: 16,
               background: isDarkMode 
@@ -631,7 +687,8 @@ function EmployeeDashboard() {
               border: 'none',
               boxShadow: '0 10px 24px rgba(16, 17, 63, 0.15)',
               overflow: 'hidden',
-              position: 'relative'
+              position: 'relative',
+              padding: '24px',
             }}
           >
             <div style={{ position: 'absolute', right: '-15%', bottom: '-15%', width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(250, 167, 26, 0.15) 0%, transparent 70%)', filter: 'blur(15px)', pointerEvents: 'none' }} />
@@ -683,7 +740,7 @@ function EmployeeDashboard() {
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
         </motion.div>
 
         {/* Profile Completion Card Widget */}
@@ -836,7 +893,7 @@ export default function DashboardPage() {
             overflow: 'hidden',
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             flexWrap: 'wrap',
             gap: 20
           }}
@@ -846,82 +903,111 @@ export default function DashboardPage() {
           <div style={{ position: 'absolute', left: '25%', bottom: '-50%', width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)', filter: 'blur(30px)', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', left: '-5%', top: '-10%', width: 150, height: 150, borderRadius: '50%', background: 'radial-gradient(circle, rgba(233, 64, 67, 0.1) 0%, transparent 70%)', filter: 'blur(20px)', pointerEvents: 'none' }} />
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24, zIndex: 1 }}>
-            <motion.div 
-              className="float-icon"
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 20,
-                background: 'rgba(255, 255, 255, 0.09)',
-                border: '1px solid rgba(255, 255, 255, 0.16)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 32,
-                boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)'
-              }}
-            >
-              {icon}
-            </motion.div>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#FAA71A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 4 }}>
-                System Overview
+          {/* Left Column: Greeting Details & Date Display */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, zIndex: 1, flex: '1 1 65%', minWidth: 280 }}>
+            {/* First Row: Greeting Header with Date Tile */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+              {/* Date Display (square calendar tile replacing sun box) */}
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{
+                  y: {
+                    repeat: Infinity,
+                    duration: 3.2,
+                    ease: 'easeInOut'
+                  }
+                }}
+                whileHover={{ 
+                  scale: 1.08, 
+                  rotate: 3,
+                  boxShadow: '0 16px 32px rgba(250, 167, 26, 0.25)',
+                  border: '1px solid rgba(250, 167, 26, 0.4)'
+                }}
+                style={{
+                  width: 64,
+                  height: 64,
+                  background: 'rgba(255, 255, 255, 0.09)',
+                  border: '1px solid rgba(255, 255, 255, 0.16)',
+                  borderRadius: 20,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
+                  textAlign: 'center',
+                  padding: '4px 0',
+                  flexShrink: 0,
+                  cursor: 'default',
+                  transition: 'box-shadow 0.3s ease, border 0.3s ease'
+                }}
+                title={dayjs().format('dddd, D MMMM YYYY')}
+              >
+                <div style={{ fontSize: 9, fontWeight: 800, color: '#FAA71A', textTransform: 'uppercase', lineHeight: 1, letterSpacing: '0.05em' }}>
+                  {dayjs().format('MMM')}
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: '2px 0 1px', lineHeight: 1 }}>
+                  {dayjs().format('D')}
+                </div>
+                <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255, 255, 255, 0.6)', textTransform: 'uppercase', lineHeight: 1, letterSpacing: '0.02em' }}>
+                  {dayjs().format('ddd')}
+                </div>
+              </motion.div>
+
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 800, color: '#FAA71A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 4 }}>
+                  System Overview
+                </div>
+                <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {text}, <span style={{ background: 'linear-gradient(90deg, #ffffff 0%, #FFF2CC 50%, #FAA71A 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>{user?.firstName || user?.username || 'User'}</span> <span className="wave-emoji">👋</span>
+                </h1>
               </div>
-              <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
-                {text}, <span style={{ background: 'linear-gradient(90deg, #ffffff 0%, #FFF2CC 50%, #FAA71A 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 900 }}>{user?.firstName || user?.username || 'User'}</span> <span className="wave-emoji">👋</span>
-              </h1>
-              <p style={{ margin: '8px 0 0', fontSize: 14, color: 'rgba(255, 255, 255, 0.8)', fontWeight: 500, maxWidth: 620, lineHeight: 1.5 }}>
-                {greetMessage} {isHR ? "You have unrestricted administrative operations control." : isManager ? "You have management options for your department direct reports." : "Access your self-service timesheets, leave balances, and payslips."}
-              </p>
             </div>
+            
+            {/* Second Row: Message Paragraph */}
+            <p style={{ margin: 0, fontSize: 14, color: 'rgba(255, 255, 255, 0.8)', fontWeight: 500, maxWidth: 620, lineHeight: 1.5 }}>
+              {greetMessage} {isHR ? "You have unrestricted administrative operations control." : isManager ? "You have management options for your department direct reports." : "Access your self-service timesheets, leave balances, and payslips."}
+            </p>
           </div>
 
-          {/* Date + Illustration Widget */}
-          <motion.div 
-            whileHover={{ y: -2 }}
-            style={{
-              zIndex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16,
+          {/* Right Column: Illustration (aligned with the first line) */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85, y: 0 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1,
+              y: [0, -8, 0]
+            }}
+            transition={{ 
+              opacity: { duration: 0.6 },
+              scale: { duration: 0.6 },
+              y: {
+                repeat: Infinity,
+                duration: 4,
+                ease: 'easeInOut',
+                delay: 0.4
+              }
+            }}
+            whileHover={{ 
+              scale: 1.08,
+              filter: isDarkMode 
+                ? 'drop-shadow(0 12px 24px rgba(250, 167, 26, 0.3))' 
+                : 'drop-shadow(0 12px 24px rgba(255, 255, 255, 0.25))'
+            }}
+            style={{ 
+              flexShrink: 0, 
+              opacity: 0.95, 
+              zIndex: 1, 
+              alignSelf: 'flex-start', 
+              marginTop: 6,
+              filter: isDarkMode 
+                ? 'drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2))' 
+                : 'drop-shadow(0 8px 16px rgba(16, 17, 63, 0.12))',
+              transition: 'filter 0.3s ease'
             }}
           >
-            {/* Illustration */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              style={{ flexShrink: 0, opacity: 0.92 }}
-            >
-              <DashboardIllustration size={120} />
-            </motion.div>
-
-            {/* Date Display */}
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.07)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                borderRadius: 18,
-                padding: '14px 22px',
-                textAlign: 'left',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14
-              }}
-            >
-              <CalendarOutlined style={{ color: '#FAA71A', fontSize: 20 }} />
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 800, color: '#FAA71A', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Today's Date</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginTop: 2 }}>{dayjs().format('dddd, D MMMM YYYY')}</div>
-              </div>
-            </div>
+            <DashboardIllustration size={120} />
           </motion.div>
         </motion.div>
       </div>

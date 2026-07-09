@@ -1,0 +1,2909 @@
+<!DOCTYPE html>
+<!-- saved from url=(0072)file://172.16.8.11/Services/INTERNSHIP%202.0/HRMS%20HTML/M2_english.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRMS - Module 2: Recruitment &amp; Onboarding</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(17,153,142,0.4);
+            z-index: 9999;
+            transition: all 0.3s;
+        }
+        .print-btn:hover { transform: translateY(-2px); }
+
+        .container { max-width: 1300px; margin: 0 auto; padding: 20px; }
+
+        /* Cover */
+        .cover {
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: white;
+            padding: 60px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .cover::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(17,153,142,0.15) 0%, transparent 70%);
+        }
+        .cover h1 { font-size: 42px; font-weight: 800; background: linear-gradient(90deg,#38ef7d,#11998e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; position: relative; }
+        .cover p { color: #a0aec0; font-size: 18px; margin-top: 10px; position: relative; }
+        .cover-badges { display: flex; justify-content: center; gap: 12px; margin-top: 25px; flex-wrap: wrap; position: relative; }
+        .cover-badge { background: rgba(255,255,255,0.1); padding: 8px 18px; border-radius: 30px; font-size: 12px; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* Section */
+        .section { background: white; border-radius: 16px; margin-bottom: 25px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .section-header { padding: 22px 30px; color: white; display: flex; align-items: center; gap: 15px; }
+        .section-header h2 { font-size: 21px; font-weight: 700; }
+        .section-header p { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+        .section-body { padding: 25px 30px; }
+
+        /* Gradients */
+        .g-green  { background: linear-gradient(135deg,#11998e,#38ef7d); }
+        .g-blue   { background: linear-gradient(135deg,#667eea,#764ba2); }
+        .g-orange { background: linear-gradient(135deg,#f7971e,#ffd200); }
+        .g-red    { background: linear-gradient(135deg,#ff416c,#ff4b2b); }
+        .g-purple { background: linear-gradient(135deg,#4776e6,#8e54e9); }
+        .g-teal   { background: linear-gradient(135deg,#0f2027,#203a43,#2c5364); }
+        .g-pink   { background: linear-gradient(135deg,#ee0979,#ff6a00); }
+        .g-dark   { background: linear-gradient(135deg,#2c3e50,#3498db); }
+        .g-maroon { background: linear-gradient(135deg,#8e0e00,#1f1c18); }
+        .g-lime   { background: linear-gradient(135deg,#56ab2f,#a8e063); }
+        .g-cyan   { background: linear-gradient(135deg,#00b4db,#0083b0); }
+
+        /* Stats */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 12px; margin: 15px 0; }
+        .stat-box { background: white; border-radius: 10px; padding: 15px; text-align: center; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stat-box .num { font-size: 28px; font-weight: 800; background: linear-gradient(135deg,#11998e,#38ef7d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-box .lbl { font-size: 11px; color: #718096; margin-top: 3px; }
+
+        /* Field Table */
+        .field-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 15px 0; }
+        .field-table th { background: #f7fafc; padding: 10px 12px; text-align: left; font-weight: 700; color: #2d3748; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+        .field-table td { padding: 9px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+        .field-table tr:nth-child(even) { background: #fafafa; }
+        .field-table tr:hover { background: #f0fff4; }
+
+        /* Badges */
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+        .b-required    { background: #fed7d7; color: #c53030; }
+        .b-optional    { background: #c6f6d5; color: #276749; }
+        .b-conditional { background: #feebc8; color: #c05621; }
+        .b-text        { background: #e9d8fd; color: #553c9a; }
+        .b-number      { background: #bee3f8; color: #2b6cb0; }
+        .b-date        { background: #fefcbf; color: #744210; }
+        .b-dropdown    { background: #fed7e2; color: #97266d; }
+        .b-file        { background: #c6f6d5; color: #22543d; }
+        .b-radio       { background: #e9d8fd; color: #44337a; }
+        .b-checkbox    { background: #b2f5ea; color: #234e52; }
+        .b-email       { background: #bee3f8; color: #1a365d; }
+        .b-mobile      { background: #feebc8; color: #7b341e; }
+        .b-textarea    { background: #e2e8f0; color: #4a5568; }
+        .b-readonly    { background: #e2e8f0; color: #4a5568; }
+        .b-auto        { background: #c6f6d5; color: #1c4532; }
+        .b-rich        { background: #fef3c7; color: #92400e; }
+        .b-critical    { background: #fc8181; color: #7b0000; }
+        .b-high        { background: #f6ad55; color: #7b341e; }
+        .b-medium      { background: #76e4f7; color: #065666; }
+        .b-low         { background: #9ae6b4; color: #1c4532; }
+        .b-toggle      { background: #d6bcfa; color: #44337a; }
+        .b-rating      { background: #fbd38d; color: #7b341e; }
+
+        /* Form Preview */
+        .form-preview { background: #f8fafc; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; }
+        .form-row { display: grid; gap: 15px; margin-bottom: 15px; }
+        .form-row.col-1 { grid-template-columns: 1fr; }
+        .form-row.col-2 { grid-template-columns: 1fr 1fr; }
+        .form-row.col-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .form-row.col-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        .form-field { display: flex; flex-direction: column; gap: 4px; }
+        .form-field label { font-size: 11px; font-weight: 700; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-field label .req { color: #e53e3e; }
+        .form-field input, .form-field select, .form-field textarea {
+            padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+            font-size: 13px; color: #2d3748; background: white;
+        }
+        .form-field textarea { resize: vertical; min-height: 80px; }
+        .form-field .hint { font-size: 10px; color: #a0aec0; }
+        .form-field .error-msg { font-size: 10px; color: #e53e3e; }
+        .form-section-title {
+            font-size: 13px; font-weight: 800; color: #11998e;
+            padding: 8px 12px; background: linear-gradient(135deg,#e6fffa,#c6f6d5);
+            border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #11998e;
+        }
+
+        /* Flow */
+        .flow-container { overflow-x: auto; padding: 10px 0; }
+        .flow-steps { display: flex; align-items: flex-start; gap: 0; min-width: max-content; }
+        .flow-step {
+            background: white; border: 2px solid #11998e; border-radius: 10px;
+            padding: 12px 14px; text-align: center; min-width: 130px;
+        }
+        .flow-step .step-num {
+            background: #11998e; color: white; width: 22px; height: 22px;
+            border-radius: 50%; font-size: 11px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; margin: 0 auto 6px;
+        }
+        .flow-step .step-title { font-size: 11px; font-weight: 700; color: #2d3748; }
+        .flow-step .step-role  { font-size: 9px; color: #11998e; font-weight: 600; margin-top: 2px; }
+        .flow-step .step-desc  { font-size: 10px; color: #718096; margin-top: 3px; }
+        .flow-arrow { color: #11998e; font-size: 22px; padding: 0 4px; margin-top: 22px; }
+        .flow-step.decision { border-color: #ed8936; background: #fffaf0; }
+        .flow-step.decision .step-num { background: #ed8936; }
+        .flow-step.decision .step-role { color: #ed8936; }
+        .flow-step.success  { border-color: #48bb78; background: #f0fff4; }
+        .flow-step.success  .step-num { background: #48bb78; }
+        .flow-step.error    { border-color: #e53e3e; background: #fff5f5; }
+        .flow-step.error    .step-num { background: #e53e3e; }
+        .flow-step.rejected { border-color: #718096; background: #f7fafc; }
+        .flow-step.rejected .step-num { background: #718096; }
+
+        /* Info / Warning / Validation boxes */
+        .info-box    { background: #e6fffa; border: 1px solid #81e6d9; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .info-box h4 { color: #234e52; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .info-box p, .info-box li { font-size: 12px; color: #234e52; }
+        .info-box ul { padding-left: 16px; }
+
+        .warning-box    { background: #fffbeb; border: 1px solid #f6e05e; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .warning-box h4 { color: #b7791f; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .warning-box p, .warning-box li { font-size: 12px; color: #7b341e; }
+        .warning-box ul { padding-left: 16px; }
+
+        .validation-box    { background: #fff5f5; border: 1px solid #fed7d7; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .validation-box h4 { color: #c53030; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .validation-box li  { font-size: 12px; color: #742a2a; padding: 2px 0; }
+        .validation-box ul  { padding-left: 16px; }
+
+        .success-box    { background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .success-box h4 { color: #276749; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .success-box li  { font-size: 12px; color: #1c4532; padding: 2px 0; }
+        .success-box ul  { padding-left: 16px; }
+
+        /* RBAC */
+        .rbac-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 15px 0; }
+        .rbac-table th { background: #2d3748; color: white; padding: 10px 10px; text-align: center; font-size: 11px; }
+        .rbac-table td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 11px; }
+        .rbac-table tr:nth-child(even) { background: #f7fafc; }
+        .rbac-table .field-name { text-align: left; font-weight: 600; color: #2d3748; font-size: 12px; }
+        .can       { color: #276749; font-size: 15px; }
+        .cannot    { color: #c53030; font-size: 15px; }
+        .view-only { color: #2b6cb0; font-size: 13px; font-weight: 700; }
+        .masked    { color: #b7791f; font-size: 10px; font-weight: 700; }
+
+        /* Kanban Board */
+        .kanban { display: flex; gap: 12px; overflow-x: auto; padding: 10px 0; }
+        .kanban-col {
+            min-width: 160px; background: #f8fafc; border-radius: 12px;
+            padding: 12px; border: 1px solid #e2e8f0; flex-shrink: 0;
+        }
+        .kanban-col-title { font-size: 12px; font-weight: 700; color: white; padding: 6px 12px; border-radius: 8px; text-align: center; margin-bottom: 10px; }
+        .kanban-card { background: white; border-radius: 8px; padding: 10px; margin-bottom: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); font-size: 11px; border-left: 3px solid; }
+        .kanban-card .kc-title { font-weight: 700; color: #2d3748; margin-bottom: 3px; }
+        .kanban-card .kc-meta { color: #718096; font-size: 10px; }
+
+        /* Pipeline Stage */
+        .pipeline { display: flex; gap: 0; margin: 15px 0; overflow-x: auto; }
+        .pipe-stage {
+            flex: 1; min-width: 100px; text-align: center; padding: 12px 8px;
+            position: relative; background: #f8fafc;
+            border-top: 3px solid #e2e8f0; border-bottom: 3px solid #e2e8f0;
+        }
+        .pipe-stage:first-child { border-radius: 10px 0 0 10px; border-left: 3px solid #e2e8f0; }
+        .pipe-stage:last-child  { border-radius: 0 10px 10px 0; border-right: 3px solid #e2e8f0; }
+        .pipe-stage.active { background: linear-gradient(135deg,#e6fffa,#c6f6d5); border-color: #11998e; }
+        .pipe-stage .ps-count { font-size: 22px; font-weight: 800; color: #11998e; }
+        .pipe-stage .ps-label { font-size: 10px; color: #718096; margin-top: 3px; font-weight: 600; }
+        .pipe-stage .ps-arrow { position: absolute; right: -8px; top: 50%; transform: translateY(-50%); background: white; border-radius: 50%; border: 2px solid #e2e8f0; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 9px; z-index: 1; }
+
+        /* Timeline */
+        .timeline { position: relative; padding: 10px 0; }
+        .timeline::before { content: ''; position: absolute; left: 18px; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom,#11998e,#38ef7d); border-radius: 2px; }
+        .tl-item { display: flex; gap: 15px; margin-bottom: 18px; padding-left: 10px; }
+        .tl-dot { width: 18px; height: 18px; border-radius: 50%; background: #11998e; flex-shrink: 0; border: 2px solid white; box-shadow: 0 0 0 2px #11998e; margin-top: 2px; }
+        .tl-content { background: white; border-radius: 10px; padding: 12px 15px; flex: 1; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .tl-content h4 { font-size: 13px; font-weight: 700; color: #2d3748; margin-bottom: 4px; }
+        .tl-content p  { font-size: 12px; color: #718096; }
+        .tl-content .tl-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .tl-tag { background: #e6fffa; color: #234e52; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+
+        /* API box */
+        .api-box { background: #1a202c; border-radius: 10px; padding: 15px; margin: 10px 0; font-family: 'Courier New', monospace; font-size: 11px; color: #68d391; overflow-x: auto; }
+        .api-method { color: #f6ad55; font-weight: 700; }
+        .api-url    { color: #90cdf4; }
+        .api-key    { color: #fc8181; }
+        .api-value  { color: #68d391; }
+
+        /* Grid */
+        .two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .four-col  { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+
+        .sub-section { background: #f8fafc; border-radius: 12px; padding: 20px; margin: 15px 0; }
+        .sub-section h3 { font-size: 16px; font-weight: 700; color: #2d3748; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+
+        /* Checklist */
+        .checklist { list-style: none; padding: 0; }
+        .checklist li { padding: 5px 0; font-size: 12px; color: #4a5568; display: flex; align-items: flex-start; gap: 8px; border-bottom: 1px solid #f0f0f0; }
+        .checklist li:last-child { border: none; }
+        .checklist li .check { color: #48bb78; font-weight: 700; flex-shrink: 0; }
+        .checklist li .cross { color: #e53e3e; font-weight: 700; flex-shrink: 0; }
+        .checklist li .warn  { color: #ed8936; font-weight: 700; flex-shrink: 0; }
+
+        /* Score card */
+        .score-card { background: white; border-radius: 12px; padding: 15px; border: 1px solid #e2e8f0; }
+        .score-row  { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+        .score-row .sc-label { color: #4a5568; }
+        .score-row .sc-score { font-weight: 700; color: #11998e; }
+        .score-bar  { height: 6px; background: #e2e8f0; border-radius: 3px; margin-top: 3px; }
+        .score-fill { height: 100%; background: linear-gradient(90deg,#11998e,#38ef7d); border-radius: 3px; }
+
+        /* Status badge */
+        .status { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .s-new        { background: #bee3f8; color: #2b6cb0; }
+        .s-screen     { background: #feebc8; color: #c05621; }
+        .s-interview  { background: #e9d8fd; color: #553c9a; }
+        .s-offer      { background: #c6f6d5; color: #276749; }
+        .s-joined     { background: #9ae6b4; color: #1c4532; }
+        .s-rejected   { background: #fed7d7; color: #c53030; }
+        .s-hold       { background: #e2e8f0; color: #4a5568; }
+        .s-withdrawn  { background: #fef3c7; color: #92400e; }
+
+        /* Print */
+        @media print {
+            body { background: white; font-size: 11px; }
+            .print-btn { display: none !important; }
+            .container { max-width: 100%; padding: 0; }
+            .section { box-shadow: none; border: 1px solid #e2e8f0; break-inside: avoid; }
+            .section-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .api-box { background: #f0f0f0 !important; color: #333 !important; }
+            @page { margin: 12mm; size: A4; }
+        }
+
+        @media (max-width: 768px) {
+            .two-col, .three-col, .four-col { grid-template-columns: 1fr; }
+            .form-row.col-2, .form-row.col-3, .form-row.col-4 { grid-template-columns: 1fr; }
+            .cover { padding: 30px 20px; }
+            .cover h1 { font-size: 26px; }
+        }
+    </style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ Save as PDF</button>
+
+<div class="container">
+
+    <!-- ===== COVER ===== -->
+    <div class="cover">
+        <div style="font-size:64px;margin-bottom:15px;position:relative;">🎯</div>
+        <h1>Module 2: Recruitment &amp; Onboarding</h1>
+        <p>HRMS System — Deep Level Requirements Document</p>
+        <div class="cover-badges">
+            <span class="cover-badge">📋 150+ Fields Documented</span>
+            <span class="cover-badge">🔐 RBAC - 8 Roles</span>
+            <span class="cover-badge">🔄 10 Sub-Flows</span>
+            <span class="cover-badge">✅ Full Validations</span>
+            <span class="cover-badge">📊 ATS Pipeline</span>
+            <span class="cover-badge">🎉 Onboarding Checklist</span>
+            <span class="cover-badge">🔗 12 API Endpoints</span>
+            <span class="cover-badge">📈 Recruitment Analytics</span>
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+        <div class="stat-box"><div class="num">10</div><div class="lbl">Sub-Modules</div></div>
+        <div class="stat-box"><div class="num">150+</div><div class="lbl">Input Fields</div></div>
+        <div class="stat-box"><div class="num">12</div><div class="lbl">Pipeline Stages</div></div>
+        <div class="stat-box"><div class="num">8</div><div class="lbl">User Roles</div></div>
+        <div class="stat-box"><div class="num">15</div><div class="lbl">Workflow Steps</div></div>
+        <div class="stat-box"><div class="num">20+</div><div class="lbl">Reports</div></div>
+        <div class="stat-box"><div class="num">30+</div><div class="lbl">Notifications</div></div>
+        <div class="stat-box"><div class="num">50+</div><div class="lbl">Onboarding Tasks</div></div>
+    </div>
+
+    <!-- ===== 1. OVERVIEW ===== -->
+    <div class="section">
+        <div class="section-header g-green">
+            <span style="font-size:28px">📌</span>
+            <div>
+                <h2>1.0 Module Overview &amp; Sub-Module List</h2>
+                <p>Recruitment — Complete process from job posting to final joining</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="info-box">
+                        <h4>🎯 Module Purpose</h4>
+                        <p>The Recruitment &amp; Onboarding module manages the complete hiring lifecycle — from manpower request to the employee's first day. Job posting, candidate tracking, interview scheduling, offer letters, document collection, and induction — everything in one system.</p>
+                    </div>
+                    <div class="info-box" style="margin-top:12px;">
+                        <h4>📦 10 Sub-Modules</h4>
+                        <ul>
+                            <li><strong>2.1</strong> Manpower Requisition (MRF)</li>
+                            <li><strong>2.2</strong> Job Posting Management</li>
+                            <li><strong>2.3</strong> Candidate Database / CV Bank</li>
+                            <li><strong>2.4</strong> Application Tracking System (ATS)</li>
+                            <li><strong>2.5</strong> Screening &amp; Shortlisting</li>
+                            <li><strong>2.6</strong> Interview Management</li>
+                            <li><strong>2.7</strong> Selection &amp; Offer Management</li>
+                            <li><strong>2.8</strong> Background Verification (BGV)</li>
+                            <li><strong>2.9</strong> Pre-Joining Engagement</li>
+                            <li><strong>2.10</strong> Onboarding &amp; Induction</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Key Business Rules</h4>
+                        <ul>
+                            <li>Hiring cannot happen outside MRF-approved headcount</li>
+                            <li>Offer letter will only be issued after BGV is initiated</li>
+                            <li>Salary offer cannot exceed the grade-approved band without HOD+HR+COO approval</li>
+                            <li>The same candidate cannot be considered for 2 positions simultaneously (within the same company)</li>
+                            <li>A rejected candidate cannot apply for the same role for 6 months</li>
+                            <li>Interview panel must have at least 1 technical and 1 HR interviewer</li>
+                            <li>Offer validity: max 30 days from offer date</li>
+                            <li>Candidate portal access expires upon offer acceptance; onboarding portal is activated</li>
+                        </ul>
+                    </div>
+                    <div class="success-box" style="margin-top:12px;">
+                        <h4>✅ Key Metrics the System Will Track</h4>
+                        <ul>
+                            <li>Time to Hire (MRF to Joining)</li>
+                            <li>Time to Fill (MRF to Offer Accept)</li>
+                            <li>Cost per Hire</li>
+                            <li>Offer Acceptance Rate</li>
+                            <li>Source-wise Conversion Rate</li>
+                            <li>Interview-to-Offer Ratio</li>
+                            <li>Onboarding Completion Score</li>
+                            <li>Early Attrition (&lt; 90 days)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 2. MASTER FLOW ===== -->
+    <div class="section">
+        <div class="section-header g-dark">
+            <span style="font-size:28px">🔄</span>
+            <div>
+                <h2>2.0 Master Recruitment Flow — End to End</h2>
+                <p>Complete lifecycle from MRF raise to Employee Active status</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:#2d3748;">🔵 Phase 1: Requisition to Posting</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">1</div>
+                        <div class="step-title">HOD Creates MRF</div>
+                        <div class="step-role">👤 HOD / Manager</div>
+                        <div class="step-desc">Position, Grade, Budget, Timeline</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">2</div>
+                        <div class="step-title">Budget Check</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Approved HC vs Actual</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">3</div>
+                        <div class="step-title">HR Head Approve</div>
+                        <div class="step-role">👤 HR Head</div>
+                        <div class="step-desc">MRF review &amp; approve</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">4</div>
+                        <div class="step-title">Finance Approve?</div>
+                        <div class="step-role">👤 Finance (if new HC)</div>
+                        <div class="step-desc">Budget sanction</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">5</div>
+                        <div class="step-title">COO Approve</div>
+                        <div class="step-role">👤 COO</div>
+                        <div class="step-desc">Operations sign-off</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">6</div>
+                        <div class="step-title">JD Preparation</div>
+                        <div class="step-role">👤 Recruiter</div>
+                        <div class="step-desc">Job Description create</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">7</div>
+                        <div class="step-title">Job Published</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Portal + Internal + Social</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🟡 Phase 2: Application to Selection</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">7</div>
+                        <div class="step-title">Applications Received</div>
+                        <div class="step-role">👤 Candidates</div>
+                        <div class="step-desc">Multiple sources</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">8</div>
+                        <div class="step-title">CV Screening</div>
+                        <div class="step-role">🤖 AI + Recruiter</div>
+                        <div class="step-desc">Auto-rank + manual</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">9</div>
+                        <div class="step-title">Phone Screen</div>
+                        <div class="step-role">👤 Recruiter</div>
+                        <div class="step-desc">Initial screening call</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">10</div>
+                        <div class="step-title">Technical Round</div>
+                        <div class="step-role">👤 Panel</div>
+                        <div class="step-desc">Technical assessment</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">11</div>
+                        <div class="step-title">HR Interview</div>
+                        <div class="step-role">👤 HR Manager</div>
+                        <div class="step-desc">Culture + fitment</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">12</div>
+                        <div class="step-title">Final Decision</div>
+                        <div class="step-role">👤 HOD + HR</div>
+                        <div class="step-desc">Select / Reject / Hold</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🟢 Phase 3: Offer to Day 1</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">13</div>
+                        <div class="step-title">Salary Negotiation</div>
+                        <div class="step-role">👤 HR + Candidate</div>
+                        <div class="step-desc">CTC discussion</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">14</div>
+                        <div class="step-title">Finance Approve</div>
+                        <div class="step-role">👤 Finance Head</div>
+                        <div class="step-desc">CTC budget verified</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">15</div>
+                        <div class="step-title">COO Approve</div>
+                        <div class="step-role">👤 COO</div>
+                        <div class="step-desc">Final ops sign-off</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">16</div>
+                        <div class="step-title">Offer Letter Generate</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Template-based PDF</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">17</div>
+                        <div class="step-title">BGV Initiate</div>
+                        <div class="step-role">👤 HR / Agency</div>
+                        <div class="step-desc">Background check</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">18</div>
+                        <div class="step-title">Candidate Accepts?</div>
+                        <div class="step-role">👤 Candidate</div>
+                        <div class="step-desc">e-Sign offer letter</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">19</div>
+                        <div class="step-title">Pre-Joining Portal</div>
+                        <div class="step-role">👤 Candidate</div>
+                        <div class="step-desc">Documents upload</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">20</div>
+                        <div class="step-title">Onboarding Day 1</div>
+                        <div class="step-role">👤 HR + IT + Admin</div>
+                        <div class="step-desc">ID, Assets, Induction</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">21</div>
+                        <div class="step-title">✅ Employee Active</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Emp ID created in Module 1</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pipeline View -->
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">📊 ATS Pipeline Stage View</h3>
+            <div class="pipeline">
+                <div class="pipe-stage">
+                    <div class="ps-count">48</div>
+                    <div class="ps-label">Applied</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">32</div>
+                    <div class="ps-label">CV Screened</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">20</div>
+                    <div class="ps-label">Phone Screen</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">14</div>
+                    <div class="ps-label">Technical</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">8</div>
+                    <div class="ps-label">HR Round</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">5</div>
+                    <div class="ps-label">Final Round</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">3</div>
+                    <div class="ps-label">Offer Made</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage active">
+                    <div class="ps-count">2</div>
+                    <div class="ps-label">Offer Accepted</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">2</div>
+                    <div class="ps-label">Joined</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 3. MRF ===== -->
+    <div class="section">
+        <div class="section-header g-blue">
+            <span style="font-size:28px">📋</span>
+            <div>
+                <h2>3.0 Sub-Module 2.1 — Manpower Requisition Form (MRF)</h2>
+                <p>First step of hiring — getting the position approved</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="form-preview">
+                <div class="form-section-title">📋 MRF Basic Details</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>MRF Number</label>
+                        <input type="text" value="MRF-2024-0045" readonly="" style="background:#f7fafc;color:#667eea;font-weight:700;">
+                        <span class="hint">Auto-generated on submit</span>
+                    </div>
+                    <div class="form-field">
+                        <label>MRF Raise Date</label>
+                        <input type="date" value="2024-01-15" readonly="" style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>MRF Status</label>
+                        <input type="text" value="Pending HR Approval" readonly="" style="background:#fffbeb;color:#b7791f;font-weight:700;">
+                    </div>
+                </div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Requesting Department <span class="req">*</span></label>
+                        <select>
+                            <option>Information Technology</option>
+                            <option>Human Resources</option>
+                            <option>Finance &amp; Accounts</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Requested By (HOD) <span class="req">*</span></label>
+                        <input type="text" value="Amit Verma (DGM-IT)" readonly="" style="background:#f7fafc;">
+                        <span class="hint">Auto-fill from logged-in manager</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Priority <span class="req">*</span></label>
+                        <select>
+                            <option>🔴 Critical (&lt; 15 days)</option>
+                            <option>🟠 High (&lt; 30 days)</option>
+                            <option>🟡 Medium (&lt; 45 days)</option>
+                            <option>🟢 Normal (&lt; 60 days)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section-title" style="margin-top:15px;">💼 Position Details</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Position Title <span class="req">*</span></label>
+                        <input type="text" placeholder="E.g. Senior Java Developer">
+                    </div>
+                    <div class="form-field">
+                        <label>Designation <span class="req">*</span></label>
+                        <select><option>Senior Executive</option><option>Manager</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Grade / Band <span class="req">*</span></label>
+                        <select><option>Grade B</option><option>Grade C</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>No. of Positions <span class="req">*</span></label>
+                        <input type="number" placeholder="1" min="1" max="100">
+                    </div>
+                </div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Position Type <span class="req">*</span></label>
+                        <select>
+                            <option>New Position (Additional HC)</option>
+                            <option>Replacement (Backfill)</option>
+                            <option>Contract to Permanent</option>
+                            <option>Temporary / Project-based</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Replacing Employee</label>
+                        <select><option>Select if Replacement...</option></select>
+                        <span class="hint">Show only if Backfill selected</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Work Location <span class="req">*</span></label>
+                        <select><option>Mumbai - HQ</option><option>Bangalore Tech Center</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Work Mode <span class="req">*</span></label>
+                        <select><option>On-site</option><option>WFH</option><option>Hybrid</option></select>
+                    </div>
+                </div>
+
+                <div class="form-section-title" style="margin-top:15px;">📚 Job Requirements</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Minimum Qualification <span class="req">*</span></label>
+                        <select>
+                            <option>10th Pass</option><option>12th Pass</option>
+                            <option>Diploma</option><option>Graduate (Any)</option>
+                            <option>BE/BTech</option><option>MBA</option>
+                            <option>CA/CMA</option><option>Postgraduate</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Min Experience (Years) <span class="req">*</span></label>
+                        <input type="number" placeholder="3" min="0" max="40">
+                    </div>
+                    <div class="form-field">
+                        <label>Max Experience (Years)</label>
+                        <input type="number" placeholder="8" min="0" max="40">
+                    </div>
+                </div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Key Skills Required <span class="req">*</span></label>
+                        <textarea placeholder="E.g. Java, Spring Boot, Microservices, AWS, 5+ years"></textarea>
+                        <span class="hint">Tag-style input. Comma separated. Used for CV matching</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Job Description <span class="req">*</span></label>
+                        <textarea placeholder="Detailed JD — responsibilities, expectations, team size"></textarea>
+                    </div>
+                </div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Preferred Skills</label>
+                        <textarea placeholder="Good to have skills"></textarea>
+                    </div>
+                    <div class="form-field">
+                        <label>Certifications Preferred</label>
+                        <textarea placeholder="E.g. AWS Certified, PMP, Six Sigma"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section-title" style="margin-top:15px;">💰 Budget &amp; Timeline</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>CTC Budget — Min (₹LPA) <span class="req">*</span></label>
+                        <input type="number" placeholder="8">
+                        <span class="hint">Must be within grade band</span>
+                    </div>
+                    <div class="form-field">
+                        <label>CTC Budget — Max (₹LPA) <span class="req">*</span></label>
+                        <input type="number" placeholder="14">
+                    </div>
+                    <div class="form-field">
+                        <label>Expected DOJ <span class="req">*</span></label>
+                        <input type="date">
+                        <span class="hint">Target joining date</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Sourcing Channel Preference</label>
+                        <select>
+                            <option>Internal First (IJP)</option>
+                            <option>Employee Referral</option>
+                            <option>Job Portals</option>
+                            <option>Campus</option>
+                            <option>All Sources</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Business Justification <span class="req">*</span></label>
+                        <textarea placeholder="Why is this position needed? Business impact of delay?"></textarea>
+                    </div>
+                    <div class="form-field">
+                        <label>Any Special Requirements</label>
+                        <textarea placeholder="E.g. Must speak Telugu, Must have handled 50+ team"></textarea>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:15px;">
+                    <button style="padding:10px 20px;background:#f7fafc;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;font-size:13px;">Save Draft</button>
+                    <button style="padding:10px 20px;background:linear-gradient(135deg,#11998e,#38ef7d);color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Submit for Approval →</button>
+                </div>
+            </div>
+
+            <!-- MRF Approval Flow -->
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">✅ MRF Approval Workflow</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">1</div>
+                        <div class="step-title">HOD Submits MRF</div>
+                        <div class="step-role">Manager / HOD</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">2</div>
+                        <div class="step-title">Budget in AHC?</div>
+                        <div class="step-role">🤖 System Check</div>
+                        <div class="step-desc">Approved HC available?</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">3</div>
+                        <div class="step-title">HR Head Review</div>
+                        <div class="step-role">HR Head / CHRO</div>
+                        <div class="step-desc">JD, grade, timeline check</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">4</div>
+                        <div class="step-title">New Position?</div>
+                        <div class="step-role">System Check</div>
+                        <div class="step-desc">Backfill = skip Finance step</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">5</div>
+                        <div class="step-title">Finance Approve</div>
+                        <div class="step-role">Finance Head</div>
+                        <div class="step-desc">Budget sanctioned</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">6</div>
+                        <div class="step-title">COO Approve</div>
+                        <div class="step-role">COO</div>
+                        <div class="step-desc">Operations sign-off</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">7</div>
+                        <div class="step-title">MRF Approved</div>
+                        <div class="step-role">🤖 Auto</div>
+                        <div class="step-desc">Recruiter assigned</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Field Specs -->
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">📋 MRF Field Specifications</h3>
+            <div style="overflow-x:auto;">
+                <table class="field-table">
+                    <tbody><tr>
+                        <th>#</th><th>Field</th><th>Type</th><th>Mandatory</th><th>Validation</th><th>DB Column</th><th>Notes</th>
+                    </tr>
+                    <tr><td>1</td><td><strong>MRF Number</strong></td><td><span class="badge b-auto">Auto</span></td><td><span class="badge b-required">Required</span></td><td>Format: MRF-YYYY-NNNN. Auto on submit</td><td>mrf_number (PK)</td><td>Unique per year</td></tr>
+                    <tr><td>2</td><td><strong>Department</strong></td><td><span class="badge b-dropdown">Dropdown</span></td><td><span class="badge b-required">Required</span></td><td>From dept master. Auto-fill from logged-in user's dept</td><td>dept_id (FK)</td><td>—</td></tr>
+                    <tr><td>3</td><td><strong>Position Title</strong></td><td><span class="badge b-text">Text</span></td><td><span class="badge b-required">Required</span></td><td>Max 100 chars. Alphanumeric</td><td>position_title</td><td>Becomes Job Title on job posting</td></tr>
+                    <tr><td>4</td><td><strong>Grade</strong></td><td><span class="badge b-dropdown">Dropdown</span></td><td><span class="badge b-required">Required</span></td><td>From grade master. Drives CTC band validation</td><td>grade_id (FK)</td><td>CTC budget auto-validated against grade band</td></tr>
+                    <tr><td>5</td><td><strong>No. of Positions</strong></td><td><span class="badge b-number">Number</span></td><td><span class="badge b-required">Required</span></td><td>Min 1, Max 50 per MRF. &gt;10 needs CEO approval</td><td>no_of_positions</td><td>Each position tracked separately in ATS</td></tr>
+                    <tr><td>6</td><td><strong>Position Type</strong></td><td><span class="badge b-dropdown">Dropdown</span></td><td><span class="badge b-required">Required</span></td><td>New/Backfill/Contract/Temp. Drives approval level</td><td>position_type</td><td>Backfill = skip Finance approval</td></tr>
+                    <tr><td>7</td><td><strong>Min Experience</strong></td><td><span class="badge b-number">Number</span></td><td><span class="badge b-required">Required</span></td><td>0-40 years. Min &lt; Max</td><td>exp_min_years</td><td>Used for CV auto-screening</td></tr>
+                    <tr><td>8</td><td><strong>Key Skills</strong></td><td><span class="badge b-textarea">Tag Input</span></td><td><span class="badge b-required">Required</span></td><td>Min 3 skills. Max 20 tags. From skills master + free text</td><td>key_skills (JSON array)</td><td>Used by AI for CV matching score</td></tr>
+                    <tr><td>9</td><td><strong>CTC Min (LPA)</strong></td><td><span class="badge b-number">Number</span></td><td><span class="badge b-required">Required</span></td><td>Must be ≥ grade band minimum. Decimal allowed</td><td>ctc_min_lpa</td><td>Cannot exceed grade max without HOD+Finance+COO approval</td></tr>
+                    <tr><td>10</td><td><strong>CTC Max (LPA)</strong></td><td><span class="badge b-number">Number</span></td><td><span class="badge b-required">Required</span></td><td>Must be &gt; CTC Min. Must be ≤ grade band maximum</td><td>ctc_max_lpa</td><td>Offer letter salary is validated against this</td></tr>
+                    <tr><td>11</td><td><strong>Expected DOJ</strong></td><td><span class="badge b-date">Date</span></td><td><span class="badge b-required">Required</span></td><td>Min 15 days from today. Drives priority SLA</td><td>expected_doj</td><td>Triggers alerts if target date is missed</td></tr>
+                    <tr><td>12</td><td><strong>Business Justification</strong></td><td><span class="badge b-textarea">Textarea</span></td><td><span class="badge b-required">Required</span></td><td>Min 50 words. Max 500 words</td><td>business_justification</td><td>Mandatory for Finance &amp; COO approval</td></tr>
+                    <tr><td>13</td><td><strong>Priority</strong></td><td><span class="badge b-dropdown">Dropdown</span></td><td><span class="badge b-required">Required</span></td><td>Critical/High/Medium/Normal. Drives SLA TAT</td><td>priority</td><td>Critical = recruiter assigned within 24 hrs</td></tr>
+                    <tr><td>14</td><td><strong>Sourcing Preference</strong></td><td><span class="badge b-dropdown">Dropdown</span></td><td><span class="badge b-optional">Optional</span></td><td>IJP first / Referral / Portal / Campus / All</td><td>sourcing_preference</td><td>Drives posting sequence</td></tr>
+                </tbody></table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 4. JOB POSTING ===== -->
+    <div class="section">
+        <div class="section-header g-purple">
+            <span style="font-size:28px">📣</span>
+            <div>
+                <h2>4.0 Sub-Module 2.2 — Job Posting Management</h2>
+                <p>Publish jobs on multiple channels with a single click</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="form-preview">
+                <div class="form-section-title">📣 Job Posting Configuration</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Job Title (Public) <span class="req">*</span></label>
+                        <input type="text" placeholder="Senior Java Developer" value="Senior Java Developer">
+                        <span class="hint">What candidates see on portal</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Job Category <span class="req">*</span></label>
+                        <select>
+                            <option>Information Technology</option>
+                            <option>Engineering</option>
+                            <option>Finance</option>
+                            <option>Sales</option>
+                            <option>Operations</option>
+                            <option>HR &amp; Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Industry</label>
+                        <select>
+                            <option>IT - Software</option>
+                            <option>Manufacturing</option>
+                            <option>BFSI</option>
+                            <option>Healthcare</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Job Description (Full) <span class="req">*</span></label>
+                        <textarea style="min-height:120px;" placeholder="About Us:
+We are a leading IT company...
+
+Role &amp; Responsibilities:
+1. Design and develop...
+
+Required Skills:
+- Java 11+..."></textarea>
+                        <span class="hint">Rich text editor. HTML formatting allowed. Preview available</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Perks &amp; Benefits (for posting)</label>
+                        <textarea style="min-height:120px;" placeholder="Health Insurance
+Performance Bonus
+WFH Flexibility
+Learning Budget
+ESOPs (if applicable)"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section-title" style="margin-top:15px;">📡 Posting Channels (Multi-select)</div>
+                <div class="form-row col-4">
+                    <div style="background:white;border-radius:10px;padding:12px;border:2px solid #e2e8f0;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;">
+                            <input type="checkbox" checked="" style="width:auto;padding:0;border:none;">
+                            🏢 Internal Job Posting (IJP)
+                        </label>
+                        <div style="font-size:11px;color:#718096;margin-top:5px;">Employee portal. Visible for 7 days first</div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:12px;border:2px solid #e2e8f0;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;">
+                            <input type="checkbox" checked="" style="width:auto;padding:0;border:none;">
+                            👥 Employee Referral
+                        </label>
+                        <div style="font-size:11px;color:#718096;margin-top:5px;">Employees can refer candidates. Referral bonus applicable</div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:12px;border:2px solid #11998e;background:#e6fffa;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;">
+                            <input type="checkbox" checked="" style="width:auto;padding:0;border:none;">
+                            🌐 Naukri.com
+                        </label>
+                        <div style="font-size:11px;color:#718096;margin-top:5px;">API connected. Auto-post. ✅ Connected</div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:12px;border:2px solid #11998e;background:#e6fffa;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;">
+                            <input type="checkbox" checked="" style="width:auto;padding:0;border:none;">
+                            💼 LinkedIn
+                        </label>
+                        <div style="font-size:11px;color:#718096;margin-top:5px;">LinkedIn Jobs API. ✅ Connected</div>
+                    </div>
+                </div>
+                <div class="form-row col-4" style="margin-top:10px;">
+                    <div style="background:white;border-radius:10px;padding:12px;border:2px solid #e2e8f0;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;">
+                            <input type="checkbox" style="width:auto;padding:0;border:none;">
+                            🔍 Indeed.com
+                        </label>
+                        <div style="font-size:11px;color:#718096;margin-top:5px;">Indeed API integration</div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:12px;border:2px solid #e2e8f0;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;">
+                            <input type="checkbox" style="width:auto;padding:0;border:none;">
+                            🏫 Campus Recruitment
+                        </label>
+                        <div style="font-size:11px;color:#718096;margin-top:5px;">College tie-ups. Drive scheduling</div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:12px;border:2px solid #e2e8f0;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;">
+                            <input type="checkbox" style="width:auto;padding:0;border:none;">
+                            🏢 Company Careers Page
+                        </label>
+                        <div style="font-size:11px;color:#718096;margin-top:5px;">Auto-publish on careers.company.com</div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:12px;border:2px solid #e2e8f0;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;">
+                            <input type="checkbox" style="width:auto;padding:0;border:none;">
+                            🚶 Walk-in Drive
+                        </label>
+                        <div style="font-size:11px;color:#718096;margin-top:5px;">Registration form + venue details</div>
+                    </div>
+                </div>
+
+                <div class="form-section-title" style="margin-top:15px;">⚙️ Posting Settings</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Posting Expiry Date <span class="req">*</span></label>
+                        <input type="date">
+                        <span class="hint">Max 60 days. Auto-unpublish after</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Show Salary Range?</label>
+                        <select>
+                            <option>Hide Salary (Confidential)</option>
+                            <option>Show Range</option>
+                            <option>Show "Competitive"</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Show Company Name?</label>
+                        <select>
+                            <option>Show Company Name</option>
+                            <option>Confidential Company</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Application Screening Questions</label>
+                        <select>
+                            <option>Use Default Questions</option>
+                            <option>Custom Questions</option>
+                            <option>No Pre-screening</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pre-screening Questions -->
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">❓ Pre-Screening Questions Builder</h3>
+            <div class="form-preview">
+                <div class="info-box">
+                    <h4>📌 Pre-Screening Questions — Purpose</h4>
+                    <p>Candidates ko apply karte time kuch questions answer karne padte hain. Answers ke basis par auto-reject (deal breaker questions) or priority ranking. Min 1, Max 10 questions per job.</p>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;margin-top:15px;">
+                    <div style="background:white;border-radius:10px;padding:15px;border:1px solid #e2e8f0;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <span style="font-size:13px;font-weight:700;color:#2d3748;">Q1. Do you have 3+ years of Java development experience?</span>
+                            <span class="badge b-required">Deal Breaker</span>
+                        </div>
+                        <div style="display:flex;gap:15px;font-size:12px;color:#718096;">
+                            <span>Type: Yes/No</span>
+                            <span>If No → Auto Reject</span>
+                            <span>✅ Active</span>
+                        </div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:15px;border:1px solid #e2e8f0;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <span style="font-size:13px;font-weight:700;color:#2d3748;">Q2. What is your current CTC (LPA)?</span>
+                            <span class="badge b-optional">Optional</span>
+                        </div>
+                        <div style="display:flex;gap:15px;font-size:12px;color:#718096;">
+                            <span>Type: Number Input</span>
+                            <span>Used for offer planning</span>
+                            <span>✅ Active</span>
+                        </div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:15px;border:1px solid #e2e8f0;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <span style="font-size:13px;font-weight:700;color:#2d3748;">Q3. Are you willing to relocate to Mumbai?</span>
+                            <span class="badge b-required">Deal Breaker</span>
+                        </div>
+                        <div style="display:flex;gap:15px;font-size:12px;color:#718096;">
+                            <span>Type: Yes/No</span>
+                            <span>If No → Auto Reject (Location: Mumbai)</span>
+                        </div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:15px;border:2px dashed #e2e8f0;cursor:pointer;text-align:center;color:#667eea;font-size:13px;font-weight:600;">
+                        + Add New Question
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 5. CANDIDATE / ATS ===== -->
+    <div class="section">
+        <div class="section-header g-teal">
+            <span style="font-size:28px">👥</span>
+            <div>
+                <h2>5.0 Sub-Module 2.3 &amp; 2.4 — Candidate Database &amp; ATS</h2>
+                <p>CV bank management + Application Tracking System</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <!-- Candidate Profile -->
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#2d3748;">👤 Candidate Profile Form</h3>
+            <div class="form-preview">
+                <div class="form-section-title">📋 Candidate Basic Information</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Candidate ID</label>
+                        <input type="text" value="CAND-2024-1234" readonly="" style="background:#f7fafc;color:#11998e;font-weight:700;">
+                    </div>
+                    <div class="form-field">
+                        <label>First Name <span class="req">*</span></label>
+                        <input type="text" placeholder="First Name">
+                    </div>
+                    <div class="form-field">
+                        <label>Last Name <span class="req">*</span></label>
+                        <input type="text" placeholder="Last Name">
+                    </div>
+                    <div class="form-field">
+                        <label>Gender</label>
+                        <select><option>Male</option><option>Female</option><option>Other</option></select>
+                    </div>
+                </div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Mobile <span class="req">*</span></label>
+                        <input type="tel" placeholder="10-digit mobile">
+                        <span class="hint">Duplicate check against candidate DB</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Email <span class="req">*</span></label>
+                        <input type="email" placeholder="candidate@email.com">
+                        <span class="hint">Unique. All comm goes here</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Current City <span class="req">*</span></label>
+                        <input type="text" placeholder="Mumbai">
+                    </div>
+                    <div class="form-field">
+                        <label>Willing to Relocate?</label>
+                        <select><option>Yes</option><option>No</option><option>Within State</option></select>
+                    </div>
+                </div>
+
+                <div class="form-section-title" style="margin-top:15px;">💼 Professional Details</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Total Experience <span class="req">*</span></label>
+                        <input type="number" placeholder="5.5" step="0.5">
+                        <span class="hint">In years. Decimal allowed</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Relevant Experience</label>
+                        <input type="number" placeholder="4" step="0.5">
+                    </div>
+                    <div class="form-field">
+                        <label>Current Employer</label>
+                        <input type="text" placeholder="Company Name">
+                    </div>
+                    <div class="form-field">
+                        <label>Current Designation</label>
+                        <input type="text" placeholder="Senior Developer">
+                    </div>
+                </div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Current CTC (LPA) <span class="req">*</span></label>
+                        <input type="number" placeholder="8.5" step="0.1">
+                    </div>
+                    <div class="form-field">
+                        <label>Expected CTC (LPA) <span class="req">*</span></label>
+                        <input type="number" placeholder="12" step="0.1">
+                    </div>
+                    <div class="form-field">
+                        <label>Notice Period (Days) <span class="req">*</span></label>
+                        <select>
+                            <option>Immediately</option>
+                            <option>15 Days</option>
+                            <option>30 Days</option>
+                            <option>45 Days</option>
+                            <option>60 Days</option>
+                            <option>90 Days</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Earliest Joining Date</label>
+                        <input type="date">
+                    </div>
+                </div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Key Skills <span class="req">*</span></label>
+                        <input type="text" placeholder="Java, Spring Boot, AWS, MySQL...">
+                        <span class="hint">Used for AI CV matching against MRF</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Highest Qualification <span class="req">*</span></label>
+                        <select>
+                            <option>BE/BTech - Computer Science</option>
+                            <option>MCA</option>
+                            <option>MBA</option>
+                            <option>BSc - IT</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section-title" style="margin-top:15px;">📎 Resume &amp; Source</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Resume Upload <span class="req">*</span></label>
+                        <input type="file" accept=".pdf,.doc,.docx">
+                        <span class="hint">PDF/DOC. Max 5MB. AI parsing enabled</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Source <span class="req">*</span></label>
+                        <select>
+                            <option>Naukri.com</option>
+                            <option>LinkedIn</option>
+                            <option>Employee Referral</option>
+                            <option>Walk-in</option>
+                            <option>Campus</option>
+                            <option>Direct Application</option>
+                            <option>Consultant / Agency</option>
+                            <option>Internal Transfer</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Referred By (Employee)</label>
+                        <select>
+                            <option>Select Employee (if Referral)</option>
+                        </select>
+                        <span class="hint">Show if Source = Employee Referral</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI CV Matching -->
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🤖 AI CV Matching &amp; Scoring</h3>
+            <div class="two-col">
+                <div class="score-card">
+                    <div style="font-size:14px;font-weight:700;color:#2d3748;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;">
+                        CAND-2024-1234 — Rahul Verma<br>
+                        <span style="font-size:12px;color:#718096;">vs MRF-2024-0045 (Senior Java Developer)</span>
+                    </div>
+                    <div style="text-align:center;margin-bottom:15px;">
+                        <div style="font-size:48px;font-weight:800;color:#11998e;">78%</div>
+                        <div style="font-size:12px;color:#718096;">Overall Match Score</div>
+                    </div>
+                    <div class="score-row">
+                        <div class="sc-label">Skills Match</div>
+                        <div class="sc-score">85%</div>
+                    </div>
+                    <div class="score-bar"><div class="score-fill" style="width:85%"></div></div>
+                    <div class="score-row" style="margin-top:8px;">
+                        <div class="sc-label">Experience Match</div>
+                        <div class="sc-score">90%</div>
+                    </div>
+                    <div class="score-bar"><div class="score-fill" style="width:90%"></div></div>
+                    <div class="score-row" style="margin-top:8px;">
+                        <div class="sc-label">Qualification Match</div>
+                        <div class="sc-score">100%</div>
+                    </div>
+                    <div class="score-bar"><div class="score-fill" style="width:100%"></div></div>
+                    <div class="score-row" style="margin-top:8px;">
+                        <div class="sc-label">Salary Fit</div>
+                        <div class="sc-score">60%</div>
+                    </div>
+                    <div class="score-bar"><div class="score-fill" style="width:60%;background:linear-gradient(90deg,#ed8936,#ffd200)"></div></div>
+                    <div class="score-row" style="margin-top:8px;">
+                        <div class="sc-label">Location Match</div>
+                        <div class="sc-score">100%</div>
+                    </div>
+                    <div class="score-bar"><div class="score-fill" style="width:100%"></div></div>
+                </div>
+                <div>
+                    <div class="info-box">
+                        <h4>🤖 AI Scoring Algorithm</h4>
+                        <ul>
+                            <li><strong>Skills Match (35%):</strong> Required skills vs candidate skills — NLP keyword matching + semantic similarity</li>
+                            <li><strong>Experience (25%):</strong> Years of experience within MRF min-max range</li>
+                            <li><strong>Qualification (20%):</strong> Degree match against requirement</li>
+                            <li><strong>Salary Fit (10%):</strong> Expected CTC within MRF budget range</li>
+                            <li><strong>Location (10%):</strong> City match or relocation willingness</li>
+                        </ul>
+                    </div>
+                    <div class="success-box" style="margin-top:12px;">
+                        <h4>✅ Auto-Action Based on Score</h4>
+                        <ul>
+                            <li><strong>Score ≥ 80%:</strong> Auto-shortlist + Recruiter notified</li>
+                            <li><strong>Score 60-79%:</strong> Manual review required</li>
+                            <li><strong>Score 40-59%:</strong> Maybe pile — recruiter reviews</li>
+                            <li><strong>Score &lt; 40%:</strong> Auto-reject + polite email sent</li>
+                            <li><strong>Deal breaker Q failed:</strong> Instant reject regardless of score</li>
+                        </ul>
+                    </div>
+                    <div class="warning-box" style="margin-top:12px;">
+                        <h4>⚠️ Duplicate Candidate Check</h4>
+                        <ul>
+                            <li>Same mobile = Duplicate alert</li>
+                            <li>Same email = Duplicate alert</li>
+                            <li>Same name + same employer + same exp = Possible duplicate flag</li>
+                            <li>Same candidate applied to same role in &lt; 6 months = Blocked</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ATS Kanban -->
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">📊 ATS Kanban Board View</h3>
+            <div class="kanban">
+                <div class="kanban-col">
+                    <div class="kanban-col-title" style="background:#667eea;">Applied (12)</div>
+                    <div class="kanban-card" style="border-color:#667eea;">
+                        <div class="kc-title">Amit Sharma</div>
+                        <div class="kc-meta">Score: 82% | 5 yrs exp | ₹10L CTC</div>
+                        <div style="margin-top:5px;"><span class="status s-new">New</span></div>
+                    </div>
+                    <div class="kanban-card" style="border-color:#667eea;">
+                        <div class="kc-title">Priya Nair</div>
+                        <div class="kc-meta">Score: 71% | 4 yrs exp | ₹8L CTC</div>
+                        <div style="margin-top:5px;"><span class="status s-new">New</span></div>
+                    </div>
+                </div>
+                <div class="kanban-col">
+                    <div class="kanban-col-title" style="background:#ed8936;">Screening (8)</div>
+                    <div class="kanban-card" style="border-color:#ed8936;">
+                        <div class="kc-title">Ravi Kumar</div>
+                        <div class="kc-meta">Score: 88% | 6 yrs | ₹12L</div>
+                        <div style="margin-top:5px;"><span class="status s-screen">In Screening</span></div>
+                    </div>
+                </div>
+                <div class="kanban-col">
+                    <div class="kanban-col-title" style="background:#9f7aea;">Technical (5)</div>
+                    <div class="kanban-card" style="border-color:#9f7aea;">
+                        <div class="kc-title">Sneha Patil</div>
+                        <div class="kc-meta">Technical: 15 Jan, 3PM</div>
+                        <div style="margin-top:5px;"><span class="status s-interview">Scheduled</span></div>
+                    </div>
+                </div>
+                <div class="kanban-col">
+                    <div class="kanban-col-title" style="background:#38b2ac;">HR Round (3)</div>
+                    <div class="kanban-card" style="border-color:#38b2ac;">
+                        <div class="kc-title">Karan Mehta</div>
+                        <div class="kc-meta">HR Round: 16 Jan, 11AM</div>
+                        <div style="margin-top:5px;"><span class="status s-interview">Scheduled</span></div>
+                    </div>
+                </div>
+                <div class="kanban-col">
+                    <div class="kanban-col-title" style="background:#48bb78;">Offer (2)</div>
+                    <div class="kanban-card" style="border-color:#48bb78;">
+                        <div class="kc-title">Deepak Singh</div>
+                        <div class="kc-meta">Offer: ₹13.5L | Exp: 22 Jan</div>
+                        <div style="margin-top:5px;"><span class="status s-offer">Offer Sent</span></div>
+                    </div>
+                </div>
+                <div class="kanban-col">
+                    <div class="kanban-col-title" style="background:#e53e3e;">Rejected (15)</div>
+                    <div class="kanban-card" style="border-color:#e53e3e;">
+                        <div class="kc-title">XYZ Candidate</div>
+                        <div class="kc-meta">Reason: Low Score (38%)</div>
+                        <div style="margin-top:5px;"><span class="status s-rejected">Rejected</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 6. INTERVIEW MANAGEMENT ===== -->
+    <div class="section">
+        <div class="section-header g-orange">
+            <span style="font-size:28px">🎯</span>
+            <div>
+                <h2>6.0 Sub-Module 2.6 — Interview Management</h2>
+                <p>Scheduling, feedback forms, scoring — complete interview lifecycle</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <!-- ⚙️ ROUND CONFIGURATION -->
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#2d3748;">⚙️ Interview Round Configuration (Admin / HR Head Setup)</h3>
+
+            <div class="warning-box" style="margin-bottom:15px;">
+                <h4>⚙️ Configurable Round Pipeline — Per Job / Per MRF</h4>
+                <p>HR Admin can fully configure the interview pipeline for each job position — add new rounds, remove rounds, merge two rounds into one simultaneous session, change round order, or run two rounds in parallel on the same day. This configuration is done at the MRF/Job level before scheduling begins.</p>
+            </div>
+
+            <!-- Round Config Table -->
+            <div style="background:#f8fafc;border-radius:12px;padding:20px;border:1px solid #e2e8f0;margin-bottom:20px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                    <div style="font-size:13px;font-weight:700;color:#2d3748;">🗂️ Round Pipeline — MRF-2024-0045 (Senior Java Developer)</div>
+                    <button style="padding:7px 16px;background:linear-gradient(135deg,#11998e,#38ef7d);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">+ Add Round</button>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="field-table" style="margin:0;">
+                        <tbody><tr style="background:#edf2f7;">
+                            <th style="width:40px;">Order</th>
+                            <th>Round Name</th>
+                            <th>Type</th>
+                            <th>Format</th>
+                            <th>Run With</th>
+                            <th>Selection Rule</th>
+                            <th>Mandatory?</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                        <tr>
+                            <td style="text-align:center;">
+                                <span style="cursor:move;color:#a0aec0;font-size:16px;">⠿</span> 1
+                            </td>
+                            <td><strong>Phone Screening</strong></td>
+                            <td><span class="badge b-medium">Telephonic</span></td>
+                            <td><span class="badge b-text">Sequential</span></td>
+                            <td style="color:#a0aec0;font-size:11px;">—</td>
+                            <td><span class="badge b-optional">Any One</span></td>
+                            <td><span class="badge b-required">Yes</span></td>
+                            <td><span style="background:#c6f6d5;color:#276749;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">Active</span></td>
+                            <td style="white-space:nowrap;">
+                                <button style="padding:3px 8px;background:#e9d8fd;color:#553c9a;border:none;border-radius:5px;font-size:10px;cursor:pointer;margin-right:3px;">✏️ Edit</button>
+                                <button style="padding:3px 8px;background:#fed7d7;color:#c53030;border:none;border-radius:5px;font-size:10px;cursor:pointer;">🗑️ Remove</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:center;"><span style="cursor:move;color:#a0aec0;font-size:16px;">⠿</span> 2</td>
+                            <td><strong>Technical Assessment</strong></td>
+                            <td><span class="badge b-text">Written / Online Test</span></td>
+                            <td><span class="badge b-text">Sequential</span></td>
+                            <td style="color:#a0aec0;font-size:11px;">—</td>
+                            <td><span class="badge b-optional">Any One</span></td>
+                            <td><span class="badge b-required">Yes</span></td>
+                            <td><span style="background:#c6f6d5;color:#276749;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">Active</span></td>
+                            <td style="white-space:nowrap;">
+                                <button style="padding:3px 8px;background:#e9d8fd;color:#553c9a;border:none;border-radius:5px;font-size:10px;cursor:pointer;margin-right:3px;">✏️ Edit</button>
+                                <button style="padding:3px 8px;background:#fed7d7;color:#c53030;border:none;border-radius:5px;font-size:10px;cursor:pointer;">🗑️ Remove</button>
+                            </td>
+                        </tr>
+                        <tr style="background:#e6fffa;">
+                            <td style="text-align:center;"><span style="cursor:move;color:#a0aec0;font-size:16px;">⠿</span> 3</td>
+                            <td>
+                                <strong>Technical Interview</strong>
+                                <div style="font-size:10px;color:#11998e;margin-top:2px;">⚡ Merged with Managerial Round</div>
+                            </td>
+                            <td><span class="badge b-text">Interview</span></td>
+                            <td><span class="badge b-checkbox">Panel</span></td>
+                            <td>
+                                <span style="background:#bee3f8;color:#2b6cb0;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">+ Round 4 (Same Session)</span>
+                            </td>
+                            <td><span class="badge b-critical">Unanimous</span></td>
+                            <td><span class="badge b-required">Yes</span></td>
+                            <td><span style="background:#c6f6d5;color:#276749;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">Active</span></td>
+                            <td style="white-space:nowrap;">
+                                <button style="padding:3px 8px;background:#e9d8fd;color:#553c9a;border:none;border-radius:5px;font-size:10px;cursor:pointer;margin-right:3px;">✏️ Edit</button>
+                                <button style="padding:3px 8px;background:#feebc8;color:#c05621;border:none;border-radius:5px;font-size:10px;cursor:pointer;">🔗 Unmerge</button>
+                            </td>
+                        </tr>
+                        <tr style="background:#e6fffa;">
+                            <td style="text-align:center;color:#a0aec0;font-size:11px;">↳ 4</td>
+                            <td>
+                                <strong>Managerial Round</strong>
+                                <div style="font-size:10px;color:#11998e;margin-top:2px;">⚡ Merged with Technical Interview (Round 3)</div>
+                            </td>
+                            <td><span class="badge b-text">Interview</span></td>
+                            <td><span class="badge b-checkbox">Panel</span></td>
+                            <td>
+                                <span style="background:#bee3f8;color:#2b6cb0;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">+ Round 3 (Same Session)</span>
+                            </td>
+                            <td><span class="badge b-critical">Unanimous</span></td>
+                            <td><span class="badge b-optional">Optional</span></td>
+                            <td><span style="background:#bee3f8;color:#2b6cb0;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">Merged</span></td>
+                            <td style="white-space:nowrap;">
+                                <button style="padding:3px 8px;background:#e9d8fd;color:#553c9a;border:none;border-radius:5px;font-size:10px;cursor:pointer;margin-right:3px;">✏️ Edit</button>
+                                <button style="padding:3px 8px;background:#feebc8;color:#c05621;border:none;border-radius:5px;font-size:10px;cursor:pointer;">🔗 Unmerge</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align:center;"><span style="cursor:move;color:#a0aec0;font-size:16px;">⠿</span> 5</td>
+                            <td><strong>HR Interview</strong></td>
+                            <td><span class="badge b-text">Interview</span></td>
+                            <td><span class="badge b-text">Sequential</span></td>
+                            <td style="color:#a0aec0;font-size:11px;">—</td>
+                            <td><span class="badge b-critical">Unanimous</span></td>
+                            <td><span class="badge b-required">Yes</span></td>
+                            <td><span style="background:#c6f6d5;color:#276749;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">Active</span></td>
+                            <td style="white-space:nowrap;">
+                                <button style="padding:3px 8px;background:#e9d8fd;color:#553c9a;border:none;border-radius:5px;font-size:10px;cursor:pointer;margin-right:3px;">✏️ Edit</button>
+                                <button style="padding:3px 8px;background:#fed7d7;color:#c53030;border:none;border-radius:5px;font-size:10px;cursor:pointer;">🗑️ Remove</button>
+                            </td>
+                        </tr>
+                        <tr style="background:#fff5f5;">
+                            <td style="text-align:center;color:#a0aec0;">—</td>
+                            <td>
+                                <strong style="color:#a0aec0;">Final / CXO Round</strong>
+                                <div style="font-size:10px;color:#e53e3e;margin-top:2px;">🚫 Removed for this Job</div>
+                            </td>
+                            <td><span class="badge b-readonly">Disabled</span></td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td><span style="background:#fed7d7;color:#c53030;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">Removed</span></td>
+                            <td>
+                                <button style="padding:3px 8px;background:#c6f6d5;color:#276749;border:none;border-radius:5px;font-size:10px;cursor:pointer;">↩️ Restore</button>
+                            </td>
+                        </tr>
+                    </tbody></table>
+                </div>
+
+                <!-- Config action buttons -->
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:15px;">
+                    <button style="padding:7px 14px;background:#e6fffa;color:#234e52;border:1px solid #81e6d9;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">🔗 Merge Two Rounds</button>
+                    <button style="padding:7px 14px;background:#e9d8fd;color:#553c9a;border:1px solid #d6bcfa;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">↕️ Reorder Rounds</button>
+                    <button style="padding:7px 14px;background:#fefcbf;color:#744210;border:1px solid #f6e05e;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">📋 Copy from Template</button>
+                    <button style="padding:7px 14px;background:#bee3f8;color:#2b6cb0;border:1px solid #90cdf4;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">💾 Save as Template</button>
+                </div>
+            </div>
+
+            <!-- Round Config Field Specs -->
+            <div class="sub-section" style="margin-bottom:20px;">
+                <h3>⚙️ Round Configuration — Business Rules</h3>
+                <div class="two-col">
+                    <div class="success-box">
+                        <h4>✅ What Can Be Configured Per Round</h4>
+                        <ul>
+                            <li><strong>Add Round:</strong> Create a new custom round (name, type, sequence)</li>
+                            <li><strong>Remove Round:</strong> Disable any round for this job — candidate skips it automatically</li>
+                            <li><strong>Merge Rounds:</strong> Two rounds conducted simultaneously in one session (e.g. Technical + Managerial as a single Panel)</li>
+                            <li><strong>Reorder:</strong> Drag-and-drop to change round sequence</li>
+                            <li><strong>Selection Rule:</strong> Set Unanimous / Majority / Any One per round independently</li>
+                            <li><strong>Format:</strong> Panel or Sequential per round</li>
+                            <li><strong>Mandatory/Optional:</strong> Optional rounds can be skipped by recruiter per candidate</li>
+                        </ul>
+                    </div>
+                    <div class="validation-box">
+                        <h4>🔴 Configuration Constraints</h4>
+                        <ul>
+                            <li>Minimum 2 rounds mandatory — Phone Screening + at least 1 interview round</li>
+                            <li>Round 1 (Screening) cannot be removed</li>
+                            <li>Merged rounds share the same date/time/venue — counted as 1 step in pipeline</li>
+                            <li>A round can only be merged with an adjacent round (next or previous)</li>
+                            <li>Max 8 rounds per pipeline (including merged)</li>
+                            <li>Configuration locked once first candidate reaches Round 2 — changes need HR Head approval</li>
+                            <li>CXO Round removal requires COO approval if position is Grade C or above</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interview Schedule Form -->
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#2d3748;">📅 Interview Schedule Form</h3>
+
+            <!-- Panel Interview Info Box -->
+            <div class="info-box" style="margin-bottom:15px;">
+                <h4>👥 Panel Interview Support — Multiple Interviewers in One Session</h4>
+                <p>A round can be conducted as a <strong>Panel Interview</strong> where all assigned interviewers sit together with the candidate at the same time, or as <strong>Sequential 1:1 rounds</strong> scheduled separately. In both cases, <strong>every interviewer must submit their own individual Assessment Sheet</strong>.</p>
+                <ul style="margin-top:8px;">
+                    <li>✅ Panel Interview = same date, time, and room for all interviewers</li>
+                    <li>✅ Sequential = different time slots per interviewer (same or different days)</li>
+                    <li>🔴 <strong>Unanimous Rule:</strong> If even ONE interviewer marks "Not Recommended" or "Reject" — candidate is automatically marked <strong>Not Selected</strong> for that round. No override without HR Head approval.</li>
+                </ul>
+            </div>
+
+            <div class="form-preview">
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Interview Round <span class="req">*</span></label>
+                        <select>
+                            <option>Round 1 - Phone Screening</option>
+                            <option>Round 2 - Technical Assessment</option>
+                            <option>Round 3+4 - Technical + Managerial (Merged Panel)</option>
+                            <option>Round 5 - HR Interview</option>
+                        </select>
+                        <span class="hint">Rounds shown as per this job's configuration. Removed rounds are hidden.</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Interview Format <span class="req">*</span></label>
+                        <select>
+                            <option>Panel Interview (All interviewers together)</option>
+                            <option>Sequential 1:1 (Separate slots per interviewer)</option>
+                        </select>
+                        <span class="hint">Panel = one session; Sequential = individual slots</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Interview Mode <span class="req">*</span></label>
+                        <select>
+                            <option>In-Person (Office)</option>
+                            <option>Video Call (Zoom)</option>
+                            <option>Video Call (MS Teams)</option>
+                            <option>Video Call (Google Meet)</option>
+                            <option>Telephonic</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Interview Date <span class="req">*</span></label>
+                        <input type="date">
+                        <span class="hint">Min: Tomorrow. No Sundays/holidays</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Interview Time <span class="req">*</span></label>
+                        <input type="time">
+                        <span class="hint">9AM–7PM only</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Interview Duration</label>
+                        <select>
+                            <option>30 Minutes</option>
+                            <option>45 Minutes</option>
+                            <option>60 Minutes</option>
+                            <option>90 Minutes</option>
+                            <option>120 Minutes</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Interview Location / Link</label>
+                        <input type="text" placeholder="Room 5B, 3rd Floor / Zoom link auto-generate">
+                    </div>
+                    <div class="form-field">
+                        <label>Selection Rule for This Round <span class="req">*</span></label>
+                        <select>
+                            <option>🔴 Unanimous — All interviewers must approve (default)</option>
+                            <option>🟡 Majority — More than 50% must approve</option>
+                            <option>🟢 Any One — At least 1 interviewer approves</option>
+                        </select>
+                        <span class="hint" style="color:#e53e3e;font-weight:600;">Default: Unanimous. Even 1 reject = Not Selected.</span>
+                    </div>
+                </div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Interviewers <span class="req">*</span></label>
+                        <select multiple="" style="min-height:80px;">
+                            <option>EMP-001 Ajay Kumar (Technical)</option>
+                            <option>EMP-023 Sana Sheikh (HR)</option>
+                            <option>EMP-045 Vikram Nair (HOD)</option>
+                        </select>
+                        <span class="hint">Each selected interviewer gets their own Assessment Sheet. Min 1 Technical + 1 HR mandatory. Calendar availability checked for all.</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Interview Instructions for Candidate</label>
+                        <textarea placeholder="Please bring: Original documents, Laptop (if technical round)
+Venue: ABC Office, 3rd Floor, Conference Room B
+Parking: Available B1 level"></textarea>
+                    </div>
+                </div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Assessment Test Link</label>
+                        <input type="url" placeholder="https://tests.company.com/java-test-001">
+                        <span class="hint">Auto-send to candidate on schedule</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Feedback Form Template</label>
+                        <select>
+                            <option>Technical Developer Template</option>
+                            <option>Leadership Competency Template</option>
+                            <option>Sales Role Template</option>
+                            <option>General HR Template</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interview Feedback Form -->
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">📝 Individual Assessment Sheet (Per Interviewer — Each fills separately)</h3>
+            <div class="form-preview">
+                <div style="background:linear-gradient(135deg,#0f2027,#2c5364);color:white;padding:15px;border-radius:10px;margin-bottom:15px;">
+                    <div style="font-size:14px;font-weight:700;">Interview Feedback — Round 2 Technical</div>
+                    <div style="font-size:12px;color:#a0aec0;margin-top:5px;">Candidate: Rahul Verma | Interviewer: Ajay Kumar | Date: 15 Jan 2024</div>
+                </div>
+
+                <div class="form-section-title">⭐ Competency Ratings (1=Poor, 5=Excellent)</div>
+
+                <!-- Technical competencies -->
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <div style="background:white;border-radius:10px;padding:15px;border:1px solid #e2e8f0;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <div>
+                                <div style="font-size:13px;font-weight:700;color:#2d3748;">Java &amp; Core Programming</div>
+                                <div style="font-size:11px;color:#718096;">Asked about OOP, Collections, Multithreading, Generics</div>
+                            </div>
+                            <div style="display:flex;gap:5px;">
+                                <span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;">1</span>
+                                <span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;">2</span>
+                                <span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;">3</span>
+                                <span style="width:30px;height:30px;border-radius:50%;background:#11998e;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;">4</span>
+                                <span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;">5</span>
+                            </div>
+                        </div>
+                        <div class="form-field" style="margin-top:10px;">
+                            <textarea style="min-height:50px;font-size:12px;" placeholder="Comments on Java skills...">Strong in core Java. Good knowledge of Collections and Streams. Could improve on Multithreading concepts.</textarea>
+                        </div>
+                    </div>
+
+                    <div style="background:white;border-radius:10px;padding:15px;border:1px solid #e2e8f0;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <div>
+                                <div style="font-size:13px;font-weight:700;color:#2d3748;">Spring Boot &amp; Microservices</div>
+                                <div style="font-size:11px;color:#718096;">REST API design, Service mesh, Docker basics</div>
+                            </div>
+                            <div style="display:flex;gap:5px;">
+                                <span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">1</span>
+                                <span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">2</span>
+                                <span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">3</span>
+                                <span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">4</span>
+                                <span style="width:30px;height:30px;border-radius:50%;background:#11998e;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background:white;border-radius:10px;padding:15px;border:1px solid #e2e8f0;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <div>
+                                <div style="font-size:13px;font-weight:700;color:#2d3748;">Communication Skills</div>
+                                <div style="font-size:11px;color:#718096;">Clarity, structured thinking, articulation</div>
+                            </div>
+                            <div style="display:flex;gap:5px;">
+                                <span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">1</span>
+                                <span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">2</span>
+                                <span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">3</span>
+                                <span style="width:30px;height:30px;border-radius:50%;background:#11998e;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">4</span>
+                                <span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">5</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section-title" style="margin-top:15px;">📋 Overall Assessment</div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Overall Recommendation <span class="req">*</span></label>
+                        <select>
+                            <option>⭐⭐⭐⭐⭐ Strongly Recommend (Move to Next Round)</option>
+                            <option>⭐⭐⭐⭐ Recommend (Move to Next Round)</option>
+                            <option>⭐⭐⭐ Hold (Need 2nd Opinion)</option>
+                            <option>⭐⭐ Not Recommended (Reject)</option>
+                            <option>⭐ Strongly Not Recommended (Immediate Reject)</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Suggested CTC (if Selected)</label>
+                        <input type="number" placeholder="12.5" step="0.1">
+                        <span class="hint">Interviewer's salary recommendation. Optional</span>
+                    </div>
+                </div>
+                <div class="form-row col-1">
+                    <div class="form-field">
+                        <label>Strengths Observed <span class="req">*</span></label>
+                        <textarea placeholder="Strong technical base, good problem-solving approach, proactive communicator..."></textarea>
+                    </div>
+                </div>
+                <div class="form-row col-1">
+                    <div class="form-field">
+                        <label>Areas of Concern</label>
+                        <textarea placeholder="Needs improvement in system design, limited cloud exposure..."></textarea>
+                    </div>
+                </div>
+                <div class="form-row col-1">
+                    <div class="form-field">
+                        <label>Questions Candidate Asked</label>
+                        <textarea placeholder="What is the team structure? What are growth opportunities?..."></textarea>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;margin-top:15px;">
+                    <button style="padding:10px 25px;background:linear-gradient(135deg,#11998e,#38ef7d);color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Submit My Assessment ✓</button>
+                </div>
+            </div>
+
+            <!-- Consolidated Panel Result -->
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">📊 Consolidated Panel Assessment View (HR / Recruiter View)</h3>
+            <div style="background:#f8fafc;border-radius:12px;padding:20px;border:1px solid #e2e8f0;">
+                <div style="background:linear-gradient(135deg,#0f2027,#2c5364);color:white;padding:12px 18px;border-radius:10px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-size:13px;font-weight:700;">Round 3 — Technical Panel | Candidate: Rahul Verma</div>
+                        <div style="font-size:11px;color:#a0aec0;margin-top:3px;">3 Interviewers assigned | Panel Interview | Date: 15 Jan 2024</div>
+                    </div>
+                    <span style="background:#e53e3e;color:white;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;">🔴 NOT SELECTED</span>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="field-table" style="margin:0;">
+                        <tbody><tr style="background:#edf2f7;">
+                            <th>Interviewer</th>
+                            <th>Role</th>
+                            <th>Technical</th>
+                            <th>Communication</th>
+                            <th>Problem Solving</th>
+                            <th>Avg Score</th>
+                            <th>Recommendation</th>
+                            <th>Assessment Submitted</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Ajay Kumar</strong></td>
+                            <td>Technical Lead</td>
+                            <td style="text-align:center;">4/5</td>
+                            <td style="text-align:center;">4/5</td>
+                            <td style="text-align:center;">4/5</td>
+                            <td style="text-align:center;color:#276749;font-weight:700;">4.0</td>
+                            <td><span style="background:#c6f6d5;color:#276749;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;">✅ Recommend</span></td>
+                            <td style="color:#718096;font-size:11px;">15 Jan, 5:30 PM</td>
+                        </tr>
+                        <tr style="background:#fff5f5;">
+                            <td><strong>Sana Sheikh</strong></td>
+                            <td>HR Manager</td>
+                            <td style="text-align:center;">3/5</td>
+                            <td style="text-align:center;">3/5</td>
+                            <td style="text-align:center;">2/5</td>
+                            <td style="text-align:center;color:#c53030;font-weight:700;">2.7</td>
+                            <td><span style="background:#fed7d7;color:#c53030;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;">❌ Not Recommended</span></td>
+                            <td style="color:#718096;font-size:11px;">15 Jan, 6:10 PM</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Vikram Nair</strong></td>
+                            <td>HOD</td>
+                            <td style="text-align:center;">4/5</td>
+                            <td style="text-align:center;">4/5</td>
+                            <td style="text-align:center;">3/5</td>
+                            <td style="text-align:center;color:#276749;font-weight:700;">3.7</td>
+                            <td><span style="background:#c6f6d5;color:#276749;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;">✅ Recommend</span></td>
+                            <td style="color:#718096;font-size:11px;">15 Jan, 6:45 PM</td>
+                        </tr>
+                        <tr style="background:#fff5f5;font-weight:700;">
+                            <td colspan="5" style="color:#c53030;">⚠️ UNANIMOUS RULE TRIGGERED — 1 out of 3 interviewers marked Not Recommended</td>
+                            <td style="text-align:center;color:#c53030;">3.5 avg</td>
+                            <td colspan="2"><span style="background:#e53e3e;color:white;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:700;">🔴 NOT SELECTED</span></td>
+                        </tr>
+                    </tbody></table>
+                </div>
+
+                <div style="margin-top:15px;display:flex;gap:12px;flex-wrap:wrap;">
+                    <div style="background:#fff5f5;border:1px solid #fed7d7;border-radius:8px;padding:12px;flex:1;min-width:200px;">
+                        <div style="font-size:12px;font-weight:700;color:#c53030;margin-bottom:5px;">🔴 Rejection Reason (Auto-logged)</div>
+                        <div style="font-size:12px;color:#742a2a;">Unanimous rule failed — Sana Sheikh marked Not Recommended. Reason: Limited cloud exposure, weak system design concepts.</div>
+                    </div>
+                    <div style="background:#fffbeb;border:1px solid #f6e05e;border-radius:8px;padding:12px;flex:1;min-width:200px;">
+                        <div style="font-size:12px;font-weight:700;color:#b7791f;margin-bottom:5px;">⚡ Override Option</div>
+                        <div style="font-size:12px;color:#7b341e;">HR Head can override this decision with written justification. Override requires COO approval for CXO-level roles.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unanimous Rule Logic Box -->
+            <div class="validation-box" style="margin-top:20px;">
+                <h4>🔴 Unanimous Selection Rule — System Logic</h4>
+                <ul>
+                    <li><strong>Default Rule:</strong> ALL interviewers must submit "Recommend" or "Strongly Recommend" for the candidate to move to the next round</li>
+                    <li><strong>Even 1 "Not Recommended":</strong> Candidate is automatically marked <strong>Not Selected</strong> for that round — no exceptions without override</li>
+                    <li><strong>Even 1 "Hold":</strong> Round marked as <strong>On Hold</strong> — HR Head review required before proceeding</li>
+                    <li><strong>Pending Assessment:</strong> If any interviewer hasn't submitted within 24 hours, HR is escalated — round result stays Pending</li>
+                    <li><strong>Override Process:</strong> HR Head can override with written justification logged in the system — visible in audit trail</li>
+                    <li><strong>Panel vs Sequential:</strong> Rule applies equally whether it was a panel interview or separate 1:1 rounds — all assessments are consolidated</li>
+                    <li><strong>Candidate Notification:</strong> Auto-email sent within 2 hours of Not Selected status — polite rejection template used</li>
+                </ul>
+            </div>
+
+            <!-- Interview Field Specs -->
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">📋 Interview Management — Field Specifications</h3>
+            <div style="overflow-x:auto;">
+                <table class="field-table">
+                    <tbody><tr><th>#</th><th>Field</th><th>Type</th><th>Mandatory</th><th>Validation</th><th>Business Rule</th><th>DB Column</th></tr>
+                    <tr><td>1</td><td><strong>Interview Round</strong></td><td><span class="badge b-dropdown">Dropdown</span></td><td><span class="badge b-required">Required</span></td><td>1-6 rounds configurable. Company-level config</td><td>Each round needs separate schedule &amp; feedback</td><td>interview_round</td></tr>
+                    <tr><td>2</td><td><strong>Interview Format</strong></td><td><span class="badge b-radio">Radio</span></td><td><span class="badge b-required">Required</span></td><td>Panel or Sequential</td><td>Panel = single slot for all interviewers. Sequential = separate slots per interviewer</td><td>interview_format</td></tr>
+                    <tr><td>3</td><td><strong>Interview Date</strong></td><td><span class="badge b-date">Date</span></td><td><span class="badge b-required">Required</span></td><td>Min: Tomorrow. No public holidays. No Sundays. Within 30 days</td><td>Auto-block interviewer calendar. Check conflicts for all panel members</td><td>interview_date</td></tr>
+                    <tr><td>4</td><td><strong>Interview Time</strong></td><td><span class="badge b-text">Time</span></td><td><span class="badge b-required">Required</span></td><td>9:00 AM to 7:00 PM only. 30-min slots. Check all interviewers' availability</td><td>Interviewer calendar sync for all members. Conflict = alert</td><td>interview_time</td></tr>
+                    <tr><td>5</td><td><strong>Interviewers</strong></td><td><span class="badge b-dropdown">Multi-Select</span></td><td><span class="badge b-required">Required</span></td><td>Must include 1 from technical + 1 HR (for Round 3+). Max 5 per round</td><td>Each interviewer gets individual Assessment Sheet. Calendar check for all.</td><td>interviewer_ids (JSON)</td></tr>
+                    <tr><td>6</td><td><strong>Selection Rule</strong></td><td><span class="badge b-dropdown">Dropdown</span></td><td><span class="badge b-required">Required</span></td><td>Unanimous / Majority / Any One</td><td>Default = Unanimous. Even 1 reject = Not Selected. System auto-triggers rejection.</td><td>selection_rule</td></tr>
+                    <tr><td>7</td><td><strong>Interview Mode</strong></td><td><span class="badge b-dropdown">Dropdown</span></td><td><span class="badge b-required">Required</span></td><td>In-person/Video/Telephonic</td><td>If Video: auto-generate Zoom/Teams link. If In-person: room booking</td><td>interview_mode</td></tr>
+                    <tr><td>8</td><td><strong>Meeting Link</strong></td><td><span class="badge b-auto">Auto-Generate</span></td><td><span class="badge b-conditional">Conditional</span></td><td>Required if Mode = Video. Zoom API / Teams API</td><td>Auto-sent to candidate + all interviewers in invite email</td><td>meeting_link</td></tr>
+                    <tr><td>9</td><td><strong>Individual Assessment Sheet</strong></td><td><span class="badge b-rating">Rating 1-5</span></td><td><span class="badge b-required">Required</span></td><td>Each interviewer fills separately. All competency rows must be rated. Due within 24 hrs of interview.</td><td>System tracks submission per interviewer. Consolidated view available to HR only after all submit.</td><td>assessment_sheets (JSON)</td></tr>
+                    <tr><td>10</td><td><strong>Overall Recommendation</strong></td><td><span class="badge b-dropdown">Dropdown</span></td><td><span class="badge b-required">Required</span></td><td>5 levels from Strongly Recommend to Strongly Reject. Each interviewer submits independently.</td><td>🔴 Unanimous Rule: Even 1 "Not Recommended" → auto Not Selected. HR notified immediately.</td><td>recommendation</td></tr>
+                    <tr><td>11</td><td><strong>Consolidated Round Result</strong></td><td><span class="badge b-auto">Auto-computed</span></td><td>—</td><td>Computed after all assessments submitted</td><td>Selected / Not Selected / On Hold — based on selection rule applied to all recommendations</td><td>round_result</td></tr>
+                    <tr><td>12</td><td><strong>Feedback Deadline</strong></td><td><span class="badge b-auto">Auto-set</span></td><td>—</td><td>= Interview Date + 24 hours</td><td>After 24hrs: escalation email to interviewer's manager</td><td>feedback_due_by</td></tr>
+                    <tr><td>13</td><td><strong>No-Show Reason</strong></td><td><span class="badge b-dropdown">Dropdown</span></td><td><span class="badge b-conditional">Conditional</span></td><td>Required if candidate did not attend</td><td>Candidate can reschedule once. Second no-show = auto-reject</td><td>no_show_reason</td></tr>
+                </tbody></table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 7. OFFER MANAGEMENT ===== -->
+    <div class="section">
+        <div class="section-header g-lime">
+            <span style="font-size:28px">📄</span>
+            <div>
+                <h2>7.0 Sub-Module 2.7 — Selection &amp; Offer Management</h2>
+                <p>Salary negotiation, offer letter generation, e-signature</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="form-preview">
+                <div class="form-section-title">💰 Offer Details</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Candidate Name</label>
+                        <input type="text" value="Rahul Verma" readonly="" style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Position</label>
+                        <input type="text" value="Senior Java Developer" readonly="" style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Designation (Offer) <span class="req">*</span></label>
+                        <select><option>Senior Executive</option><option>Senior Developer</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Grade (Offer) <span class="req">*</span></label>
+                        <select><option>Grade B</option><option>Grade C</option></select>
+                        <span class="hint">Must match MRF grade</span>
+                    </div>
+                </div>
+
+                <div class="form-section-title" style="margin-top:15px;">💵 CTC Breakup Builder</div>
+                <div style="overflow-x:auto;">
+                    <table class="field-table" style="margin:0;">
+                        <tbody><tr style="background:#e6fffa;">
+                            <th>Component</th>
+                            <th>Annual (₹)</th>
+                            <th>Monthly (₹)</th>
+                            <th>% of Basic</th>
+                            <th>Taxable?</th>
+                            <th>Type</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Basic Salary</strong> <span class="badge b-required">Mandatory</span></td>
+                            <td><input type="number" value="480000" style="width:100px;padding:4px;border:1px solid #e2e8f0;border-radius:4px;"></td>
+                            <td style="color:#11998e;font-weight:700;">₹40,000</td>
+                            <td>40% of CTC</td>
+                            <td><span class="badge b-required">Yes</span></td>
+                            <td>Fixed</td>
+                        </tr>
+                        <tr>
+                            <td><strong>HRA</strong> <span class="badge b-required">Mandatory</span></td>
+                            <td><input type="number" value="192000" style="width:100px;padding:4px;border:1px solid #e2e8f0;border-radius:4px;"></td>
+                            <td style="color:#11998e;font-weight:700;">₹16,000</td>
+                            <td>40% of Basic</td>
+                            <td><span class="badge b-conditional">Partial</span></td>
+                            <td>Fixed</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Special Allowance</strong></td>
+                            <td><input type="number" value="192000" style="width:100px;padding:4px;border:1px solid #e2e8f0;border-radius:4px;"></td>
+                            <td style="color:#11998e;font-weight:700;">₹16,000</td>
+                            <td>—</td>
+                            <td><span class="badge b-required">Yes</span></td>
+                            <td>Fixed</td>
+                        </tr>
+                        <tr>
+                            <td><strong>LTA</strong></td>
+                            <td><input type="number" value="48000" style="width:100px;padding:4px;border:1px solid #e2e8f0;border-radius:4px;"></td>
+                            <td style="color:#11998e;font-weight:700;">₹4,000</td>
+                            <td>—</td>
+                            <td><span class="badge b-optional">Exempt</span></td>
+                            <td>Fixed</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Medical Allowance</strong></td>
+                            <td><input type="number" value="15000" style="width:100px;padding:4px;border:1px solid #e2e8f0;border-radius:4px;"></td>
+                            <td style="color:#11998e;font-weight:700;">₹1,250</td>
+                            <td>—</td>
+                            <td><span class="badge b-optional">Exempt</span></td>
+                            <td>Reimb.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>PF (Employer 12%)</strong></td>
+                            <td>₹57,600</td>
+                            <td>₹4,800</td>
+                            <td>12% of Basic</td>
+                            <td><span class="badge b-optional">Exempt</span></td>
+                            <td>Statutory</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Gratuity Provision</strong></td>
+                            <td>₹27,692</td>
+                            <td>₹2,308</td>
+                            <td>4.81% of Basic</td>
+                            <td><span class="badge b-optional">Exempt</span></td>
+                            <td>Statutory</td>
+                        </tr>
+                        <tr style="background:#e6fffa;font-weight:700;">
+                            <td><strong>Total CTC</strong></td>
+                            <td><strong>₹12,32,292</strong></td>
+                            <td><strong>₹1,02,691</strong></td>
+                            <td>—</td>
+                            <td>—</td>
+                            <td>—</td>
+                        </tr>
+                        <tr style="background:#f0fff4;font-weight:700;color:#276749;">
+                            <td><strong>In-Hand (Est.)</strong></td>
+                            <td>—</td>
+                            <td><strong>~₹78,500</strong></td>
+                            <td>After TDS, PF deductions</td>
+                            <td>—</td>
+                            <td>—</td>
+                        </tr>
+                    </tbody></table>
+                </div>
+
+                <div class="form-section-title" style="margin-top:15px;">📋 Offer Terms</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Offer Date <span class="req">*</span></label>
+                        <input type="date" value="2024-01-18">
+                    </div>
+                    <div class="form-field">
+                        <label>Offer Validity <span class="req">*</span></label>
+                        <input type="date">
+                        <span class="hint">Max 30 days from offer date</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Expected DOJ <span class="req">*</span></label>
+                        <input type="date">
+                        <span class="hint">Must be within 60 days of offer</span>
+                    </div>
+                    <div class="form-field">
+                        <label>Probation Period (months)</label>
+                        <input type="number" value="6" min="0" max="12">
+                    </div>
+                </div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Offer Letter Template <span class="req">*</span></label>
+                        <select>
+                            <option>Standard IT Offer Letter</option>
+                            <option>Management Grade Offer</option>
+                            <option>Contract Staff Offer</option>
+                            <option>Intern Offer Letter</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Special Conditions / Clauses</label>
+                        <textarea placeholder="E.g. Subject to BGV clearance, Non-compete for 1 year, Service bond 2 years"></textarea>
+                    </div>
+                </div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Signing Authority <span class="req">*</span></label>
+                        <select>
+                            <option>CHRO - Ramesh Gupta</option>
+                            <option>CEO - Suresh Patel</option>
+                            <option>HR Head - Anita Mehta</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Offer Delivery Mode <span class="req">*</span></label>
+                        <select>
+                            <option>Email with e-Sign (DigiSign)</option>
+                            <option>WhatsApp PDF</option>
+                            <option>Physical Letter (Courier)</option>
+                            <option>Candidate Portal Download</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Approval Required Before Sending?</label>
+                        <select>
+                            <option>Yes - HR Head + Finance + COO Approval</option>
+                            <option>Yes - Finance + COO Approval (if above band)</option>
+                            <option>Yes - COO Approval Only</option>
+                            <option>No - Auto Send after Generate</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Offer Flow -->
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🔄 Offer Approval &amp; Delivery Flow</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">1</div>
+                        <div class="step-title">HR Creates Offer</div>
+                        <div class="step-role">HR Executive</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">2</div>
+                        <div class="step-title">Within Band?</div>
+                        <div class="step-role">🤖 System Check</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">3</div>
+                        <div class="step-title">HR Head Approve</div>
+                        <div class="step-role">HR Head</div>
+                        <div class="step-desc">Offer terms review</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">4</div>
+                        <div class="step-title">Finance Approve</div>
+                        <div class="step-role">Finance Head</div>
+                        <div class="step-desc">CTC budget verified</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">5</div>
+                        <div class="step-title">COO Approve</div>
+                        <div class="step-role">COO</div>
+                        <div class="step-desc">Final ops sign-off</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">6</div>
+                        <div class="step-title">Generate PDF</div>
+                        <div class="step-role">🤖 Auto</div>
+                        <div class="step-desc">Template + CTC data</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">7</div>
+                        <div class="step-title">Send to Candidate</div>
+                        <div class="step-role">🤖 Auto Email</div>
+                        <div class="step-desc">e-Sign link + portal</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">8</div>
+                        <div class="step-title">Candidate Response</div>
+                        <div class="step-role">Candidate</div>
+                        <div class="step-desc">Accept / Negotiate / Reject</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">9</div>
+                        <div class="step-title">e-Sign Accepted</div>
+                        <div class="step-role">Candidate</div>
+                        <div class="step-desc">Pre-joining triggered</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="validation-box" style="margin-top:15px;">
+                <h4>⚠️ Offer Validation Rules</h4>
+                <ul>
+                    <li>CTC offered must be ≥ MRF minimum CTC</li>
+                    <li>CTC offered must be ≤ MRF maximum CTC (or Finance + COO approval needed)</li>
+                    <li>CTC offered must be ≥ Grade Band minimum (system enforced)</li>
+                    <li>Offer validity: Max 30 days. System auto-expire after validity date</li>
+                    <li>Expected DOJ: Must be within 60 days. Must not be a holiday/Sunday</li>
+                    <li>If candidate rejects: New offer can be made (max 1 revision) within band</li>
+                    <li>If salary band exception: Auto-escalate to COO &amp; CEO for approval</li>
+                    <li>Offer letter digital signature via registered e-sign vendor (Leegality/SignDesk)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 8. BGV ===== -->
+    <div class="section">
+        <div class="section-header g-maroon">
+            <span style="font-size:28px">🔍</span>
+            <div>
+                <h2>8.0 Sub-Module 2.8 — Background Verification (BGV)</h2>
+                <p>Employment, education, criminal, and reference checks — complete verification</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="form-preview">
+                <div class="form-section-title">🔍 BGV Configuration</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>BGV Agency <span class="req">*</span></label>
+                        <select>
+                            <option>AuthBridge</option>
+                            <option>SpringVerify</option>
+                            <option>Idfy</option>
+                            <option>In-house HR Team</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>BGV Type <span class="req">*</span></label>
+                        <select>
+                            <option>Standard (Employment + Education)</option>
+                            <option>Enhanced (+ Criminal + Credit)</option>
+                            <option>Executive (Full + Global Check)</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>BGV Initiated On</label>
+                        <input type="date" readonly="" style="background:#f7fafc;">
+                        <span class="hint">Auto-set when offer accepted</span>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">📋 BGV Checks Tracking</h3>
+            <div style="overflow-x:auto;">
+                <table class="field-table">
+                    <tbody><tr>
+                        <th>Verification Type</th><th>Documents Needed</th><th>Status</th><th>Agency/Mode</th><th>TAT</th><th>Result</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Identity Verification</strong></td>
+                        <td>Aadhaar, PAN, Passport</td>
+                        <td><span class="badge b-low">Completed</span></td>
+                        <td>Govt API Auto</td>
+                        <td>1 day</td>
+                        <td style="color:#276749;font-weight:700;">✅ Clear</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Previous Employment (Last 3)</strong></td>
+                        <td>Offer letter, Relieving letter, Payslips</td>
+                        <td><span class="badge b-medium">In Progress</span></td>
+                        <td>AuthBridge</td>
+                        <td>7 days</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Education Verification</strong></td>
+                        <td>Degree certificate, Marksheets</td>
+                        <td><span class="badge b-medium">In Progress</span></td>
+                        <td>AuthBridge</td>
+                        <td>10 days</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Criminal Record Check</strong></td>
+                        <td>Address proof, Police form</td>
+                        <td><span class="badge b-conditional">Pending</span></td>
+                        <td>Local Police / Agency</td>
+                        <td>15 days</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Reference Check</strong></td>
+                        <td>2 Professional references</td>
+                        <td><span class="badge b-low">Completed</span></td>
+                        <td>HR Team (Telephonic)</td>
+                        <td>3 days</td>
+                        <td style="color:#276749;font-weight:700;">✅ Positive</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Credit Check</strong></td>
+                        <td>PAN, Consent form</td>
+                        <td><span class="badge b-conditional">Not Initiated</span></td>
+                        <td>CIBIL API</td>
+                        <td>1 day</td>
+                        <td>—</td>
+                    </tr>
+                </tbody></table>
+            </div>
+
+            <div class="two-col">
+                <div class="validation-box">
+                    <h4>⚠️ BGV Discrepancy Handling</h4>
+                    <ul>
+                        <li><strong>Minor Discrepancy:</strong> HR reviews, candidate given chance to explain. HR decides join/reject</li>
+                        <li><strong>Major Discrepancy</strong> (fake docs, false employment): Instant offer revocation + blacklist candidate</li>
+                        <li><strong>Criminal Record:</strong> Case-by-case HR+Legal review. Nature of crime matters</li>
+                        <li><strong>BGV Pending on DOJ:</strong> Conditional joining allowed for low-risk roles. Restricted access till BGV clear</li>
+                        <li>Blacklisted candidates cannot apply to same company for 5 years</li>
+                    </ul>
+                </div>
+                <div class="info-box">
+                    <h4>📋 BGV API Integrations</h4>
+                    <ul>
+                        <li><strong>Aadhaar:</strong> UIDAI API — name, DOB, address verify</li>
+                        <li><strong>PAN:</strong> NSDL API — name, status verify</li>
+                        <li><strong>Driving License:</strong> Sarathi portal API</li>
+                        <li><strong>Education:</strong> DigiLocker pull (for Govt issued degrees)</li>
+                        <li><strong>CIBIL:</strong> TransUnion CIBIL API (consent required)</li>
+                        <li><strong>MCA21:</strong> Company registration verify for previous employer</li>
+                        <li><strong>EPFO:</strong> UAN verify, previous employer PF records</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 9. PRE-JOINING & ONBOARDING ===== -->
+    <div class="section">
+        <div class="section-header g-cyan">
+            <span style="font-size:28px">🎉</span>
+            <div>
+                <h2>9.0 Sub-Module 2.9 &amp; 2.10 — Pre-Joining &amp; Onboarding</h2>
+                <p>From offer acceptance to Day 1 ready — complete pre-joining portal + onboarding checklist</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <!-- Pre-Joining Portal -->
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#2d3748;">🌐 Pre-Joining Portal — Candidate View</h3>
+            <div class="form-preview">
+                <div style="background:linear-gradient(135deg,#0f2027,#2c5364);color:white;padding:20px;border-radius:12px;margin-bottom:20px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <div style="font-size:18px;font-weight:700;">Welcome, Rahul Verma! 👋</div>
+                            <div style="font-size:13px;color:#a0aec0;margin-top:4px;">Joining Date: 1 Feb 2024 | Position: Senior Java Developer | 14 days to go</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:28px;font-weight:800;color:#38ef7d;">65%</div>
+                            <div style="font-size:11px;color:#a0aec0;">Profile Complete</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section-title">📋 Pre-Joining Checklist (Candidate Tasks)</div>
+                <ul class="checklist">
+                    <li><span class="check">✅</span> <strong>Personal Information Form</strong> — Completed on 18 Jan 2024</li>
+                    <li><span class="check">✅</span> <strong>Aadhaar Card Upload</strong> — Verified</li>
+                    <li><span class="check">✅</span> <strong>PAN Card Upload</strong> — Verified</li>
+                    <li><span class="check">✅</span> <strong>Bank Account Details</strong> — Submitted. Pending verification</li>
+                    <li><span class="check">✅</span> <strong>Educational Certificates</strong> — 10th, 12th, Graduation uploaded</li>
+                    <li><span class="warn">⚠️</span> <strong>Experience Certificates</strong> — Pending. Please upload relieving letters</li>
+                    <li><span class="warn">⚠️</span> <strong>Previous Salary Slips (3 months)</strong> — Pending upload</li>
+                    <li><span class="cross">❌</span> <strong>Passport / Visa (Optional)</strong> — Not uploaded</li>
+                    <li><span class="cross">❌</span> <strong>Investment Declaration Form</strong> — Not submitted</li>
+                    <li><span class="cross">❌</span> <strong>Emergency Contact Form</strong> — Not filled</li>
+                    <li><span class="cross">❌</span> <strong>Nominee Declaration (PF)</strong> — Not submitted</li>
+                    <li><span class="cross">❌</span> <strong>Medical Questionnaire</strong> — Not filled</li>
+                </ul>
+
+                <div class="form-section-title" style="margin-top:15px;">📚 Pre-Joining Reading Material</div>
+                <div class="three-col" style="margin-top:10px;">
+                    <div style="background:white;border-radius:10px;padding:12px;border:1px solid #e2e8f0;cursor:pointer;">
+                        <div style="font-size:20px;margin-bottom:5px;">📖</div>
+                        <div style="font-size:13px;font-weight:700;">Employee Handbook 2024</div>
+                        <div style="font-size:11px;color:#718096;margin-top:3px;">HR Policies, Code of Conduct</div>
+                        <div style="margin-top:8px;"><span class="badge b-required">Must Read</span></div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:12px;border:1px solid #e2e8f0;cursor:pointer;">
+                        <div style="font-size:20px;margin-bottom:5px;">🏢</div>
+                        <div style="font-size:13px;font-weight:700;">Company Overview &amp; Culture</div>
+                        <div style="font-size:11px;color:#718096;margin-top:3px;">Vision, Mission, Values, History</div>
+                        <div style="margin-top:8px;"><span class="badge b-optional">Recommended</span></div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:12px;border:1px solid #e2e8f0;cursor:pointer;">
+                        <div style="font-size:20px;margin-bottom:5px;">💻</div>
+                        <div style="font-size:13px;font-weight:700;">IT Systems Guide</div>
+                        <div style="font-size:11px;color:#718096;margin-top:3px;">Email, Laptop setup, VPN</div>
+                        <div style="margin-top:8px;"><span class="badge b-required">Must Read</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Day 1 Onboarding Checklist -->
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🗓️ Day 1 Onboarding Master Checklist</h3>
+            <div class="three-col">
+                <div class="sub-section">
+                    <h3>👤 HR Tasks</h3>
+                    <ul class="checklist">
+                        <li><span class="check">✓</span> Employee ID generated in system</li>
+                        <li><span class="check">✓</span> Welcome letter + joining kit ready</li>
+                        <li><span class="check">✓</span> Appointment letter signed</li>
+                        <li><span class="check">✓</span> Physical ID card printed</li>
+                        <li><span class="check">✓</span> All documents collected &amp; verified</li>
+                        <li><span class="check">✓</span> PF Form 2 (Nomination) signed</li>
+                        <li><span class="check">✓</span> ESIC registration (if applicable)</li>
+                        <li><span class="check">✓</span> Gratuity nomination form signed</li>
+                        <li><span class="check">✓</span> Leave balance credited</li>
+                        <li><span class="check">✓</span> Attendance device enrolled</li>
+                        <li><span class="check">✓</span> Buddy/Mentor introduced</li>
+                        <li><span class="check">✓</span> Induction schedule shared</li>
+                    </ul>
+                </div>
+                <div class="sub-section">
+                    <h3>💻 IT Tasks</h3>
+                    <ul class="checklist">
+                        <li><span class="check">✓</span> Laptop/Desktop provisioned</li>
+                        <li><span class="check">✓</span> Official email ID created</li>
+                        <li><span class="check">✓</span> System login credentials</li>
+                        <li><span class="check">✓</span> HRMS portal access activated</li>
+                        <li><span class="check">✓</span> Required software installed</li>
+                        <li><span class="check">✓</span> VPN access configured</li>
+                        <li><span class="check">✓</span> Mobile (if allocated) given</li>
+                        <li><span class="check">✓</span> SIM card (if allocated)</li>
+                        <li><span class="check">✓</span> Internet/Wi-Fi access</li>
+                        <li><span class="check">✓</span> Project tools access (Jira/GitLab)</li>
+                        <li><span class="check">✓</span> Communication tools (Teams/Slack)</li>
+                        <li><span class="check">✓</span> IT security briefing done</li>
+                    </ul>
+                </div>
+                <div class="sub-section">
+                    <h3>🏢 Admin / Manager Tasks</h3>
+                    <ul class="checklist">
+                        <li><span class="check">✓</span> Workstation / Desk allocated</li>
+                        <li><span class="check">✓</span> Access card / entry badge</li>
+                        <li><span class="check">✓</span> Parking slot (if applicable)</li>
+                        <li><span class="check">✓</span> Canteen card enrollment</li>
+                        <li><span class="check">✓</span> Team introduction meeting</li>
+                        <li><span class="check">✓</span> Manager 1:1 scheduled</li>
+                        <li><span class="check">✓</span> 30-60-90 day plan shared</li>
+                        <li><span class="check">✓</span> KRA/Goals discussion</li>
+                        <li><span class="check">✓</span> Project briefing done</li>
+                        <li><span class="check">✓</span> Team org chart shared</li>
+                        <li><span class="check">✓</span> Induction training enrolled</li>
+                        <li><span class="check">✓</span> Medical insurance enrollment</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 30-60-90 Plan -->
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">📅 30-60-90 Day Plan Tracker</h3>
+            <div class="timeline">
+                <div class="tl-item">
+                    <div class="tl-dot"></div>
+                    <div class="tl-content">
+                        <h4>First 30 Days — Learn &amp; Absorb</h4>
+                        <p>Company culture, processes, tools, team dynamics ko samajhna. No deliverables expected. Pure learning phase.</p>
+                        <div class="tl-tags">
+                            <span class="tl-tag">📚 Induction Training</span>
+                            <span class="tl-tag">🤝 Stakeholder Meetings</span>
+                            <span class="tl-tag">💻 Tool Setup</span>
+                            <span class="tl-tag">📖 Process Documentation</span>
+                            <span class="tl-tag">🎯 Goal Setting</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="tl-item">
+                    <div class="tl-dot"></div>
+                    <div class="tl-content">
+                        <h4>Days 31-60 — Apply &amp; Contribute</h4>
+                        <p>Start initial tasks and small deliverables. Coordinate with the team kaam karna. Process improvements suggest karna.</p>
+                        <div class="tl-tags">
+                            <span class="tl-tag">🔨 First Deliverables</span>
+                            <span class="tl-tag">👥 Team Collaboration</span>
+                            <span class="tl-tag">📊 Mid-review with Manager</span>
+                            <span class="tl-tag">🎓 Role-specific Training</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="tl-item">
+                    <div class="tl-dot"></div>
+                    <div class="tl-content">
+                        <h4>Days 61-90 — Lead &amp; Optimize</h4>
+                        <p>Independent kaam karna. Ownership lena. KRA ke against delivery. Probation review preparation.</p>
+                        <div class="tl-tags">
+                            <span class="tl-tag">🎯 KRA Achievement</span>
+                            <span class="tl-tag">📈 Performance Review</span>
+                            <span class="tl-tag">🤝 Cross-team Projects</span>
+                            <span class="tl-tag">✅ Probation Assessment</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 10. RBAC ===== -->
+    <div class="section">
+        <div class="section-header g-maroon">
+            <span style="font-size:28px">🔐</span>
+            <div>
+                <h2>10.0 RBAC — Recruitment Module Access Control</h2>
+                <p>Who can do what — field level and action level permissions</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="sub-section">
+                <h3>👥 Recruitment Module — Role Definitions</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tbody><tr><th>Role</th><th>Who</th><th>Scope</th><th>Key Permissions</th></tr>
+                        <tr><td><strong>R01 - HR Admin</strong></td><td>Central HR Head / CHRO</td><td>All MRFs, all candidates, all positions</td><td>Full CRUD. Approve MRF, Approve offer, Generate offer letter, Close MRF</td></tr>
+                        <tr><td><strong>R02 - Recruiter</strong></td><td>HR Recruitment Team</td><td>Assigned MRFs only</td><td>Manage candidates, schedule interviews, create offers (approval required), post jobs</td></tr>
+                        <tr><td><strong>R03 - HOD / Manager</strong></td><td>Department Head</td><td>Own dept MRFs + own team interviews</td><td>Create MRF, view candidates shortlisted for their dept, submit interview feedback</td></tr>
+                        <tr><td><strong>R04 - Interviewer</strong></td><td>Any Employee assigned as interviewer</td><td>Only scheduled interviews</td><td>View candidate profile (limited), submit feedback, view interview schedule</td></tr>
+                        <tr><td><strong>R05 - Payroll Admin</strong></td><td>Payroll team</td><td>Offer CTC details only</td><td>View offer CTC breakup. No candidate personal data</td></tr>
+                        <tr><td><strong>R06 - Finance</strong></td><td>Finance Head</td><td>MRF budget approval only</td><td>Approve/reject MRF budget. View headcount cost impact</td></tr>
+                        <tr><td><strong>R07 - Employee (Referral)</strong></td><td>Any employee</td><td>Referral portal only</td><td>Submit referral, track referral status, claim bonus</td></tr>
+                        <tr><td><strong>R08 - Candidate (External)</strong></td><td>Job applicant</td><td>Own profile + application only</td><td>Apply for jobs, upload documents, track application status, pre-joining tasks</td></tr>
+                    </tbody></table>
+                </div>
+            </div>
+
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🔑 RBAC Matrix — Recruitment Actions</h3>
+            <div style="overflow-x:auto;">
+                <table class="rbac-table">
+                    <tbody><tr>
+                        <th style="text-align:left;min-width:200px;">Action / Feature</th>
+                        <th>HR<br>Admin</th>
+                        <th>Recruiter</th>
+                        <th>HOD/<br>Manager</th>
+                        <th>Interviewer</th>
+                        <th>Finance</th>
+                        <th>Employee<br>(Referral)</th>
+                        <th>Candidate</th>
+                    </tr>
+                    <!-- MRF -->
+                    <tr style="background:#eef2ff;">
+                        <td class="field-name" colspan="8" style="font-size:11px;font-weight:800;color:#667eea;padding:6px 10px;">📋 MANPOWER REQUISITION (MRF)</td>
+                    </tr>
+                    <tr><td class="field-name">Create MRF</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Approve MRF</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">Budget</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">View All MRFs</td><td><span class="can">✏️</span></td><td><span class="view-only">V</span></td><td><span class="view-only">Own Dept</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">V</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Close/Cancel MRF</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <!-- Job Posting -->
+                    <tr style="background:#f0fff4;">
+                        <td class="field-name" colspan="8" style="font-size:11px;font-weight:800;color:#276749;padding:6px 10px;">📣 JOB POSTING</td>
+                    </tr>
+                    <tr><td class="field-name">Create Job Posting</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Publish to External Portals</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">View Posted Jobs</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="view-only">Own Dept</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">V</span></td><td><span class="view-only">Public</span></td></tr>
+                    <!-- Candidates -->
+                    <tr style="background:#fff5f5;">
+                        <td class="field-name" colspan="8" style="font-size:11px;font-weight:800;color:#c53030;padding:6px 10px;">👥 CANDIDATE MANAGEMENT</td>
+                    </tr>
+                    <tr><td class="field-name">View All Candidates</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="view-only">Shortlisted</span></td><td><span class="view-only">Scheduled</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">Own</span></td></tr>
+                    <tr><td class="field-name">View Candidate CTC Details</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Reject Candidate</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Move Stage (ATS)</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <!-- Interview -->
+                    <tr style="background:#f0f4ff;">
+                        <td class="field-name" colspan="8" style="font-size:11px;font-weight:800;color:#4776e6;padding:6px 10px;">🎯 INTERVIEW MANAGEMENT</td>
+                    </tr>
+                    <tr><td class="field-name">Schedule Interview</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Submit Feedback</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">View All Feedback</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="view-only">Own rounds</span></td><td><span class="view-only">Own only</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <!-- Offer -->
+                    <tr style="background:#fffbeb;">
+                        <td class="field-name" colspan="8" style="font-size:11px;font-weight:800;color:#b7791f;padding:6px 10px;">💰 OFFER MANAGEMENT</td>
+                    </tr>
+                    <tr><td class="field-name">Create Offer</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Approve Offer</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">View Offer CTC</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="view-only">V</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">V</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">Own</span></td></tr>
+                    <tr><td class="field-name">Revoke Offer</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                </tbody></table>
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:15px;flex-wrap:wrap;font-size:12px;">
+                <div style="display:flex;align-items:center;gap:6px;"><span class="can">✏️</span> = Full Access (Create, Edit, Delete)</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="view-only">V</span> = View Only</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="cannot">🔒</span> = No Access</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="view-only">Own</span> = Only own data</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 11. API SPECS ===== -->
+    <div class="section">
+        <div class="section-header g-teal">
+            <span style="font-size:28px">🔗</span>
+            <div>
+                <h2>11.0 API Specifications — Recruitment Module</h2>
+                <p>REST API endpoints for frontend, mobile and integrations</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">// MRF APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/mrf</span>
+<span style="color:#a0aec0;">// Create new MRF</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/mrf?status=approved&amp;dept=IT</span>
+<span style="color:#a0aec0;">// List MRFs with filters</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/mrf/{mrf_id}/approve</span>
+<span style="color:#a0aec0;">// Approve MRF (HR/Finance)</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/mrf/{mrf_id}/reject</span>
+<span style="color:#a0aec0;">// Reject with reason</span>
+
+<span style="color:#f6ad55;">// Job Posting APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/jobs</span>
+<span style="color:#a0aec0;">// Create &amp; publish job</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/jobs/{job_id}/publish</span>
+<span style="color:#a0aec0;">// Publish to selected channels</span>
+<span class="api-key">Body:</span> <span class="api-value">{ channels: ["naukri","linkedin","internal"] }</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/jobs/public</span>
+<span style="color:#a0aec0;">// Public careers page endpoint</span>
+
+<span style="color:#f6ad55;">// Candidate APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/candidates</span>
+<span style="color:#a0aec0;">// Add candidate to CV bank</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/candidates/apply</span>
+<span style="color:#a0aec0;">// Candidate applies for job</span>
+<span class="api-key">Body:</span> <span class="api-value">{ job_id, resume, answers[] }</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/candidates/{id}/match-score/{mrf_id}</span>
+<span style="color:#a0aec0;">// AI matching score</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/candidates/{id}/stage</span>
+<span style="color:#a0aec0;">// Move ATS stage</span>
+<span class="api-key">Body:</span> <span class="api-value">{ stage: "technical_interview", reason: "" }</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">// Interview APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/interviews/schedule</span>
+<span style="color:#a0aec0;">// Schedule interview</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/interviewers/{emp_id}/availability</span>
+<span style="color:#a0aec0;">// Check calendar availability</span>
+<span class="api-key">Params:</span> <span class="api-value">date, duration_mins</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/interviews/{id}/feedback</span>
+<span style="color:#a0aec0;">// Submit interview feedback</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/interviews/{id}/consolidated-feedback</span>
+<span style="color:#a0aec0;">// All interviewer feedback for a round</span>
+
+<span style="color:#f6ad55;">// Offer APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/offers</span>
+<span style="color:#a0aec0;">// Create offer</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/offers/{id}/generate-pdf</span>
+<span style="color:#a0aec0;">// Generate offer letter PDF</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/offers/{id}/accept</span>
+<span style="color:#a0aec0;">// Candidate accepts offer</span>
+<span class="api-key">Body:</span> <span class="api-value">{ esign_token, joining_date }</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/offers/{id}/reject</span>
+<span style="color:#a0aec0;">// Candidate rejects offer</span>
+
+<span style="color:#f6ad55;">// Onboarding APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/onboarding/initiate/{candidate_id}</span>
+<span style="color:#a0aec0;">// Start onboarding after offer accept</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/onboarding/{token}/checklist</span>
+<span style="color:#a0aec0;">// Pre-joining checklist for candidate</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/onboarding/{token}/documents</span>
+<span style="color:#a0aec0;">// Upload pre-joining documents</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/onboarding/{token}/convert-to-employee</span>
+<span style="color:#a0aec0;">// Day 1: Create employee record (Module 1)</span>
+<span class="api-key">Trigger:</span> <span class="api-value">Employee Master auto-populated</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 12. NOTIFICATIONS ===== -->
+    <div class="section">
+        <div class="section-header g-green">
+            <span style="font-size:28px">🔔</span>
+            <div>
+                <h2>12.0 Notifications &amp; Triggers — Recruitment Module</h2>
+                <p>Auto notification for every event — email, SMS, WhatsApp, portal</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div style="overflow-x:auto;">
+                <table class="field-table">
+                    <tbody><tr><th>Event</th><th>To Whom</th><th>Channel</th><th>Timing</th><th>Auto Action</th></tr>
+                    <tr><td><strong>MRF Submitted</strong></td><td>HR Head, Finance (if new HC)</td><td>Email + Portal</td><td>Immediately</td><td>Create approval task</td></tr>
+                    <tr><td><strong>MRF Approved</strong></td><td>HOD who raised MRF, Recruiter assigned</td><td>Email + SMS</td><td>Immediately</td><td>Assign recruiter, activate job posting</td></tr>
+                    <tr><td><strong>MRF Rejected</strong></td><td>HOD who raised MRF</td><td>Email</td><td>Immediately</td><td>Reason mandatory in rejection</td></tr>
+                    <tr><td><strong>New Application Received</strong></td><td>Recruiter</td><td>Portal + Daily digest email</td><td>Immediately (portal) / Daily 9AM (email)</td><td>AI scoring triggered</td></tr>
+                    <tr><td><strong>Application Acknowledgment</strong></td><td>Candidate</td><td>Email + SMS</td><td>Within 30 min of apply</td><td>—</td></tr>
+                    <tr><td><strong>CV Auto-Rejected (AI score &lt; 40%)</strong></td><td>Candidate</td><td>Email</td><td>Within 1 hour</td><td>Polite rejection email. Candidate can reapply after 6 months</td></tr>
+                    <tr><td><strong>Interview Scheduled</strong></td><td>Candidate + All Interviewers + Recruiter</td><td>Email + Calendar Invite + SMS (candidate)</td><td>Immediately</td><td>Zoom link auto-generated if video</td></tr>
+                    <tr><td><strong>Interview Tomorrow Reminder</strong></td><td>Candidate + Interviewers</td><td>Email + SMS</td><td>Day before, 9AM</td><td>—</td></tr>
+                    <tr><td><strong>Interview Feedback Pending</strong></td><td>Interviewer</td><td>Email</td><td>+4hrs after interview</td><td>Escalation to interviewer's manager at +24hrs</td></tr>
+                    <tr><td><strong>All Feedback Submitted</strong></td><td>Recruiter, HOD</td><td>Email + Portal</td><td>When last feedback submitted</td><td>Consolidated feedback view available</td></tr>
+                    <tr><td><strong>Candidate Selected</strong></td><td>Recruiter, HOD, Payroll (CTC info)</td><td>Email</td><td>When marked selected</td><td>Offer creation task generated</td></tr>
+                    <tr><td><strong>Offer Letter Sent</strong></td><td>Candidate</td><td>Email + WhatsApp + Portal</td><td>Immediately</td><td>e-Sign link active. Validity timer starts</td></tr>
+                    <tr><td><strong>Offer Expiry (3 days before)</strong></td><td>Candidate + Recruiter</td><td>Email + SMS</td><td>3 days before expiry</td><td>—</td></tr>
+                    <tr><td><strong>Offer Accepted (e-Signed)</strong></td><td>Recruiter, HOD, HR Admin, IT, Admin</td><td>Email + Portal</td><td>Immediately on e-sign</td><td>Pre-joining portal activated. Onboarding checklist created for all teams</td></tr>
+                    <tr><td><strong>Offer Rejected by Candidate</strong></td><td>Recruiter, HOD</td><td>Email</td><td>Immediately</td><td>Reason captured. Next candidate in pipeline notified</td></tr>
+                    <tr><td><strong>BGV Discrepancy Found</strong></td><td>HR Admin, Legal Team</td><td>Email (Confidential)</td><td>Immediately</td><td>Offer revocation workflow triggered</td></tr>
+                    <tr><td><strong>5 Days Before Joining</strong></td><td>IT Team, Admin Team, HOD, Buddy</td><td>Email + Portal Task</td><td>5 days before DOJ</td><td>Day 1 preparation checklist activated</td></tr>
+                    <tr><td><strong>Day 1 Joining Alert</strong></td><td>Reception, HR, HOD, IT, Admin</td><td>Email + SMS</td><td>DOJ morning 8AM</td><td>—</td></tr>
+                    <tr><td><strong>Pre-joining Docs Pending (7 days before DOJ)</strong></td><td>Candidate, HR Admin</td><td>Email + WhatsApp</td><td>7 days before DOJ</td><td>List of pending docs in email</td></tr>
+                    <tr><td><strong>MRF SLA Breach (TAT exceeded)</strong></td><td>HR Head, Recruiter's Manager</td><td>Email</td><td>When TAT crossed</td><td>Escalation flag on MRF dashboard</td></tr>
+                </tbody></table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 13. REPORTS ===== -->
+    <div class="section">
+        <div class="section-header g-dark">
+            <span style="font-size:28px">📊</span>
+            <div>
+                <h2>13.0 Reports &amp; Analytics — Recruitment Module</h2>
+                <p>Recruitment metrics and analytics — data-driven hiring decisions</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div style="overflow-x:auto;">
+                <table class="field-table">
+                    <tbody><tr><th>#</th><th>Report Name</th><th>Filters</th><th>Key Metrics</th><th>Format</th><th>Access</th><th>Frequency</th></tr>
+                    <tr>
+                        <td>1</td><td><strong>Recruitment Dashboard</strong></td>
+                        <td>Date range, Dept, Location</td>
+                        <td>Open positions, Applications, Interviews scheduled, Offers sent, Joined</td>
+                        <td>Live Dashboard</td><td>HR Admin, HOD</td><td>Real-time</td>
+                    </tr>
+                    <tr>
+                        <td>2</td><td><strong>MRF Status Report</strong></td>
+                        <td>MRF status, Dept, Priority, Date range</td>
+                        <td>MRF ID, Position, Dept, Status, Raised date, Approved date, Positions filled</td>
+                        <td>Excel, PDF</td><td>HR Admin</td><td>Weekly</td>
+                    </tr>
+                    <tr>
+                        <td>3</td><td><strong>Time to Hire Report</strong></td>
+                        <td>Date range, Dept, Grade, Source</td>
+                        <td>MRF-to-Offer, MRF-to-Joining, avg by dept/grade</td>
+                        <td>Excel, Chart</td><td>HR Admin, CHRO</td><td>Monthly</td>
+                    </tr>
+                    <tr>
+                        <td>4</td><td><strong>Source Effectiveness Report</strong></td>
+                        <td>Date range, Job, Dept</td>
+                        <td>Applications, Shortlisted, Offered, Joined by source. Cost per source</td>
+                        <td>Excel, Pie Chart</td><td>HR Admin</td><td>Monthly</td>
+                    </tr>
+                    <tr>
+                        <td>5</td><td><strong>Candidate Pipeline Report</strong></td>
+                        <td>Job ID, Dept, Stage, Date</td>
+                        <td>Stage-wise candidate count, conversion rates, drop-off analysis</td>
+                        <td>Excel, Funnel Chart</td><td>HR Admin, Recruiter</td><td>Weekly</td>
+                    </tr>
+                    <tr>
+                        <td>6</td><td><strong>Interview Feedback Summary</strong></td>
+                        <td>Interviewer, Date, Round, Job</td>
+                        <td>Avg scores by competency, recommendation distribution</td>
+                        <td>Excel</td><td>HR Admin</td><td>On demand</td>
+                    </tr>
+                    <tr>
+                        <td>7</td><td><strong>Offer Statistics Report</strong></td>
+                        <td>Date, Dept, Grade</td>
+                        <td>Offers made, accepted, rejected, withdrawn. Acceptance rate</td>
+                        <td>Excel, Chart</td><td>HR Admin, CHRO</td><td>Monthly</td>
+                    </tr>
+                    <tr>
+                        <td>8</td><td><strong>Cost per Hire Report</strong></td>
+                        <td>Date range, Dept, Source</td>
+                        <td>Portal cost + agency fee + HR hours + overhead = cost per hire</td>
+                        <td>Excel</td><td>HR Admin, Finance</td><td>Quarterly</td>
+                    </tr>
+                    <tr>
+                        <td>9</td><td><strong>Diversity Hiring Report</strong></td>
+                        <td>Date, Dept, Grade</td>
+                        <td>Gender, Category (SC/ST/OBC), PwD hired count &amp; %</td>
+                        <td>Excel, Chart</td><td>HR Admin, CHRO</td><td>Quarterly</td>
+                    </tr>
+                    <tr>
+                        <td>10</td><td><strong>Recruiter Performance Report</strong></td>
+                        <td>Recruiter, Date range</td>
+                        <td>MRFs handled, positions filled, avg TAT, offer acceptance rate</td>
+                        <td>Excel</td><td>HR Head only</td><td>Monthly</td>
+                    </tr>
+                    <tr>
+                        <td>11</td><td><strong>Onboarding Completion Report</strong></td>
+                        <td>DOJ range, Dept</td>
+                        <td>Pre-joining docs %, Day 1 checklist %, 30-60-90 completion</td>
+                        <td>Excel</td><td>HR Admin</td><td>Monthly</td>
+                    </tr>
+                    <tr>
+                        <td>12</td><td><strong>Early Attrition Report</strong></td>
+                        <td>DOJ range, Exit within 90/180 days</td>
+                        <td>Name, Source, Interviewer, Reason for leaving</td>
+                        <td>Excel</td><td>HR Admin, CHRO</td><td>Quarterly</td>
+                    </tr>
+                    <tr>
+                        <td>13</td><td><strong>Referral Tracking Report</strong></td>
+                        <td>Referrer, Date, Status</td>
+                        <td>Referrals made, screened, joined, bonus paid</td>
+                        <td>Excel</td><td>HR Admin</td><td>Monthly</td>
+                    </tr>
+                    <tr>
+                        <td>14</td><td><strong>BGV Status Report</strong></td>
+                        <td>DOJ range, BGV status</td>
+                        <td>BGV pending/clear/discrepancy count by company</td>
+                        <td>Excel</td><td>HR Admin</td><td>Weekly</td>
+                    </tr>
+                </tbody></table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 14. DATABASE ===== -->
+    <div class="section">
+        <div class="section-header g-purple">
+            <span style="font-size:28px">🗄️</span>
+            <div>
+                <h2>14.0 Database Design — Recruitment Module</h2>
+                <p>Key tables and relationships</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">-- Manpower Requisition</span>
+CREATE TABLE <span class="api-url">mrf</span> (
+  <span class="api-key">mrf_id</span>          VARCHAR(20) PK,
+  <span class="api-key">company_id</span>      INT FK,
+  <span class="api-key">dept_id</span>         INT FK,
+  <span class="api-key">requested_by</span>    VARCHAR(20) FK (employees),
+  <span class="api-key">position_title</span>  VARCHAR(100) NOT NULL,
+  <span class="api-key">designation_id</span>  INT FK,
+  <span class="api-key">grade_id</span>        INT FK,
+  <span class="api-key">no_of_positions</span> TINYINT NOT NULL,
+  <span class="api-key">position_type</span>   ENUM('New','Backfill','Contract','Temp'),
+  <span class="api-key">exp_min_years</span>   DECIMAL(4,1),
+  <span class="api-key">exp_max_years</span>   DECIMAL(4,1),
+  <span class="api-key">ctc_min_lpa</span>     DECIMAL(5,2),
+  <span class="api-key">ctc_max_lpa</span>     DECIMAL(5,2),
+  <span class="api-key">expected_doj</span>    DATE,
+  <span class="api-key">priority</span>        ENUM('Critical','High','Medium','Normal'),
+  <span class="api-key">key_skills</span>      JSON,
+  <span class="api-key">jd_text</span>         TEXT,
+  <span class="api-key">status</span>          ENUM('Draft','Pending','Approved','Closed'),
+  <span class="api-key">approved_by</span>     VARCHAR(20) FK (employees),
+  <span class="api-key">approved_at</span>     TIMESTAMP,
+  <span class="api-key">created_at</span>      TIMESTAMP DEFAULT NOW()
+);
+
+<span style="color:#f6ad55;">-- Job Postings</span>
+CREATE TABLE <span class="api-url">job_postings</span> (
+  <span class="api-key">job_id</span>          VARCHAR(20) PK,
+  <span class="api-key">mrf_id</span>          VARCHAR(20) FK,
+  <span class="api-key">job_title</span>       VARCHAR(100),
+  <span class="api-key">jd_full</span>         LONGTEXT,
+  <span class="api-key">channels</span>        JSON, <span style="color:#a0aec0;">-- ["naukri","linkedin","internal"]</span>
+  <span class="api-key">posted_at</span>       TIMESTAMP,
+  <span class="api-key">expiry_date</span>     DATE,
+  <span class="api-key">show_salary</span>     BOOLEAN DEFAULT FALSE,
+  <span class="api-key">status</span>          ENUM('Draft','Active','Closed','Expired')
+);
+                    </div>
+                </div>
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">-- Candidate Master</span>
+CREATE TABLE <span class="api-url">candidates</span> (
+  <span class="api-key">candidate_id</span>    VARCHAR(20) PK,
+  <span class="api-key">first_name</span>      VARCHAR(50),
+  <span class="api-key">last_name</span>       VARCHAR(50),
+  <span class="api-key">email</span>           VARCHAR(100) UNIQUE,
+  <span class="api-key">mobile</span>          VARCHAR(15) UNIQUE,
+  <span class="api-key">total_exp_years</span> DECIMAL(4,1),
+  <span class="api-key">current_ctc_lpa</span> DECIMAL(5,2),
+  <span class="api-key">expected_ctc_lpa</span> DECIMAL(5,2),
+  <span class="api-key">notice_period_days</span> SMALLINT,
+  <span class="api-key">resume_path</span>     VARCHAR(500),
+  <span class="api-key">source</span>          ENUM('Naukri','LinkedIn','Referral','Walk-in'...),
+  <span class="api-key">referred_by</span>     VARCHAR(20) FK (employees),
+  <span class="api-key">blacklisted</span>     BOOLEAN DEFAULT FALSE,
+  <span class="api-key">blacklist_reason</span> TEXT
+);
+
+<span style="color:#f6ad55;">-- Applications (Candidate applies to Job)</span>
+CREATE TABLE <span class="api-url">applications</span> (
+  <span class="api-key">application_id</span>  VARCHAR(20) PK,
+  <span class="api-key">candidate_id</span>    VARCHAR(20) FK,
+  <span class="api-key">job_id</span>          VARCHAR(20) FK,
+  <span class="api-key">mrf_id</span>          VARCHAR(20) FK,
+  <span class="api-key">ai_match_score</span>  DECIMAL(5,2),
+  <span class="api-key">current_stage</span>   ENUM('Applied','Screened','Phone',
+                       'Technical','HR','Final','Offer','Joined','Rejected'),
+  <span class="api-key">rejection_reason</span> VARCHAR(200),
+  <span class="api-key">applied_at</span>      TIMESTAMP
+);
+
+<span style="color:#f6ad55;">-- Interview Schedule</span>
+CREATE TABLE <span class="api-url">interviews</span> (
+  <span class="api-key">interview_id</span>    INT PK AUTO_INCREMENT,
+  <span class="api-key">application_id</span>  VARCHAR(20) FK,
+  <span class="api-key">round_number</span>    TINYINT,
+  <span class="api-key">interview_date</span>  DATE,
+  <span class="api-key">interview_time</span>  TIME,
+  <span class="api-key">mode</span>            ENUM('InPerson','Video','Phone'),
+  <span class="api-key">meeting_link</span>    VARCHAR(500),
+  <span class="api-key">interviewers</span>    JSON, <span style="color:#a0aec0;">-- [emp_ids]</span>
+  <span class="api-key">status</span>          ENUM('Scheduled','Completed','Cancelled','NoShow')
+);
+
+<span style="color:#f6ad55;">-- Offers</span>
+CREATE TABLE <span class="api-url">offers</span> (
+  <span class="api-key">offer_id</span>        VARCHAR(20) PK,
+  <span class="api-key">application_id</span>  VARCHAR(20) FK,
+  <span class="api-key">ctc_breakup</span>     JSON, <span style="color:#a0aec0;">-- Full salary structure</span>
+  <span class="api-key">offer_date</span>      DATE,
+  <span class="api-key">offer_validity</span>  DATE,
+  <span class="api-key">expected_doj</span>    DATE,
+  <span class="api-key">esign_status</span>    ENUM('Pending','Signed','Declined'),
+  <span class="api-key">esign_timestamp</span> TIMESTAMP,
+  <span class="api-key">status</span>          ENUM('Draft','Sent','Accepted','Rejected','Revoked','Expired')
+);
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="background:linear-gradient(135deg,#0f2027,#2c5364);color:white;padding:30px;border-radius:16px;text-align:center;margin-bottom:20px;">
+        <div style="font-size:28px;margin-bottom:10px;">✅ Module 2 Complete</div>
+        <div style="font-size:16px;font-weight:700;background:linear-gradient(90deg,#38ef7d,#11998e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+            Recruitment &amp; Onboarding — Full Deep Level Documentation
+        </div>
+        <div style="font-size:13px;color:#a0aec0;margin-top:8px;">
+            150+ Fields | 10 Sub-Modules | Complete RBAC | ATS Pipeline | BGV | Onboarding | API Specs | 14 Reports
+        </div>
+        <div style="margin-top:20px;padding:15px;background:rgba(255,255,255,0.1);border-radius:10px;display:inline-block;">
+            <div style="font-size:13px;color:#e2e8f0;">📌 Ready for Next Module:</div>
+            <div style="font-size:15px;font-weight:700;color:white;margin-top:5px;">Module 3: Attendance &amp; Time Management ⏰</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.querySelector('.print-btn').addEventListener('click', () => window.print());
+</script>
+
+</body></html>

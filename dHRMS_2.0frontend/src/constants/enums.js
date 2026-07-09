@@ -11,16 +11,42 @@ export const EMPLOYMENT_STATUS = [
 
 export const EMPLOYMENT_TYPE = [
   { value: 'FullTime', label: 'Full Time' },
-  { value: 'PartTime', label: 'Part Time' },
+  { value: 'Permanent', label: 'Permanent' },
+  { value: 'Probationary', label: 'Probationary' },
   { value: 'Contract', label: 'Contract' },
-  { value: 'Intern', label: 'Intern' },
+  { value: 'FixedTerm', label: 'Fixed Term' },
+  { value: 'Temporary', label: 'Temporary' },
   { value: 'Consultant', label: 'Consultant' },
+  { value: 'PartTime', label: 'Part Time' },
+  { value: 'Intern', label: 'Intern' },
+  { value: 'Apprentice', label: 'Apprentice' },
 ]
+
+export const WORK_MODE = [
+  { value: 'Onsite', label: 'Onsite' },
+  { value: 'Hybrid', label: 'Hybrid' },
+  { value: 'WorkFromHome', label: 'Work From Home' },
+  { value: 'Field', label: 'Field' },
+]
+
+export const WEEKLY_OFF_PATTERN = [
+  { value: 'Sunday', label: 'Sunday' },
+  { value: 'SaturdaySunday', label: 'Saturday + Sunday' },
+  { value: 'AlternateSaturday', label: 'Alternate Saturday' },
+  { value: 'Rotational', label: 'Rotational' },
+]
+
+export const PAYROLL_GROUP = [
+  { value: 'Monthly', label: 'Monthly' },
+  { value: 'Weekly', label: 'Weekly' },
+  { value: 'DailyWage', label: 'Daily Wage' },
+]
+
 
 export const GENDER = [
   { value: 'Male', label: 'Male' },
   { value: 'Female', label: 'Female' },
-  { value: 'Other', label: 'Other' },
+  { value: 'Other', label: 'Transgender' },
   { value: 'PreferNotToSay', label: 'Prefer Not To Say' },
 ]
 
@@ -33,6 +59,7 @@ export const BLOOD_GROUP = [
   { value: 'ONegative', label: 'O-' },
   { value: 'ABPositive', label: 'AB+' },
   { value: 'ABNegative', label: 'AB-' },
+  { value: 'Unknown', label: 'Unknown' },
 ]
 
 export const MARITAL_STATUS = [
@@ -57,7 +84,72 @@ export const DOCUMENT_TYPE = [
   { value: 'EducationCertificate', label: 'Education Certificate' },
   { value: 'BankStatement', label: 'Bank Statement' },
   { value: 'Photo', label: 'Photo' },
+  { value: 'MedicalFitnessCertificate', label: 'Medical Fitness Certificate' },
+  { value: 'PoliceVerification', label: 'Police Verification' },
+  { value: 'CategoryCertificate', label: 'Category Certificate' },
+  { value: 'NDA', label: 'NDA' },
+  { value: 'DrugTestReport', label: 'Drug Test Report' },
   { value: 'Other', label: 'Other' },
+]
+
+export const EMPLOYEE_TITLE = [
+  { value: 'Mr', label: 'Mr.' },
+  { value: 'Mrs', label: 'Mrs.' },
+  { value: 'Ms', label: 'Ms.' },
+  { value: 'Dr', label: 'Dr.' },
+  { value: 'Prof', label: 'Prof.' },
+  { value: 'Er', label: 'Er.' },
+  { value: 'Adv', label: 'Adv.' },
+  { value: 'CA', label: 'CA' },
+]
+
+export const EMPLOYEE_CATEGORY = [
+  { value: 'General', label: 'General' },
+  { value: 'OBC', label: 'OBC' },
+  { value: 'SC', label: 'SC' },
+  { value: 'ST', label: 'ST' },
+  { value: 'EWS', label: 'EWS' },
+]
+
+export const PWD_STATUS = [
+  { value: 'No', label: 'No' },
+  { value: 'Visual', label: 'Visual' },
+  { value: 'Hearing', label: 'Hearing' },
+  { value: 'Locomotor', label: 'Locomotor' },
+  { value: 'Intellectual', label: 'Intellectual' },
+  { value: 'Other', label: 'Other' },
+]
+
+export const MOTHER_TONGUE = [
+  { value: 'Assamese', label: 'Assamese' },
+  { value: 'Bengali', label: 'Bengali' },
+  { value: 'Bodo', label: 'Bodo' },
+  { value: 'Dogri', label: 'Dogri' },
+  { value: 'Gujarati', label: 'Gujarati' },
+  { value: 'Hindi', label: 'Hindi' },
+  { value: 'Kannada', label: 'Kannada' },
+  { value: 'Kashmiri', label: 'Kashmiri' },
+  { value: 'Konkani', label: 'Konkani' },
+  { value: 'Maithili', label: 'Maithili' },
+  { value: 'Malayalam', label: 'Malayalam' },
+  { value: 'Manipuri', label: 'Manipuri' },
+  { value: 'Marathi', label: 'Marathi' },
+  { value: 'Nepali', label: 'Nepali' },
+  { value: 'Odia', label: 'Odia' },
+  { value: 'Punjabi', label: 'Punjabi' },
+  { value: 'Sanskrit', label: 'Sanskrit' },
+  { value: 'Santali', label: 'Santali' },
+  { value: 'Sindhi', label: 'Sindhi' },
+  { value: 'Tamil', label: 'Tamil' },
+  { value: 'Telugu', label: 'Telugu' },
+  { value: 'Urdu', label: 'Urdu' },
+  { value: 'Other', label: 'Other' },
+]
+
+export const BANK_VERIFICATION_STATUS = [
+  { value: 'Pending', label: 'Pending' },
+  { value: 'Verified', label: 'Verified' },
+  { value: 'Failed', label: 'Failed' },
 ]
 
 export const ACCOUNT_TYPE = [
@@ -134,4 +226,30 @@ export const STATUS_COLORS = {
   Absent: 'error',
   Leave: 'warning',
   WFH: 'processing',
+  Verified: 'success',
+  Failed: 'error',
 }
+
+export const BANK_LIST = [
+  { value: 'State Bank of India', label: 'State Bank of India' },
+  { value: 'HDFC Bank', label: 'HDFC Bank' },
+  { value: 'ICICI Bank', label: 'ICICI Bank' },
+  { value: 'Axis Bank', label: 'Axis Bank' },
+  { value: 'Kotak Mahindra Bank', label: 'Kotak Mahindra Bank' },
+  { value: 'IndusInd Bank', label: 'IndusInd Bank' },
+  { value: 'Yes Bank', label: 'Yes Bank' },
+  { value: 'Federal Bank', label: 'Federal Bank' },
+  { value: 'IDFC First Bank', label: 'IDFC First Bank' },
+  { value: 'Standard Chartered Bank', label: 'Standard Chartered Bank' },
+  { value: 'Punjab National Bank', label: 'Punjab National Bank' },
+  { value: 'Bank of Baroda', label: 'Bank of Baroda' },
+  { value: 'Canara Bank', label: 'Canara Bank' },
+  { value: 'Union Bank of India', label: 'Union Bank of India' },
+  { value: 'Indian Bank', label: 'Indian Bank' },
+  { value: 'Bank of India', label: 'Bank of India' },
+  { value: 'Central Bank of India', label: 'Central Bank of India' },
+  { value: 'Indian Overseas Bank', label: 'Indian Overseas Bank' },
+  { value: 'UCO Bank', label: 'UCO Bank' },
+  { value: 'Bank of Maharashtra', label: 'Bank of Maharashtra' },
+  { value: 'Punjab & Sind Bank', label: 'Punjab & Sind Bank' },
+]

@@ -21,4 +21,9 @@ export const dashboardService = {
     const { data } = await apiClient.get(API.DASHBOARD.ATTENDANCE_TODAY)
     return data
   },
+
+  getRecruitmentDashboard: async () => {
+    const { data } = await apiClient.get(API.DASHBOARD.RECRUITMENT)
+    return data
+  },
 }

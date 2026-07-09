@@ -56,4 +56,12 @@ public class EncryptionService : IEncryptionService
         if (decrypted.Length <= visibleChars) return new string('*', decrypted.Length);
         return new string('*', decrypted.Length - visibleChars) + decrypted[^visibleChars..];
     }
+
+    public string HashValue(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        var cleanValue = value.Trim().ToUpperInvariant();
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(cleanValue));
+        return Convert.ToHexString(bytes);
+    }
 }

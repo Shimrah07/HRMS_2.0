@@ -21,12 +21,15 @@ public class UserManagementController : ControllerBase
     private readonly AppDbContext _context;
     private readonly IMapper _mapper;
     private readonly IPermissionService _permissionService;
+    private readonly ILogger<UserManagementController> _logger;
 
-    public UserManagementController(AppDbContext context, IMapper mapper, IPermissionService permissionService)
+    public UserManagementController(AppDbContext context, IMapper mapper,
+        IPermissionService permissionService, ILogger<UserManagementController> logger)
     {
         _context = context;
         _mapper = mapper;
         _permissionService = permissionService;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -164,16 +167,30 @@ public class UserManagementController : ControllerBase
         return Ok(ApiResponse<object>.Ok(null, user.IsActive ? "User activated." : "User deactivated."));
     }
 
-    [HttpPut("{id:guid}/toggle-lock")]
+    [HttpPost("{id:guid}/unlock")]
     [Filters.RequirePermission(PermissionCodes.UserManagement.Edit)]
-    public async Task<ActionResult<ApiResponse<object>>> ToggleLock(Guid id, [FromBody] ToggleLockRequest request, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<object>>> UnlockAccount(Guid id, CancellationToken ct)
     {
         var user = await _context.Users.FindAsync(new object[] { id }, ct);
         if (user == null) return NotFound(ApiResponse<object>.Fail("User not found."));
-        user.IsLocked = request.IsLocked;
-        if (!request.IsLocked) { user.FailedLoginCount = 0; user.LockedUntil = null; }
+        user.IsLocked = false;
+        user.LockedUntil = null;
+        user.FailedLoginCount = 0;
+        user.UpdatedAt = DateTime.UtcNow;
+        var adminIdClaim = User.FindFirst("uid")?.Value;
+        _context.SecurityAuditLogs.Add(new SecurityAuditLog
+        {
+            LogId = Guid.NewGuid(),
+            EventType = "ACCOUNT_UNLOCKED",
+            UserId = user.UserId,
+            Username = user.Username,
+            Details = $"Unlocked by admin userId={adminIdClaim}",
+            IsSuccess = true,
+            CreatedAt = DateTime.UtcNow
+        });
         await _context.SaveChangesAsync(ct);
-        return Ok(ApiResponse<object>.Ok(null, user.IsLocked ? "User locked." : "User unlocked."));
+        await _permissionService.InvalidateUserCacheAsync(id, ct);
+        return Ok(ApiResponse<object>.Ok(null, "Account unlocked successfully."));
     }
 
     [HttpPost("{id:guid}/reset-password")]
@@ -182,11 +199,35 @@ public class UserManagementController : ControllerBase
     {
         var user = await _context.Users.FindAsync(new object[] { id }, ct);
         if (user == null) return NotFound(ApiResponse<string>.Fail("User not found."));
-        var tempPassword = GenerateTempPassword();
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword, workFactor: 12);
+
+        // Save old password to history
+        _context.PasswordHistories.Add(new PasswordHistory
+        {
+            HistoryId = Guid.NewGuid(),
+            UserId = user.UserId,
+            PasswordHash = user.PasswordHash,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        var defaultPassword = "Welcome@123";
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(defaultPassword, workFactor: 12);
         user.MustChangePassword = true;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        var adminIdClaim = User.FindFirst("uid")?.Value;
+        _context.SecurityAuditLogs.Add(new SecurityAuditLog
+        {
+            LogId = Guid.NewGuid(),
+            EventType = "PASSWORD_RESET_BY_ADMIN",
+            UserId = user.UserId,
+            Username = user.Username,
+            Details = $"Password reset by admin userId={adminIdClaim}. MustChangePassword set.",
+            IsSuccess = true,
+            CreatedAt = DateTime.UtcNow
+        });
+
         await _context.SaveChangesAsync(ct);
-        return Ok(ApiResponse<string>.Ok(tempPassword, "Password reset. Share securely."));
+        return Ok(ApiResponse<string>.Ok(defaultPassword, "Password reset to default. User must change on next login."));
     }
 
     // ─── Roles & Permissions ──────────────────────────────────────────────────

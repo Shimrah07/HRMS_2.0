@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import {
   Table, Button, Input, Select, Space, Avatar, Dropdown, Tag, message,
@@ -12,7 +13,7 @@ import {
   DownloadOutlined, ClearOutlined, BankOutlined, FileTextOutlined,
   DollarOutlined, ArrowRightOutlined
 } from '@ant-design/icons'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { employeeService } from '../../services/employeeService'
 import { organizationService } from '../../services/organizationService'
@@ -22,8 +23,9 @@ import PermissionGuard from '../../components/common/PermissionGuard'
 import EmptyState from '../../components/common/EmptyState'
 import { usePermission } from '../../hooks/usePermission'
 import { PERMISSIONS } from '../../constants/permissions'
-import { EMPLOYMENT_STATUS, EMPLOYMENT_TYPE } from '../../constants/enums'
+import { EMPLOYMENT_STATUS, EMPLOYMENT_TYPE, WORK_MODE, PAYROLL_GROUP } from '../../constants/enums'
 import useUIStore from '../../store/uiStore'
+import { getAvatarUrl } from '../../constants/api'
 
 // ── Brand-palette hash-based avatar color — stable per employee name ──
 const AVATAR_PALETTE = [
@@ -45,33 +47,141 @@ function hashAvatarIndex(str = '') {
   return Math.abs(hash) % AVATAR_PALETTE.length
 }
 
+// ── Helper to flatten department hierarchies ──
+const flattenDepts = (depts) => {
+  const result = []
+  const walk = (arr) => arr.forEach((d) => { result.push(d); if (d.children) walk(d.children) })
+  walk(depts || [])
+  return result
+}
+
 export default function EmployeeListPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { isDarkMode } = useUIStore()
   const queryClient = useQueryClient()
   const { can } = usePermission()
-  const [filters, setFilters] = useState({
-    page: 1,
-    pageSize: 20,
-    search: '',
-    deptId: undefined,
-    locationId: undefined,
-    status: undefined,
-    type: undefined,
-    reportingManagerId: undefined
-  })
-  const [searchInput, setSearchInput] = useState('')
+  const filters = useMemo(() => {
+    const page = parseInt(searchParams.get('page') || '1', 10)
+    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10)
+    const search = searchParams.get('search') || ''
+    const deptId = searchParams.get('deptId') || undefined
+    const locationId = searchParams.get('locationId') || undefined
+    const status = searchParams.get('status') || undefined
+    const reportingManagerId = searchParams.get('reportingManagerId') || undefined
+
+    const type = searchParams.getAll('type').filter(Boolean)
+    const gradeId = searchParams.getAll('gradeId').filter(Boolean)
+    const workMode = searchParams.getAll('workMode').filter(Boolean)
+    const shiftId = searchParams.getAll('shiftId').filter(Boolean)
+    const payrollGroup = searchParams.getAll('payrollGroup').filter(Boolean)
+    const businessUnitId = searchParams.getAll('businessUnitId').filter(Boolean)
+    const costCenterId = searchParams.getAll('costCenterId').filter(Boolean)
+
+    return {
+      page,
+      pageSize,
+      search,
+      deptId,
+      locationId,
+      status,
+      reportingManagerId,
+      type: type.length > 0 ? type : undefined,
+      gradeId: gradeId.length > 0 ? gradeId : undefined,
+      workMode: workMode.length > 0 ? workMode : undefined,
+      shiftId: shiftId.length > 0 ? shiftId : undefined,
+      payrollGroup: payrollGroup.length > 0 ? payrollGroup : undefined,
+      businessUnitId: businessUnitId.length > 0 ? businessUnitId : undefined,
+      costCenterId: costCenterId.length > 0 ? costCenterId : undefined,
+    }
+  }, [searchParams])
+
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('search') || '')
+
+  const updateFilters = useCallback((updater) => {
+    setSearchParams((prev) => {
+      const page = parseInt(prev.get('page') || '1', 10)
+      const pageSize = parseInt(prev.get('pageSize') || '20', 10)
+      const search = prev.get('search') || ''
+      const deptId = prev.get('deptId') || undefined
+      const locationId = prev.get('locationId') || undefined
+      const status = prev.get('status') || undefined
+      const reportingManagerId = prev.get('reportingManagerId') || undefined
+
+      const type = prev.getAll('type').filter(Boolean)
+      const gradeId = prev.getAll('gradeId').filter(Boolean)
+      const workMode = prev.getAll('workMode').filter(Boolean)
+      const shiftId = prev.getAll('shiftId').filter(Boolean)
+      const payrollGroup = prev.getAll('payrollGroup').filter(Boolean)
+      const businessUnitId = prev.getAll('businessUnitId').filter(Boolean)
+      const costCenterId = prev.getAll('costCenterId').filter(Boolean)
+
+      const currentFilters = {
+        page,
+        pageSize,
+        search,
+        deptId,
+        locationId,
+        status,
+        reportingManagerId,
+        type: type.length > 0 ? type : undefined,
+        gradeId: gradeId.length > 0 ? gradeId : undefined,
+        workMode: workMode.length > 0 ? workMode : undefined,
+        shiftId: shiftId.length > 0 ? shiftId : undefined,
+        payrollGroup: payrollGroup.length > 0 ? payrollGroup : undefined,
+        businessUnitId: businessUnitId.length > 0 ? businessUnitId : undefined,
+        costCenterId: costCenterId.length > 0 ? costCenterId : undefined,
+      }
+
+      const nextFilters = typeof updater === 'function' ? updater(currentFilters) : updater
+
+      const next = new URLSearchParams()
+      Object.entries(nextFilters).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === '') return
+        if (Array.isArray(value)) {
+          value.forEach(val => {
+            if (val !== undefined && val !== null && val !== '') {
+              next.append(key, val)
+            }
+          })
+        } else {
+          next.set(key, value.toString())
+        }
+      })
+      return next
+    }, { replace: true })
+  }, [setSearchParams])
+
+  const [queryFilters, setQueryFilters] = useState(filters)
+
+  useEffect(() => {
+    // If page, pageSize, search, or empty filters change, update immediately
+    if (
+      filters.page !== queryFilters.page ||
+      filters.pageSize !== queryFilters.pageSize ||
+      filters.search !== queryFilters.search ||
+      (!filters.deptId && !filters.locationId && !filters.status && !filters.type && !filters.gradeId && !filters.workMode && !filters.shiftId && !filters.payrollGroup && !filters.businessUnitId && !filters.costCenterId && !filters.reportingManagerId)
+    ) {
+      setQueryFilters(filters)
+      return
+    }
+
+    const handler = setTimeout(() => {
+      setQueryFilters(filters)
+    }, 400)
+    return () => clearTimeout(handler)
+  }, [filters, queryFilters.page, queryFilters.pageSize, queryFilters.search])
   const [viewMode, setViewMode] = useState('list')
   const [previewEmpId, setPreviewEmpId] = useState(null)
-  
+
   // Row selection states
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [selectedRows, setSelectedRows] = useState([])
 
   // Main paginated query
   const { data, isLoading } = useQuery({
-    queryKey: ['employees', filters],
-    queryFn: () => employeeService.getEmployees(filters),
+    queryKey: ['employees', queryFilters],
+    queryFn: () => employeeService.getEmployees(queryFilters),
     placeholderData: keepPreviousData,
   })
 
@@ -102,53 +212,107 @@ export default function EmployeeListPage() {
     select: (res) => res?.data || [],
   })
 
-  const employees = data?.data || []
-  const total = data?.totalCount || 0
+  const { data: gradeData } = useQuery({
+    queryKey: ['grades'],
+    queryFn: organizationService.getGrades,
+    select: (res) => res?.data || [],
+  })
 
-  const handleSearch = () => {
-    setFilters((f) => ({ ...f, page: 1, search: searchInput }))
-  }
+  const { data: buData } = useQuery({
+    queryKey: ['business-units'],
+    queryFn: organizationService.getBusinessUnits,
+    select: (res) => res?.data || [],
+  })
+
+  const { data: ccData } = useQuery({
+    queryKey: ['cost-centers'],
+    queryFn: organizationService.getCostCenters,
+    select: (res) => res?.data || [],
+  })
+
+  const { data: shiftData } = useQuery({
+    queryKey: ['shifts'],
+    queryFn: organizationService.getShifts,
+    select: (res) => res?.data || [],
+  })
+
+  const employees = data?.data || []
+  const total = data?.pagination?.totalRecords ?? data?.totalCount ?? 0
+
+  const depts = useMemo(() => flattenDepts(deptData), [deptData])
+
+  const departmentOptions = useMemo(() => {
+    return depts.map((d) => ({ value: d.deptId, label: d.deptName }))
+  }, [depts])
+
+  const locationOptions = useMemo(() => {
+    return (locData || []).map((l) => ({ value: l.locationId, label: l.locationName }))
+  }, [locData])
+
+  const gradeOptions = useMemo(() => {
+    return (gradeData || []).map((g) => ({ value: g.gradeId, label: g.name }))
+  }, [gradeData])
+
+  const shiftOptions = useMemo(() => {
+    return (shiftData || []).map((s) => ({ value: s.shiftId, label: s.shiftName }))
+  }, [shiftData])
+
+  const businessUnitOptions = useMemo(() => {
+    return (buData || []).map((b) => ({ value: b.businessUnitId, label: b.name }))
+  }, [buData])
+
+  const costCenterOptions = useMemo(() => {
+    return (ccData || []).map((c) => ({ value: c.costCenterId, label: c.costCenterName }))
+  }, [ccData])
+
+  const reportingManagerOptions = useMemo(() => {
+    return allEmployees.map((e) => ({
+      value: e.employeeId,
+      label: `${e.firstName} ${e.lastName}`,
+    }))
+  }, [allEmployees])
+
+  const handleSearch = useCallback(() => {
+    updateFilters((prev) => ({ ...prev, page: 1, search: searchInput }))
+  }, [searchInput, updateFilters])
 
   // Debounce search input to filter automatically
   useEffect(() => {
     const handler = setTimeout(() => {
-      setFilters((f) => {
-        if (f.search === searchInput) return f
-        return { ...f, page: 1, search: searchInput || '' }
+      updateFilters((prev) => {
+        if (prev.search === searchInput) return prev
+        return { ...prev, page: 1, search: searchInput || '' }
       })
     }, 300)
 
     return () => clearTimeout(handler)
-  }, [searchInput])
+  }, [searchInput, updateFilters])
 
-  const handleFilter = (key, value) => {
-    setFilters((f) => ({ ...f, page: 1, [key]: value }))
-  }
+  const handleFilter = useCallback((key, value) => {
+    updateFilters((prev) => ({ ...prev, page: 1, [key]: value }))
+  }, [updateFilters])
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setSearchInput('')
-    setFilters({
+    updateFilters({
       page: 1,
       pageSize: 20,
       search: '',
       deptId: undefined,
       locationId: undefined,
       status: undefined,
+      reportingManagerId: undefined,
       type: undefined,
-      reportingManagerId: undefined
+      gradeId: undefined,
+      workMode: undefined,
+      shiftId: undefined,
+      payrollGroup: undefined,
+      businessUnitId: undefined,
+      costCenterId: undefined,
     })
-  }
+  }, [updateFilters])
 
-  const flattenDepts = (depts) => {
-    const result = []
-    const walk = (arr) => arr.forEach((d) => { result.push(d); if (d.children) walk(d.children) })
-    walk(depts || [])
-    return result
-  }
-
-  const depts = flattenDepts(deptData)
-
-  const actionMenu = (record) => {
+  const actionMenu = useCallback((record) => {
     const items = [
       { key: 'view', icon: <EyeOutlined />, label: 'View Profile', onClick: () => navigate(`/employees/${record.employeeId}`) }
     ];
@@ -156,11 +320,16 @@ export default function EmployeeListPage() {
       items.push({ key: 'edit', icon: <EditOutlined />, label: 'Edit Profile', onClick: () => navigate(`/employees/${record.employeeId}/edit`) });
     }
     return { items };
-  }
+  }, [navigate, can])
 
   // Export to CSV helper
   const downloadCSV = (dataToExport, filename) => {
-    const headers = ['Employee Code', 'First Name', 'Last Name', 'Designation', 'Department', 'Location', 'Official Email', 'Status', 'Type', 'Joining Date']
+    const headers = [
+      'Employee Code', 'First Name', 'Last Name', 'Designation', 'Department',
+      'Location', 'Official Email', 'Status', 'Type', 'Joining Date',
+      'Grade', 'Band', 'Job Family', 'Business Unit', 'Cost Center',
+      'Profit Center', 'Work Mode', 'Shift', 'Payroll Group', 'Notice Period Days'
+    ]
     const csvRows = [
       headers.join(','),
       ...dataToExport.map(r => [
@@ -173,7 +342,17 @@ export default function EmployeeListPage() {
         `"${r.officialEmail || ''}"`,
         `"${r.employmentStatus || ''}"`,
         `"${r.employmentType || ''}"`,
-        `"${r.joiningDate ? new Date(r.joiningDate).toLocaleDateString('en-IN') : ''}"`
+        `"${r.joiningDate ? new Date(r.joiningDate).toLocaleDateString('en-IN') : ''}"`,
+        `"${r.gradeCode || ''}"`,
+        `"${r.bandCode || ''}"`,
+        `"${r.jobFamilyName || ''}"`,
+        `"${r.businessUnitName || ''}"`,
+        `"${r.costCenterName || ''}"`,
+        `"${r.profitCenterName || ''}"`,
+        `"${r.workMode || ''}"`,
+        `"${r.shiftName || ''}"`,
+        `"${r.payrollGroup || ''}"`,
+        `"${r.noticePeriodDays || 0}"`
       ].join(','))
     ]
     const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' })
@@ -219,7 +398,7 @@ export default function EmployeeListPage() {
     setSelectedRows([])
   }
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       title: 'Employee',
       dataIndex: 'employeeId',
@@ -240,14 +419,14 @@ export default function EmployeeListPage() {
           >
             <Avatar
               size={38}
-              src={r.profilePhoto}
+              src={getAvatarUrl(r.profilePhoto)}
               style={{
                 background: AVATAR_PALETTE[idx],
                 color: AVATAR_TEXT_COLOR[idx],
                 fontSize: 13,
                 fontWeight: 700,
                 flexShrink: 0,
-                border: isDarkMode ? '2px solid rgba(255,255,255,0.12)' : '2px solid rgba(16,17,63,0.1)',
+                border: isDarkMode ? '2px solid rgba(160, 90, 255, 0.35)' : '2px solid rgba(16,17,63,0.1)',
               }}
             >
               {r.firstName?.[0]}{r.lastName?.[0]}
@@ -295,7 +474,7 @@ export default function EmployeeListPage() {
       render: (_, r) => {
         const mgr = allEmployees.find(e => e.employeeId === r.reportingManagerId)
         return mgr ? (
-          <span 
+          <span
             style={{ color: isDarkMode ? '#FAA71A' : '#10113F', fontWeight: 500, cursor: 'pointer', textDecoration: 'underline' }}
             onClick={(e) => {
               e.stopPropagation()
@@ -332,6 +511,34 @@ export default function EmployeeListPage() {
       render: (v) => <StatusBadge status={v} />
     },
     {
+      title: 'Work Mode',
+      dataIndex: 'workMode',
+      key: 'workMode',
+      width: 125,
+      render: (v) => v ? <Tag color="green">{WORK_MODE.find(w => w.value === v)?.label || v}</Tag> : '—'
+    },
+    {
+      title: 'Shift',
+      dataIndex: 'shiftName',
+      key: 'shift',
+      width: 120,
+      render: (v) => v ? <Tag color="magenta">{v}</Tag> : '—'
+    },
+    {
+      title: 'Payroll Group',
+      dataIndex: 'payrollGroup',
+      key: 'payrollGroup',
+      width: 130,
+      render: (v) => v ? <Tag color="orange">{PAYROLL_GROUP.find(p => p.value === v)?.label || v}</Tag> : '—'
+    },
+    {
+      title: 'Cost Center',
+      dataIndex: 'costCenterName',
+      key: 'costCenter',
+      width: 145,
+      render: (v) => <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{v || '—'}</span>
+    },
+    {
       title: 'Joined',
       dataIndex: 'joiningDate',
       key: 'joining',
@@ -349,10 +556,10 @@ export default function EmployeeListPage() {
         </Dropdown>
       ),
     },
-  ]
+  ], [navigate, allEmployees, isDarkMode, actionMenu])
 
   // Detect active filters
-  const hasActiveFilters = filters.search || filters.deptId || filters.locationId || filters.status || filters.type || filters.reportingManagerId
+  const hasActiveFilters = filters.search || filters.deptId || filters.locationId || filters.status || filters.type || filters.reportingManagerId || filters.gradeId || filters.workMode || filters.shiftId || filters.payrollGroup || filters.businessUnitId || filters.costCenterId
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ position: 'relative', minHeight: 'calc(100vh - 120px)' }}>
@@ -414,49 +621,150 @@ export default function EmployeeListPage() {
             style={{ width: 380, height: 40, borderRadius: 8 }}
           />
           <Select
+            key="select-dept"
+            showSearch
             placeholder="Department"
             allowClear
-            value={filters.deptId}
+            value={filters.deptId || undefined}
             style={{ width: 160, height: 40, borderRadius: 8 }}
             onChange={(v) => handleFilter('deptId', v)}
-            options={depts.map((d) => ({ value: d.deptId, label: d.deptName }))}
+            options={departmentOptions}
+            optionFilterProp="label"
+            virtual={true}
           />
           <Select
+            key="select-loc"
+            showSearch
             placeholder="Location"
             allowClear
-            value={filters.locationId}
+            value={filters.locationId || undefined}
             style={{ width: 140, height: 40, borderRadius: 8 }}
             onChange={(v) => handleFilter('locationId', v)}
-            options={(locData || []).map((l) => ({ value: l.locationId, label: l.locationName }))}
+            options={locationOptions}
+            optionFilterProp="label"
+            virtual={true}
           />
           <Select
+            key="select-status"
+            showSearch
             placeholder="Status"
             allowClear
-            value={filters.status}
+            value={filters.status || undefined}
             style={{ width: 130, height: 40, borderRadius: 8 }}
             onChange={(v) => handleFilter('status', v)}
             options={EMPLOYMENT_STATUS}
+            optionFilterProp="label"
+            virtual={true}
           />
           <Select
+            key="select-type"
+            mode="multiple"
+            maxTagCount="responsive"
+            showSearch
             placeholder="Type"
             allowClear
-            value={filters.type}
-            style={{ width: 130, height: 40, borderRadius: 8 }}
+            value={filters.type || []}
+            style={{ minWidth: 140, height: 40, borderRadius: 8 }}
             onChange={(v) => handleFilter('type', v)}
             options={EMPLOYMENT_TYPE}
+            optionFilterProp="label"
+            virtual={true}
           />
           <Select
+            key="select-grade"
+            mode="multiple"
+            maxTagCount="responsive"
+            showSearch
+            placeholder="Grade"
+            allowClear
+            value={filters.gradeId || []}
+            style={{ minWidth: 120, height: 40, borderRadius: 8 }}
+            onChange={(v) => handleFilter('gradeId', v)}
+            options={gradeOptions}
+            optionFilterProp="label"
+            virtual={true}
+          />
+          <Select
+            key="select-workmode"
+            mode="multiple"
+            maxTagCount="responsive"
+            showSearch
+            placeholder="Work Mode"
+            allowClear
+            value={filters.workMode || []}
+            style={{ minWidth: 130, height: 40, borderRadius: 8 }}
+            onChange={(v) => handleFilter('workMode', v)}
+            options={WORK_MODE}
+            optionFilterProp="label"
+            virtual={true}
+          />
+          <Select
+            key="select-shift"
+            mode="multiple"
+            maxTagCount="responsive"
+            showSearch
+            placeholder="Shift"
+            allowClear
+            value={filters.shiftId || []}
+            style={{ minWidth: 130, height: 40, borderRadius: 8 }}
+            onChange={(v) => handleFilter('shiftId', v)}
+            options={shiftOptions}
+            optionFilterProp="label"
+            virtual={true}
+          />
+          <Select
+            key="select-payroll"
+            mode="multiple"
+            maxTagCount="responsive"
+            showSearch
+            placeholder="Payroll Group"
+            allowClear
+            value={filters.payrollGroup || []}
+            style={{ minWidth: 140, height: 40, borderRadius: 8 }}
+            onChange={(v) => handleFilter('payrollGroup', v)}
+            options={PAYROLL_GROUP}
+            optionFilterProp="label"
+            virtual={true}
+          />
+          <Select
+            key="select-bu"
+            mode="multiple"
+            maxTagCount="responsive"
+            showSearch
+            placeholder="Business Unit"
+            allowClear
+            value={filters.businessUnitId || []}
+            style={{ minWidth: 160, height: 40, borderRadius: 8 }}
+            onChange={(v) => handleFilter('businessUnitId', v)}
+            options={businessUnitOptions}
+            optionFilterProp="label"
+            virtual={true}
+          />
+          <Select
+            key="select-cc"
+            mode="multiple"
+            maxTagCount="responsive"
+            showSearch
+            placeholder="Cost Center"
+            allowClear
+            value={filters.costCenterId || []}
+            style={{ minWidth: 160, height: 40, borderRadius: 8 }}
+            onChange={(v) => handleFilter('costCenterId', v)}
+            options={costCenterOptions}
+            optionFilterProp="label"
+            virtual={true}
+          />
+          <Select
+            key="select-reporting-mgr"
             showSearch
             placeholder="Reporting Manager"
             allowClear
-            value={filters.reportingManagerId}
+            value={filters.reportingManagerId || undefined}
             style={{ width: 180, height: 40, borderRadius: 8 }}
             onChange={(v) => handleFilter('reportingManagerId', v)}
+            options={reportingManagerOptions}
             optionFilterProp="label"
-            options={allEmployees.map((e) => ({
-              value: e.employeeId,
-              label: `${e.firstName} ${e.lastName}`,
-            }))}
+            virtual={true}
           />
           <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch} style={{ height: 40, borderRadius: 8 }}>
             Search
@@ -545,12 +853,12 @@ export default function EmployeeListPage() {
                             zIndex: 0,
                           }}
                         />
-                        
+
                         {/* Card Content */}
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1, marginTop: 10, flex: 1 }}>
                           <Avatar
                             size={68}
-                            src={r.profilePhoto}
+                            src={getAvatarUrl(r.profilePhoto)}
                             onClick={() => setPreviewEmpId(r.employeeId)}
                             style={{
                               border: '3px solid var(--color-card-bg)',
@@ -565,7 +873,7 @@ export default function EmployeeListPage() {
                           >
                             {r.firstName?.[0]}{r.lastName?.[0]}
                           </Avatar>
-                          
+
                           <div style={{ textAlign: 'center', marginTop: 12 }}>
                             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)' }}>
                               {r.firstName} {r.lastName}
@@ -578,7 +886,7 @@ export default function EmployeeListPage() {
                             <StatusBadge status={r.employmentType} size="small" />
                           </div>
 
-                          <div style={{ width: '100%', height: 1, background: isDarkMode ? 'rgba(255,255,255,0.07)' : 'rgba(16,17,63,0.07)', margin: '16px 0' }} />
+                          <div style={{ width: '100%', height: 1, background: isDarkMode ? 'rgba(160, 90, 255, 0.18)' : 'rgba(16,17,63,0.07)', margin: '16px 0' }} />
 
                           <div style={{ width: '100%', fontSize: 13, color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
@@ -611,7 +919,7 @@ export default function EmployeeListPage() {
                                 const mgr = allEmployees.find(e => e.employeeId === r.reportingManagerId)
                                 return mgr ? (
                                   <Tooltip title={`${mgr.firstName} ${mgr.lastName}`}>
-                                    <span 
+                                    <span
                                       style={{ fontWeight: 600, color: isDarkMode ? '#FAA71A' : '#10113F', cursor: 'pointer', textDecoration: 'underline', textAlign: 'right', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '70%' }}
                                       onClick={(e) => {
                                         e.stopPropagation()
@@ -629,15 +937,15 @@ export default function EmployeeListPage() {
                           </div>
 
                           <div style={{ width: '100%', display: 'flex', gap: 8, marginTop: 16 }}>
-                            <Button 
-                              style={{ flex: 1, borderRadius: 8 }} 
+                            <Button
+                              style={{ flex: 1, borderRadius: 8 }}
                               onClick={() => setPreviewEmpId(r.employeeId)}
                               icon={<EyeOutlined />}
                             >
                               Quick View
                             </Button>
-                            <Button 
-                              type="primary" 
+                            <Button
+                              type="primary"
                               style={{ flex: 1, borderRadius: 8, background: isDarkMode ? '#FAA71A' : '#10113F', borderColor: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}
                               onClick={() => navigate(`/employees/${r.employeeId}`)}
                               icon={<ProfileOutlined />}
@@ -660,16 +968,16 @@ export default function EmployeeListPage() {
               <span style={{ alignSelf: 'center', fontSize: 13, color: 'var(--color-text-secondary)', marginRight: 'auto' }}>
                 {Math.min((filters.page - 1) * filters.pageSize + 1, total)}-{Math.min(filters.page * filters.pageSize, total)} of {total} employees
               </span>
-              <Button 
+              <Button
                 disabled={filters.page === 1}
-                onClick={() => setFilters(f => ({ ...f, page: f.page - 1 }))}
+                onClick={() => updateFilters((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
                 style={{ borderRadius: 8, marginRight: 8 }}
               >
                 Previous
               </Button>
-              <Button 
+              <Button
                 disabled={filters.page * filters.pageSize >= total}
-                onClick={() => setFilters(f => ({ ...f, page: f.page + 1 }))}
+                onClick={() => updateFilters((prev) => ({ ...prev, page: prev.page + 1 }))}
                 style={{ borderRadius: 8 }}
               >
                 Next
@@ -682,7 +990,7 @@ export default function EmployeeListPage() {
         <div style={{ background: 'var(--color-card-bg)', borderRadius: 16, border: 'var(--border-glass)', overflow: 'hidden', boxShadow: 'var(--shadow-subtle)', marginBottom: 80 }}>
           <Table
             sticky={true}
-            scroll={{ x: 1460 }}
+            scroll={{ x: 1980 }}
             columns={columns}
             dataSource={employees}
             rowKey="employeeId"
@@ -700,7 +1008,7 @@ export default function EmployeeListPage() {
               total,
               showSizeChanger: true,
               showTotal: (t, r) => `${r[0]}-${r[1]} of ${t} employees`,
-              onChange: (page, pageSize) => setFilters((f) => ({ ...f, page, pageSize })),
+              onChange: (page, pageSize) => updateFilters((prev) => ({ ...prev, page, pageSize })),
               style: { padding: '12px 16px' },
             }}
             locale={{ emptyText: <EmptyState title="No employees found" description="Try adjusting your filters or add a new employee." /> }}
@@ -709,9 +1017,9 @@ export default function EmployeeListPage() {
               onClick: (e) => {
                 // Ignore clicks on checkbox columns, dropdown action trigger or button
                 if (
-                  e.target.closest('.ant-table-selection-column') || 
+                  e.target.closest('.ant-table-selection-column') ||
                   e.target.closest('.ant-checkbox-wrapper') ||
-                  e.target.closest('.ant-dropdown-trigger') || 
+                  e.target.closest('.ant-dropdown-trigger') ||
                   e.target.closest('.ant-btn')
                 ) {
                   return
@@ -739,7 +1047,7 @@ export default function EmployeeListPage() {
               color: '#fff',
               padding: '14px 28px',
               borderRadius: 14,
-              boxShadow: isDarkMode ? '0 10px 32px rgba(0, 0, 0, 0.6)' : '0 10px 32px rgba(16, 17, 63, 0.45)',
+              boxShadow: isDarkMode ? '0 10px 32px rgba(5, 2, 20, 0.7)' : '0 10px 32px rgba(16, 17, 63, 0.45)',
               zIndex: 1000,
               display: 'flex',
               alignItems: 'center',
@@ -754,19 +1062,19 @@ export default function EmployeeListPage() {
             <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.2)' }} />
             <Space size={12}>
               <PermissionGuard permission={PERMISSIONS.EMPLOYEE.EXPORT}>
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   icon={<DownloadOutlined />}
-                  onClick={handleExportSelected} 
+                  onClick={handleExportSelected}
                   style={{ background: '#FAA71A', borderColor: '#FAA71A', color: '#10113F', fontWeight: 600, borderRadius: 8 }}
                 >
                   Export Selected (CSV)
                 </Button>
               </PermissionGuard>
-              <Button 
-                type="text" 
+              <Button
+                type="text"
                 icon={<CloseOutlined />}
-                onClick={handleClearSelection} 
+                onClick={handleClearSelection}
                 style={{ color: '#ffffffb3', borderRadius: 8 }}
               >
                 Clear Selection
@@ -789,9 +1097,9 @@ export default function EmployeeListPage() {
         {(() => {
           const previewEmp = allEmployees.find(e => e.employeeId === previewEmpId) || employees.find(e => e.employeeId === previewEmpId)
           if (!previewEmp) return null
-          
+
           const pName = `${previewEmp.firstName} ${previewEmp.middleName ? previewEmp.middleName + ' ' : ''}${previewEmp.lastName}`
-          
+
           // Count direct reports from allEmployees list
           const directReportsCount = allEmployees.filter(e => e.reportingManagerId === previewEmp.employeeId).length
 
@@ -799,18 +1107,18 @@ export default function EmployeeListPage() {
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               {/* Cover Gradient */}
               <div style={{ height: 130, background: 'linear-gradient(135deg, #10113F 0%, #4D1B3B 100%)', position: 'relative', flexShrink: 0 }}>
-                <Button 
-                  icon={<CloseOutlined />} 
+                <Button
+                  icon={<CloseOutlined />}
                   onClick={() => setPreviewEmpId(null)}
                   style={{ position: 'absolute', top: 16, right: 16, border: 'none', background: 'rgba(255,255,255,0.2)', color: '#fff', borderRadius: '50%' }}
                 />
               </div>
-              
+
               {/* Profile Main */}
               <div style={{ textAlign: 'center', marginTop: -50, padding: '0 24px', position: 'relative', zIndex: 2, flexShrink: 0 }}>
                 <Avatar
                   size={100}
-                  src={previewEmp.profilePhoto}
+                  src={getAvatarUrl(previewEmp.profilePhoto)}
                   style={{
                     border: isDarkMode ? '4px solid var(--color-card-bg-elevated)' : '4px solid #fff',
                     background: 'linear-gradient(135deg, #10113F 0%, #2d2f82 100%)',
@@ -821,12 +1129,12 @@ export default function EmployeeListPage() {
                 >
                   {previewEmp.firstName?.[0]}{previewEmp.lastName?.[0]}
                 </Avatar>
-                
+
                 <h2 style={{ margin: '12px 0 4px', fontSize: 20, fontWeight: 800, color: 'var(--color-text-primary)' }}>
                   {pName}
                 </h2>
                 <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-secondary)', fontFamily: 'monospace', fontWeight: 600 }}>{previewEmp.employeeCode}</p>
-                
+
                 <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10 }}>
                   <StatusBadge status={previewEmp.employmentStatus} />
                   <StatusBadge status={previewEmp.employmentType} />
@@ -867,7 +1175,7 @@ export default function EmployeeListPage() {
                             {(() => {
                               const mgr = allEmployees.find(e => e.employeeId === previewEmp.reportingManagerId)
                               return mgr ? (
-                                <span 
+                                <span
                                   style={{ cursor: 'pointer', textDecoration: 'underline' }}
                                   onClick={() => {
                                     setPreviewEmpId(null)
@@ -894,6 +1202,102 @@ export default function EmployeeListPage() {
                           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>
                             {previewEmp.joiningDate ? new Date(previewEmp.joiningDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'}
                           </div>
+                        </div>
+                      </div>
+                    </Card>
+
+                    {/* Org Structure Placement */}
+                    <Card style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)', boxShadow: 'var(--shadow-subtle)' }}>
+                      <h4 style={{ margin: '0 0 16px', fontSize: 13, color: '#FAA71A', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+                        Organizational Placement
+                      </h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Business Unit</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{fullEmpDetails?.businessUnitName || previewEmp.businessUnitName || '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Division</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{fullEmpDetails?.divisionName || '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Sub-Department</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{fullEmpDetails?.subDeptName || '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Team</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{fullEmpDetails?.teamName || '—'}</div>
+                        </div>
+                      </div>
+                    </Card>
+
+                    {/* Classification details */}
+                    <Card style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)', boxShadow: 'var(--shadow-subtle)' }}>
+                      <h4 style={{ margin: '0 0 16px', fontSize: 13, color: '#FAA71A', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+                        Job Architecture
+                      </h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Grade</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{fullEmpDetails?.gradeName || previewEmp.gradeCode || '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Band / Level</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{fullEmpDetails?.bandName || previewEmp.bandCode || '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Job Family</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{fullEmpDetails?.jobFamilyName || previewEmp.jobFamilyName || '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Job Function</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{fullEmpDetails?.jobFunctionName || '—'}</div>
+                        </div>
+                      </div>
+                    </Card>
+
+                    {/* Cost Accounting */}
+                    <Card style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)', boxShadow: 'var(--shadow-subtle)' }}>
+                      <h4 style={{ margin: '0 0 16px', fontSize: 13, color: '#FAA71A', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+                        Cost Accounting
+                      </h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Cost Center</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{previewEmp.costCenterName || '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Profit Center</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{fullEmpDetails?.profitCenterName || '—'}</div>
+                        </div>
+                      </div>
+                    </Card>
+
+                    {/* Attendance Settings */}
+                    <Card style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)', boxShadow: 'var(--shadow-subtle)' }}>
+                      <h4 style={{ margin: '0 0 16px', fontSize: 13, color: '#FAA71A', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+                        Work & Shift Settings
+                      </h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Work Mode</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{previewEmp.workMode || '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Shift</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{previewEmp.shiftName || '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Weekly Off Pattern</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{previewEmp.weeklyOffPattern || '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Payroll Group</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{previewEmp.payrollGroup || '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Notice Period</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{previewEmp.noticePeriodDays !== undefined ? `${previewEmp.noticePeriodDays} Days` : '—'}</div>
                         </div>
                       </div>
                     </Card>
@@ -1012,8 +1416,8 @@ export default function EmployeeListPage() {
                 <Button style={{ flex: 1, borderRadius: 8 }} onClick={() => setPreviewEmpId(null)}>
                   Close
                 </Button>
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   style={{ flex: 1, borderRadius: 8, background: isDarkMode ? '#FAA71A' : '#10113F', borderColor: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', fontWeight: 600 }}
                   onClick={() => {
                     setPreviewEmpId(null)

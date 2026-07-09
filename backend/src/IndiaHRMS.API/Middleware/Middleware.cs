@@ -2,6 +2,7 @@ using IndiaHRMS.Shared;
 using Microsoft.AspNetCore.Diagnostics;
 using System.Net;
 using System.Text.Json;
+using System.Linq;
 
 namespace IndiaHRMS.API.Middleware;
 
@@ -101,20 +102,32 @@ public class AuditMiddleware
             (context.Request.Method == "POST" || context.Request.Method == "PUT" || context.Request.Method == "DELETE") &&
             context.Response.StatusCode is >= 200 and < 300)
         {
-            var userIdClaim = context.User.FindFirst("uid")?.Value;
-            if (Guid.TryParse(userIdClaim, out var userId))
+            try
             {
-                var auditLog = new Domain.Entities.AuditLog
+                var userIdClaim = context.User.FindFirst("uid")?.Value;
+                if (Guid.TryParse(userIdClaim, out var userId))
                 {
-                    UserId = userId,
-                    Action = context.Request.Method,
-                    TableName = context.Request.Path.ToString().Split('/').Skip(3).FirstOrDefault() ?? "Unknown",
-                    RecordId = context.Request.Path.ToString().Split('/').LastOrDefault() ?? "",
-                    IPAddress = context.Connection.RemoteIpAddress?.ToString(),
-                    UserAgent = context.Request.Headers.UserAgent.ToString()
-                };
-                dbContext.AuditLogs.Add(auditLog);
-                await dbContext.SaveChangesAsync();
+                    // Verify that the user exists in the database to prevent foreign key violations
+                    var userExists = dbContext.Users.Any(u => u.UserId == userId);
+                    if (userExists)
+                    {
+                        var auditLog = new Domain.Entities.AuditLog
+                        {
+                            UserId = userId,
+                            Action = context.Request.Method,
+                            TableName = context.Request.Path.ToString().Split('/').Skip(3).FirstOrDefault() ?? "Unknown",
+                            RecordId = context.Request.Path.ToString().Split('/').LastOrDefault() ?? "",
+                            IPAddress = context.Connection.RemoteIpAddress?.ToString(),
+                            UserAgent = context.Request.Headers.UserAgent.ToString()
+                        };
+                        dbContext.AuditLogs.Add(auditLog);
+                        await dbContext.SaveChangesAsync();
+                    }
+                }
+            }
+            catch
+            {
+                // Silently catch exceptions to ensure audit logging failures do not crash successful operations
             }
         }
     }

@@ -15,6 +15,8 @@ public class AppDbContext : DbContext
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
+    public DbSet<SecurityAuditLog> SecurityAuditLogs => Set<SecurityAuditLog>();
 
     // ─── Organization ─────────────────────────────────────────────────────────
     public DbSet<Company> Companies => Set<Company>();
@@ -22,6 +24,14 @@ public class AppDbContext : DbContext
     public DbSet<Designation> Designations => Set<Designation>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<CostCenter> CostCenters => Set<CostCenter>();
+    public DbSet<BusinessUnit> BusinessUnits => Set<BusinessUnit>();
+    public DbSet<Division> Divisions => Set<Division>();
+    public DbSet<Team> Teams => Set<Team>();
+    public DbSet<GradeMaster> GradeMasters => Set<GradeMaster>();
+    public DbSet<BandMaster> BandMasters => Set<BandMaster>();
+    public DbSet<JobFamily> JobFamilies => Set<JobFamily>();
+    public DbSet<JobFunction> JobFunctions => Set<JobFunction>();
+    public DbSet<ProfitCenter> ProfitCenters => Set<ProfitCenter>();
 
     // ─── Employee ─────────────────────────────────────────────────────────────
     public DbSet<Employee> Employees => Set<Employee>();
@@ -59,12 +69,24 @@ public class AppDbContext : DbContext
     public DbSet<JobApplication> JobApplications => Set<JobApplication>();
     public DbSet<InterviewRound> InterviewRounds => Set<InterviewRound>();
     public DbSet<OfferLetter> OfferLetters => Set<OfferLetter>();
+    public DbSet<JobPosting> JobPostings => Set<JobPosting>();
+    public DbSet<JobPostingQuestion> JobPostingQuestions => Set<JobPostingQuestion>();
+    public DbSet<JobPostingChannel> JobPostingChannels => Set<JobPostingChannel>();
+    public DbSet<JobPostingPerk> JobPostingPerks => Set<JobPostingPerk>();
+    public DbSet<CandidateAnswer> CandidateAnswers => Set<CandidateAnswer>();
+    public DbSet<InterviewRoundPanelist> InterviewRoundPanelists => Set<InterviewRoundPanelist>();
+    public DbSet<BGVRecord> BGVRecords => Set<BGVRecord>();
+    public DbSet<OnboardingProcess> OnboardingProcesses => Set<OnboardingProcess>();
+    public DbSet<OnboardingTask> OnboardingTasks => Set<OnboardingTask>();
+    public DbSet<ApprovalWorkflowConfig> ApprovalWorkflowConfigs => Set<ApprovalWorkflowConfig>();
+    public DbSet<RequisitionAuditTrail> RequisitionAuditTrails => Set<RequisitionAuditTrail>();
 
     // ─── Performance ──────────────────────────────────────────────────────────
     public DbSet<AppraisalCycle> AppraisalCycles => Set<AppraisalCycle>();
     public DbSet<EmployeeGoal> EmployeeGoals => Set<EmployeeGoal>();
     public DbSet<PerformanceReview> PerformanceReviews => Set<PerformanceReview>();
     public DbSet<PIP> PIPs => Set<PIP>();
+    public DbSet<ProbationReview> ProbationReviews => Set<ProbationReview>();
 
     // ─── Training ─────────────────────────────────────────────────────────────
     public DbSet<TrainingProgram> TrainingPrograms => Set<TrainingProgram>();
@@ -134,6 +156,31 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.Role).WithMany(x => x.UserRoles).HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        // ─── PasswordHistories ──────────────────────────────────────────────────
+        modelBuilder.Entity<PasswordHistory>(e =>
+        {
+            e.HasKey(x => x.HistoryId);
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.CreatedAt);
+            e.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
+            e.HasOne(x => x.User).WithMany(x => x.PasswordHistories).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ─── SecurityAuditLogs ─────────────────────────────────────────────────
+        modelBuilder.Entity<SecurityAuditLog>(e =>
+        {
+            e.HasKey(x => x.LogId);
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.EventType);
+            e.HasIndex(x => x.CreatedAt);
+            e.Property(x => x.EventType).HasMaxLength(50).IsRequired();
+            e.Property(x => x.Username).HasMaxLength(100);
+            e.Property(x => x.IpAddress).HasMaxLength(50);
+            e.Property(x => x.UserAgent).HasMaxLength(500);
+            e.Property(x => x.Details).HasColumnType("nvarchar(max)");
+            e.HasOne(x => x.User).WithMany(x => x.SecurityAuditLogs).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.SetNull);
+        });
+
         // ─── AuditLogs ─────────────────────────────────────────────────────────
         modelBuilder.Entity<AuditLog>(e =>
         {
@@ -201,22 +248,107 @@ public class AppDbContext : DbContext
             e.HasIndex(x => new { x.CompanyId, x.EmploymentStatus });
             e.HasIndex(x => x.DeptId);
             e.HasIndex(x => x.ReportingManagerId);
+            e.HasIndex(x => x.AadharHash).IsUnique().HasFilter("[AadharHash] IS NOT NULL");
+            e.HasIndex(x => x.PANHash).IsUnique().HasFilter("[PANHash] IS NOT NULL");
             e.Property(x => x.EmployeeCode).HasMaxLength(20).IsRequired();
             e.Property(x => x.FirstName).HasMaxLength(100).IsRequired();
             e.Property(x => x.LastName).HasMaxLength(100).IsRequired();
             e.Property(x => x.AadharNumber).HasMaxLength(500); // encrypted
             e.Property(x => x.PANNumber).HasMaxLength(500);    // encrypted
+            e.Property(x => x.AadharHash).HasMaxLength(100);
+            e.Property(x => x.PANHash).HasMaxLength(100);
             e.Property(x => x.EmploymentType).HasConversion<string>().HasMaxLength(50);
             e.Property(x => x.EmploymentStatus).HasConversion<string>().HasMaxLength(50);
             e.Property(x => x.Gender).HasConversion<string>().HasMaxLength(30);
             e.Property(x => x.BloodGroup).HasConversion<string>().HasMaxLength(10);
             e.Property(x => x.MaritalStatus).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.WeeklyOffPattern).HasConversion<string>().HasMaxLength(50);
+            e.Property(x => x.PayrollGroup).HasConversion<string>().HasMaxLength(50);
+            e.Property(x => x.WorkMode).HasConversion<string>().HasMaxLength(50);
+            e.Property(x => x.VendorName).HasMaxLength(200);
+
             e.HasOne(x => x.Company).WithMany(x => x.Employees).HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Department).WithMany(x => x.Employees).HasForeignKey(x => x.DeptId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Designation).WithMany(x => x.Employees).HasForeignKey(x => x.DesignationId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Location).WithMany(x => x.Employees).HasForeignKey(x => x.LocationId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(x => x.CostCenter).WithMany().HasForeignKey(x => x.CostCenterId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.CostCenter).WithMany().HasForeignKey(x => x.CostCenterId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ProfitCenter).WithMany().HasForeignKey(x => x.ProfitCenterId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.BusinessUnit).WithMany().HasForeignKey(x => x.BusinessUnitId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Division).WithMany().HasForeignKey(x => x.DivisionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.SubDepartment).WithMany().HasForeignKey(x => x.SubDeptId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Team).WithMany().HasForeignKey(x => x.TeamId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Grade).WithMany().HasForeignKey(x => x.GradeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Band).WithMany().HasForeignKey(x => x.BandId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.JobFamily).WithMany().HasForeignKey(x => x.JobFamilyId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.JobFunction).WithMany().HasForeignKey(x => x.JobFunctionId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.ReportingManager).WithMany(x => x.DirectReports).HasForeignKey(x => x.ReportingManagerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.L2ReportingManager).WithMany().HasForeignKey(x => x.L2ReportingManagerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.FunctionalManager).WithMany().HasForeignKey(x => x.FunctionalManagerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Shift).WithMany().HasForeignKey(x => x.ShiftId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<BusinessUnit>(e =>
+        {
+            e.HasKey(x => x.BusinessUnitId);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Division>(e =>
+        {
+            e.HasKey(x => x.DivisionId);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.BusinessUnit).WithMany(x => x.Divisions).HasForeignKey(x => x.BusinessUnitId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Team>(e =>
+        {
+            e.HasKey(x => x.TeamId);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.SubDepartment).WithMany().HasForeignKey(x => x.SubDeptId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<GradeMaster>(e =>
+        {
+            e.HasKey(x => x.GradeId);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<BandMaster>(e =>
+        {
+            e.HasKey(x => x.BandId);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<JobFamily>(e =>
+        {
+            e.HasKey(x => x.JobFamilyId);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<JobFunction>(e =>
+        {
+            e.HasKey(x => x.JobFunctionId);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.JobFamily).WithMany(x => x.JobFunctions).HasForeignKey(x => x.JobFamilyId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProfitCenter>(e =>
+        {
+            e.HasKey(x => x.ProfitCenterId);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<EmployeeEducation>(e => e.HasKey(x => x.EduId));
@@ -369,17 +501,51 @@ public class AppDbContext : DbContext
         {
             e.HasKey(x => x.ReqId);
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.MinSalary).HasColumnType("decimal(18,2)");
+            e.Property(x => x.MaxSalary).HasColumnType("decimal(18,2)");
+            // Explicit FK mappings to prevent EF generating shadow DepartmentDeptId column
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DeptId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Designation).WithMany().HasForeignKey(x => x.DesignationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Grade).WithMany().HasForeignKey(x => x.GradeId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.RaisedByUser).WithMany().HasForeignKey(x => x.RaisedBy).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedBy).OnDelete(DeleteBehavior.SetNull);
         });
 
-        modelBuilder.Entity<Candidate>(e => e.HasKey(x => x.CandidateId));
+        modelBuilder.Entity<ApprovalWorkflowConfig>(e =>
+        {
+            e.HasKey(x => x.ConfigId);
+            e.Property(x => x.BudgetThreshold).HasColumnType("decimal(18,2)");
+        });
+
+        modelBuilder.Entity<RequisitionAuditTrail>(e =>
+        {
+            e.HasKey(x => x.AuditId);
+            e.HasOne(x => x.JobRequisition)
+                .WithMany()
+                .HasForeignKey(x => x.ReqId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Candidate>(e =>
+        {
+            e.HasKey(x => x.CandidateId);
+            e.Property(x => x.TotalExperience).HasColumnType("decimal(4,1)");
+            e.Property(x => x.RelevantExperience).HasColumnType("decimal(4,1)");
+            e.Property(x => x.CurrentCTC).HasColumnType("decimal(12,2)");
+            e.Property(x => x.ExpectedCTC).HasColumnType("decimal(12,2)");
+            e.Property(x => x.Gender).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.CandidateStatus).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.Source).HasConversion<string>().HasMaxLength(30);
+            e.HasOne(x => x.ReferralEmployee).WithMany().HasForeignKey(x => x.ReferralEmployeeId).OnDelete(DeleteBehavior.Restrict);
+        });
 
         // ─── JobApplication ────────────────────────────────────────────────────
         modelBuilder.Entity<JobApplication>(e =>
         {
             e.HasKey(x => x.AppId);
             e.Property(x => x.CurrentStage).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.AiMatchScore).HasColumnType("decimal(5,2)");
         });
 
         // ─── InterviewRound ────────────────────────────────────────────────────
@@ -396,6 +562,74 @@ public class AppDbContext : DbContext
             e.HasKey(x => x.OfferId);
             e.Property(x => x.OfferedCTC).HasColumnType("decimal(12,2)");
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+        });
+
+        // ─── JobPosting ────────────────────────────────────────────────────────
+        modelBuilder.Entity<JobPosting>(e =>
+        {
+            e.HasKey(x => x.JobId);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.ExperienceMin).HasColumnType("decimal(4,1)");
+            e.Property(x => x.ExperienceMax).HasColumnType("decimal(4,1)");
+            e.HasOne(x => x.JobRequisition).WithMany(x => x.JobPostings).HasForeignKey(x => x.ReqId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ─── Screening Questions & Answers ──────────────────────────────────────
+        modelBuilder.Entity<JobPostingQuestion>(e =>
+        {
+            e.HasKey(x => x.QuestionId);
+            e.HasOne(x => x.JobPosting).WithMany(x => x.JobPostingQuestions).HasForeignKey(x => x.JobPostingId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<JobPostingChannel>(e =>
+        {
+            e.HasKey(x => x.ChannelId);
+            e.HasOne(x => x.JobPosting).WithMany(x => x.PublishingChannels).HasForeignKey(x => x.JobId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<JobPostingPerk>(e =>
+        {
+            e.HasKey(x => x.PerkId);
+            e.HasOne(x => x.JobPosting).WithMany(x => x.PerksAndBenefits).HasForeignKey(x => x.JobId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CandidateAnswer>(e =>
+        {
+            e.HasKey(x => x.AnswerId);
+            e.HasOne(x => x.Candidate).WithMany(x => x.CandidateAnswers).HasForeignKey(x => x.CandidateId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.JobPostingQuestion).WithMany(x => x.CandidateAnswers).HasForeignKey(x => x.QuestionId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ─── InterviewRoundPanelist ─────────────────────────────────────────────
+        modelBuilder.Entity<InterviewRoundPanelist>(e =>
+        {
+            e.HasKey(x => x.PanelistId);
+            e.Property(x => x.Rating).HasColumnType("decimal(3,1)");
+            e.HasOne(x => x.InterviewRound).WithMany(x => x.Panelists).HasForeignKey(x => x.RoundId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ─── BGVRecord ──────────────────────────────────────────────────────────
+        modelBuilder.Entity<BGVRecord>(e =>
+        {
+            e.HasKey(x => x.BGVId);
+            e.HasOne(x => x.Candidate).WithMany(x => x.BGVRecords).HasForeignKey(x => x.CandidateId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ─── OnboardingProcess ──────────────────────────────────────────────────
+        modelBuilder.Entity<OnboardingProcess>(e =>
+        {
+            e.HasKey(x => x.OnboardingId);
+            e.HasOne(x => x.Candidate).WithMany(x => x.Onboardings).HasForeignKey(x => x.CandidateId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.BuddyEmployee).WithMany().HasForeignKey(x => x.BuddyEmployeeId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ─── OnboardingTask ─────────────────────────────────────────────────────
+        modelBuilder.Entity<OnboardingTask>(e =>
+        {
+            e.HasKey(x => x.TaskId);
+            e.HasOne(x => x.OnboardingProcess).WithMany(x => x.Tasks).HasForeignKey(x => x.OnboardingId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Owner).WithMany().HasForeignKey(x => x.OwnerId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // ─── Performance ───────────────────────────────────────────────────────
@@ -422,6 +656,14 @@ public class AppDbContext : DbContext
             e.Property(x => x.ReviewType).HasConversion<string>().HasMaxLength(20);
             e.Property(x => x.OverallRating).HasColumnType("decimal(3,1)");
             e.Property(x => x.IncrementRecommended).HasColumnType("decimal(5,2)");
+            e.HasOne(x => x.Reviewer).WithMany().HasForeignKey(x => x.ReviewerId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ─── ProbationReview ────────────────────────────────────────────────────
+        modelBuilder.Entity<ProbationReview>(e =>
+        {
+            e.HasKey(x => x.ReviewId);
+            e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Reviewer).WithMany().HasForeignKey(x => x.ReviewerId).OnDelete(DeleteBehavior.Restrict);
         });
 

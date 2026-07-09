@@ -23,25 +23,31 @@ import { employeeService } from '../../services/employeeService'
 import PageHeader from '../../components/common/PageHeader'
 import StatusBadge from '../../components/common/StatusBadge'
 import EmptyState from '../../components/common/EmptyState'
-import { EMPLOYMENT_STATUS } from '../../constants/enums'
+import { EMPLOYMENT_STATUS, EMPLOYMENT_TYPE, WORK_MODE, WEEKLY_OFF_PATTERN, PAYROLL_GROUP, BANK_LIST } from '../../constants/enums'
 import { usePermission } from '../../hooks/usePermission'
-import { PERMISSIONS } from '../../constants/permissions'
+import { PERMISSIONS, ROLES } from '../../constants/permissions'
 import useUIStore from '../../store/uiStore'
+import useAuthStore from '../../store/authStore'
 import { VALIDATORS, NORMALIZE, FILTER_KEYPRESS } from '../../constants/validation'
-
+import { getAvatarUrl } from '../../constants/api'
 // ── Document type registry ────────────────────────────────────────────────────
 const DOC_TYPES = [
-  { key: 'Aadhar',            label: 'Aadhaar Card',         enumVal: 0,  strVal: 'Aadhar' },
-  { key: 'PAN',               label: 'PAN Card',             enumVal: 1,  strVal: 'PAN' },
-  { key: 'Passport',          label: 'Passport',             enumVal: 2,  strVal: 'Passport' },
-  { key: 'OfferLetter',       label: 'Offer Letter',         enumVal: 5,  strVal: 'OfferLetter' },
-  { key: 'AppointmentLetter', label: 'Appointment Letter',   enumVal: 6,  strVal: 'AppointmentLetter' },
-  { key: 'RelievingLetter',   label: 'Relieving Letter',     enumVal: 8,  strVal: 'RelievingLetter' },
-  { key: 'ExperienceLetter',  label: 'Experience Letter',    enumVal: 9,  strVal: 'ExperienceLetter' },
+  { key: 'Aadhar', label: 'Aadhaar Card', enumVal: 0, strVal: 'Aadhar' },
+  { key: 'PAN', label: 'PAN Card', enumVal: 1, strVal: 'PAN' },
+  { key: 'Passport', label: 'Passport', enumVal: 2, strVal: 'Passport' },
+  { key: 'OfferLetter', label: 'Offer Letter', enumVal: 5, strVal: 'OfferLetter' },
+  { key: 'AppointmentLetter', label: 'Appointment Letter', enumVal: 6, strVal: 'AppointmentLetter' },
+  { key: 'RelievingLetter', label: 'Relieving Letter', enumVal: 8, strVal: 'RelievingLetter' },
+  { key: 'ExperienceLetter', label: 'Experience Letter', enumVal: 9, strVal: 'ExperienceLetter' },
   { key: 'EducationCertificate', label: 'Degree Certificate', enumVal: 10, strVal: 'EducationCertificate' },
-  { key: 'BankStatement',     label: 'Bank Passbook / Statement', enumVal: 11, strVal: 'BankStatement' },
-  { key: 'Photo',             label: 'Profile Photo',        enumVal: 12, strVal: 'Photo' },
-  { key: 'Other',             label: 'Other Document',       enumVal: 13, strVal: 'Other' },
+  { key: 'BankStatement', label: 'Bank Passbook / Statement', enumVal: 11, strVal: 'BankStatement' },
+  { key: 'Photo', label: 'Profile Photo', enumVal: 12, strVal: 'Photo' },
+  { key: 'MedicalFitnessCertificate', label: 'Medical Fitness Certificate', enumVal: 13, strVal: 'MedicalFitnessCertificate' },
+  { key: 'PoliceVerification', label: 'Police Verification Certificate', enumVal: 14, strVal: 'PoliceVerification' },
+  { key: 'CategoryCertificate', label: 'Category Certificate', enumVal: 15, strVal: 'CategoryCertificate' },
+  { key: 'NDA', label: 'NDA', enumVal: 16, strVal: 'NDA' },
+  { key: 'DrugTestReport', label: 'Drug Test Report', enumVal: 17, strVal: 'DrugTestReport' },
+  { key: 'Other', label: 'Other Document', enumVal: 18, strVal: 'Other' },
 ]
 
 const RELATIONSHIP_OPTIONS = [
@@ -99,7 +105,43 @@ export default function EmployeeDetailPage() {
   const navigate = useNavigate()
   const { isDarkMode } = useUIStore()
   const queryClient = useQueryClient()
-  const { can } = usePermission()
+  const { can, isSuperAdmin, isAnyRole } = usePermission()
+  const isAdmin = isSuperAdmin || isAnyRole(ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER, ROLES.PAYROLL_ADMIN)
+  const hasPayrollView = isSuperAdmin || can(PERMISSIONS.PAYROLL.VIEW)
+  const showBankTab = isAdmin
+
+  const maskAadhar = (val) => {
+    if (!val) return '—'
+    if (isAdmin) return val
+    const cleaned = val.replace(/\D/g, '')
+    if (cleaned.length >= 4) {
+      return '********' + cleaned.slice(-4)
+    }
+    return val
+  }
+
+  const maskPAN = (val) => {
+    if (!val) return '—'
+    if (isAdmin) return val
+    if (val.length >= 6) {
+      return val.slice(0, 5) + '****' + val.slice(-1)
+    }
+    return val
+  }
+
+  const maskBankAcc = (val) => {
+    if (!val) return '—'
+    if (isAdmin) return val
+    const cleaned = val.replace(/\D/g, '')
+    if (cleaned.length >= 4) {
+      return '******' + cleaned.slice(-4)
+    }
+    return val
+  }
+
+  const [docModal, setDocModal] = useState({ open: false, docType: null })
+  const [docForm] = Form.useForm()
+  const [selectedFile, setSelectedFile] = useState(null)
   const photoRef = useRef(null)
 
   // Modal states
@@ -174,13 +216,13 @@ export default function EmployeeDetailPage() {
   const confirmMutation = useMutation({
     mutationFn: () => employeeService.confirmEmployee(id),
     onSuccess: (res) => {
-      if (res.success) { 
+      if (res.success) {
         notification.success({
           message: 'Employment Confirmed',
           description: 'Employee has been successfully confirmed.',
           placement: 'topRight'
         })
-        invalidate([['employee', id]]) 
+        invalidate([['employee', id]])
       }
       else {
         notification.error({
@@ -214,12 +256,16 @@ export default function EmployeeDetailPage() {
 
   const photoMutation = useMutation({
     mutationFn: (file) => employeeService.uploadPhoto(id, file),
-    onSuccess: () => {
+    onSuccess: (res) => {
       notification.success({
         message: 'Photo Uploaded',
         description: 'Profile photo has been updated.',
         placement: 'topRight'
       })
+      const { user } = useAuthStore.getState()
+      if (user && user.employeeId === id && res?.success && res.data) {
+        useAuthStore.getState().updateUser({ profilePhoto: res.data })
+      }
       invalidate([['employee', id]])
     },
     onError: () => {
@@ -233,13 +279,13 @@ export default function EmployeeDetailPage() {
 
   const verifyDocMutation = useMutation({
     mutationFn: ({ docId }) => employeeService.verifyDocument(id, docId),
-    onSuccess: () => { 
+    onSuccess: () => {
       notification.success({
         message: 'Document Verified',
         description: 'The document status has been updated to verified.',
         placement: 'topRight'
       })
-      invalidate([['employee-docs', id]]) 
+      invalidate([['employee-docs', id]])
     },
     onError: () => {
       notification.error({
@@ -250,10 +296,33 @@ export default function EmployeeDetailPage() {
     },
   })
 
+  const uploadDocMutation = useMutation({
+    mutationFn: ({ file, docType, documentNumber, expiryDate, remarks }) =>
+      employeeService.uploadDocument(id, file, docType, documentNumber, expiryDate, remarks),
+    onSuccess: () => {
+      notification.success({
+        message: 'Upload Complete',
+        description: 'Document uploaded successfully.',
+        placement: 'topRight'
+      })
+      setDocModal({ open: false, docType: null })
+      docForm.resetFields()
+      setSelectedFile(null)
+      invalidate([['employee-docs', id]])
+    },
+    onError: () => {
+      notification.error({
+        message: 'Upload Failed',
+        description: 'Failed to upload document.',
+        placement: 'topRight'
+      })
+    }
+  })
+
   // Bank mutations
   const addBankMutation = useMutation({
     mutationFn: (payload) => employeeService.addBankDetail(id, payload),
-    onSuccess: () => { 
+    onSuccess: () => {
       notification.success({
         message: 'Bank Account Saved',
         description: 'Bank account details have been successfully saved.',
@@ -261,7 +330,7 @@ export default function EmployeeDetailPage() {
       })
       setBankModal({ open: false, editing: null })
       bankForm.resetFields()
-      invalidate([['employee-banks', id]]) 
+      invalidate([['employee-banks', id]])
     },
     onError: () => {
       notification.error({
@@ -274,13 +343,13 @@ export default function EmployeeDetailPage() {
 
   const deleteBankMutation = useMutation({
     mutationFn: (bankId) => employeeService.deleteBankDetail(id, bankId),
-    onSuccess: () => { 
+    onSuccess: () => {
       notification.success({
         message: 'Account Removed',
         description: 'Bank account details removed successfully.',
         placement: 'topRight'
       })
-      invalidate([['employee-banks', id]]) 
+      invalidate([['employee-banks', id]])
     },
     onError: () => {
       notification.error({
@@ -294,7 +363,7 @@ export default function EmployeeDetailPage() {
   // Education mutations
   const addEduMutation = useMutation({
     mutationFn: (payload) => employeeService.addEducation(id, payload),
-    onSuccess: () => { 
+    onSuccess: () => {
       notification.success({
         message: 'Education Added',
         description: 'Academic qualification record added successfully.',
@@ -302,7 +371,7 @@ export default function EmployeeDetailPage() {
       })
       setEduModal({ open: false, editing: null })
       eduForm.resetFields()
-      invalidate([['employee-educations', id]]) 
+      invalidate([['employee-educations', id]])
     },
     onError: () => {
       notification.error({
@@ -314,7 +383,7 @@ export default function EmployeeDetailPage() {
   })
   const updateEduMutation = useMutation({
     mutationFn: ({ eduId, payload }) => employeeService.updateEducation(id, eduId, payload),
-    onSuccess: () => { 
+    onSuccess: () => {
       notification.success({
         message: 'Education Updated',
         description: 'Academic qualification record updated.',
@@ -322,7 +391,7 @@ export default function EmployeeDetailPage() {
       })
       setEduModal({ open: false, editing: null })
       eduForm.resetFields()
-      invalidate([['employee-educations', id]]) 
+      invalidate([['employee-educations', id]])
     },
     onError: () => {
       notification.error({
@@ -334,13 +403,13 @@ export default function EmployeeDetailPage() {
   })
   const deleteEduMutation = useMutation({
     mutationFn: (eduId) => employeeService.deleteEducation(id, eduId),
-    onSuccess: () => { 
+    onSuccess: () => {
       notification.success({
         message: 'Record Deleted',
         description: 'Academic qualification record deleted.',
         placement: 'topRight'
       })
-      invalidate([['employee-educations', id]]) 
+      invalidate([['employee-educations', id]])
     },
     onError: () => {
       notification.error({
@@ -354,7 +423,7 @@ export default function EmployeeDetailPage() {
   // Experience mutations
   const addExpMutation = useMutation({
     mutationFn: (payload) => employeeService.addExperience(id, payload),
-    onSuccess: () => { 
+    onSuccess: () => {
       notification.success({
         message: 'Experience Added',
         description: 'Work experience record saved successfully.',
@@ -362,7 +431,7 @@ export default function EmployeeDetailPage() {
       })
       setExpModal({ open: false, editing: null })
       expForm.resetFields()
-      invalidate([['employee-experiences', id]]) 
+      invalidate([['employee-experiences', id]])
     },
     onError: () => {
       notification.error({
@@ -374,7 +443,7 @@ export default function EmployeeDetailPage() {
   })
   const updateExpMutation = useMutation({
     mutationFn: ({ expId, payload }) => employeeService.updateExperience(id, expId, payload),
-    onSuccess: () => { 
+    onSuccess: () => {
       notification.success({
         message: 'Experience Updated',
         description: 'Work experience record updated.',
@@ -382,7 +451,7 @@ export default function EmployeeDetailPage() {
       })
       setExpModal({ open: false, editing: null })
       expForm.resetFields()
-      invalidate([['employee-experiences', id]]) 
+      invalidate([['employee-experiences', id]])
     },
     onError: () => {
       notification.error({
@@ -394,13 +463,13 @@ export default function EmployeeDetailPage() {
   })
   const deleteExpMutation = useMutation({
     mutationFn: (expId) => employeeService.deleteExperience(id, expId),
-    onSuccess: () => { 
+    onSuccess: () => {
       notification.success({
         message: 'Record Deleted',
         description: 'Work experience record deleted.',
         placement: 'topRight'
       })
-      invalidate([['employee-experiences', id]]) 
+      invalidate([['employee-experiences', id]])
     },
     onError: () => {
       notification.error({
@@ -414,7 +483,7 @@ export default function EmployeeDetailPage() {
   // Nominee mutations
   const addNomMutation = useMutation({
     mutationFn: (payload) => employeeService.addNominee(id, payload),
-    onSuccess: () => { 
+    onSuccess: () => {
       notification.success({
         message: 'Nominee Added',
         description: 'PF nominee details saved.',
@@ -422,7 +491,7 @@ export default function EmployeeDetailPage() {
       })
       setNomineeModal({ open: false, editing: null })
       nomineeForm.resetFields()
-      invalidate([['employee-nominees', id]]) 
+      invalidate([['employee-nominees', id]])
     },
     onError: () => {
       notification.error({
@@ -434,7 +503,7 @@ export default function EmployeeDetailPage() {
   })
   const updateNomMutation = useMutation({
     mutationFn: ({ nomineeId, payload }) => employeeService.updateNominee(id, nomineeId, payload),
-    onSuccess: () => { 
+    onSuccess: () => {
       notification.success({
         message: 'Nominee Updated',
         description: 'PF nominee details updated.',
@@ -442,7 +511,7 @@ export default function EmployeeDetailPage() {
       })
       setNomineeModal({ open: false, editing: null })
       nomineeForm.resetFields()
-      invalidate([['employee-nominees', id]]) 
+      invalidate([['employee-nominees', id]])
     },
     onError: () => {
       notification.error({
@@ -454,13 +523,13 @@ export default function EmployeeDetailPage() {
   })
   const deleteNomMutation = useMutation({
     mutationFn: (nomineeId) => employeeService.deleteNominee(id, nomineeId),
-    onSuccess: () => { 
+    onSuccess: () => {
       notification.success({
         message: 'Nominee Removed',
         description: 'PF nominee record removed.',
         placement: 'topRight'
       })
-      invalidate([['employee-nominees', id]]) 
+      invalidate([['employee-nominees', id]])
     },
     onError: () => {
       notification.error({
@@ -483,49 +552,21 @@ export default function EmployeeDetailPage() {
       })
       return
     }
-    if (file.size > 5 * 1024 * 1024) { 
+    if (file.size > 5 * 1024 * 1024) {
       notification.warning({
         message: 'Image Too Large',
         description: 'File size must be under 5 MB.',
         placement: 'topRight'
       })
-      return 
+      return
     }
     photoMutation.mutate(file)
   }
 
-  const triggerFileUpload = (docTypeStrVal) => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.pdf,.jpg,.jpeg,.png,.doc,.docx'
-    input.onchange = async (e) => {
-      const file = e.target.files[0]
-      if (!file) return
-      try {
-        notification.info({
-          message: 'Uploading Document',
-          description: 'Please wait while the file is uploading...',
-          placement: 'topRight',
-          key: 'uploadDoc'
-        })
-        await employeeService.uploadDocument(id, file, docTypeStrVal)
-        notification.success({
-          message: 'Upload Complete',
-          description: 'Document uploaded successfully.',
-          placement: 'topRight',
-          key: 'uploadDoc'
-        })
-        invalidate([['employee-docs', id]])
-      } catch { 
-        notification.error({
-          message: 'Upload Failed',
-          description: 'Failed to upload document.',
-          placement: 'topRight',
-          key: 'uploadDoc'
-        })
-      }
-    }
-    input.click()
+  const openDocUploadModal = (docTypeStrVal) => {
+    setDocModal({ open: true, docType: docTypeStrVal })
+    docForm.resetFields()
+    setSelectedFile(null)
   }
 
   const handleEduSubmit = (values) => {
@@ -586,7 +627,8 @@ export default function EmployeeDetailPage() {
     nomineeForm.setFieldsValue(record ? {
       nomineeName: record.nomineeName, relationship: record.relationship,
       dateOfBirth: record.dateOfBirth ? dayjs(record.dateOfBirth) : null,
-      percentage: record.percentage
+      percentage: record.percentage,
+      aadharNumber: record.aadharNumber
     } : {})
   }
 
@@ -629,42 +671,119 @@ export default function EmployeeDetailPage() {
     Absconding: '#cf1322', OnLeave: '#1677ff', Suspended: '#722ed1'
   }
 
+  const formatStructuredAddress = (prefix, sameFlag = false) => {
+    const l1 = emp[`${prefix}AddressLine1`]
+    const l2 = emp[`${prefix}AddressLine2`]
+    const city = emp[`${prefix}City`]
+    const dist = emp[`${prefix}District`]
+    const taluka = emp[`${prefix}Taluka`]
+    const state = emp[`${prefix}State`]
+    const pin = emp[`${prefix}Pincode`]
+
+    if (!l1 && !city && !state) {
+      return emp[`${prefix}Address`] || '—'
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div>{l1}{l2 ? `, ${l2}` : ''}</div>
+        <div>
+          {taluka ? `${taluka}, ` : ''}{city}{dist ? ` (${dist} District)` : ''}
+        </div>
+        <div>
+          {state} - <strong>{pin}</strong>
+        </div>
+        {sameFlag && <Tag color="blue" style={{ marginTop: 6, width: 'fit-content' }}>Same as Permanent Address</Tag>}
+      </div>
+    )
+  }
+
   // ── TAB: Overview ─────────────────────────────────────────────────────────
   const OverviewTab = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <Card title={<span><UserOutlined style={{ marginRight: 8 }} />Personal Information</span>}
         style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
-        <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+          <Descriptions.Item label="Title">{emp.title || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Employee ID">{emp.employeeCode || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Employee Category">{emp.employeeCategory || 'MPOnline Employee'}</Descriptions.Item>
+          <Descriptions.Item label="Aadhaar Name">{emp.fullNameAadhaar || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Father's Name">{emp.fatherName || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Mother Tongue">{emp.motherTongue || '—'}</Descriptions.Item>
           <Descriptions.Item label="Date of Birth">{emp.dateOfBirth ? dayjs(emp.dateOfBirth).format('DD MMM YYYY') : '—'}</Descriptions.Item>
           <Descriptions.Item label="Gender">{emp.gender || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Category">{emp.category || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Religion">{emp.religion || '—'}</Descriptions.Item>
           <Descriptions.Item label="Blood Group">{emp.bloodGroup || '—'}</Descriptions.Item>
           <Descriptions.Item label="Marital Status">{emp.maritalStatus || '—'}</Descriptions.Item>
+
+          {emp.maritalStatus === 'Married' && (
+            <>
+              <Descriptions.Item label="Spouse Name">{emp.spouseName || '—'}</Descriptions.Item>
+              <Descriptions.Item label="Marriage Date">{emp.marriageDate ? dayjs(emp.marriageDate).format('DD MMM YYYY') : '—'}</Descriptions.Item>
+            </>
+          )}
+
+          <Descriptions.Item label="Number of Dependents">{emp.numberOfDependents !== undefined && emp.numberOfDependents !== null ? emp.numberOfDependents : '—'}</Descriptions.Item>
           <Descriptions.Item label="Nationality">{emp.nationality || '—'}</Descriptions.Item>
-          <Descriptions.Item label="Religion">{emp.religion || '—'}</Descriptions.Item>
+          <Descriptions.Item label="PwD Status">{emp.pwdStatus || '—'}</Descriptions.Item>
+          <Descriptions.Item label="PwD Certificate Number">{emp.pwdCertificateNo || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Domicile State">{emp.domicileState || '—'}</Descriptions.Item>
+        </Descriptions>
+      </Card>
+
+      <Card title={<span><HomeOutlined style={{ marginRight: 8 }} />Address Details</span>}
+        style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+          <Descriptions.Item label="Permanent Address" span={2}>
+            {formatStructuredAddress('permanent')}
+          </Descriptions.Item>
+          <Descriptions.Item label="Current Address" span={2}>
+            {formatStructuredAddress('current', emp.sameAddressFlag)}
+          </Descriptions.Item>
+        </Descriptions>
+      </Card>
+
+      <Card title={<span><MailOutlined style={{ marginRight: 8 }} />Contact Details</span>}
+        style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
           <Descriptions.Item label="Official Email">{emp.officialEmail || '—'}</Descriptions.Item>
           <Descriptions.Item label="Personal Email">{emp.personalEmail || '—'}</Descriptions.Item>
-          <Descriptions.Item label="Phone">{emp.personalPhone || '—'}</Descriptions.Item>
-          <Descriptions.Item label="Permanent Address" span={2}>{emp.permanentAddress ? `${emp.permanentAddress}${emp.permanentCity ? ', ' + emp.permanentCity : ''}${emp.permanentState ? ', ' + emp.permanentState : ''}${emp.permanentPincode ? ' - ' + emp.permanentPincode : ''}` : '—'}</Descriptions.Item>
-          <Descriptions.Item label="Current Address" span={2}>{emp.currentAddress ? `${emp.currentAddress}${emp.currentCity ? ', ' + emp.currentCity : ''}${emp.currentState ? ', ' + emp.currentState : ''}${emp.currentPincode ? ' - ' + emp.currentPincode : ''}` : '—'}</Descriptions.Item>
+          <Descriptions.Item label="Mobile Number">
+            {emp.personalPhone ? <a href={`tel:${emp.personalPhone}`}>{emp.personalPhone}</a> : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Official Mobile">
+            {emp.officialMobile ? <a href={`tel:${emp.officialMobile}`}>{emp.officialMobile}</a> : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Alternate Mobile">
+            {emp.alternateMobile ? <a href={`tel:${emp.alternateMobile}`}>{emp.alternateMobile}</a> : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="WhatsApp Number">
+            {emp.whatsAppNumber ? <a href={`https://wa.me/91${emp.whatsAppNumber.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">{emp.whatsAppNumber}</a> : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Extension Number" span={2}>{emp.extensionNumber || '—'}</Descriptions.Item>
         </Descriptions>
       </Card>
 
       <Card title={<span><TeamOutlined style={{ marginRight: 8 }} />Emergency Contacts</span>}
         style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
-        <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
           <Descriptions.Item label="Contact Name">{emp.emergencyContactName || '—'}</Descriptions.Item>
           <Descriptions.Item label="Relationship">{emp.emergencyContactRelation || '—'}</Descriptions.Item>
-          <Descriptions.Item label="Phone" span={2}>
+          <Descriptions.Item label="Phone">
             {emp.emergencyContactPhone ? <a href={`tel:${emp.emergencyContactPhone}`}>{emp.emergencyContactPhone}</a> : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Alt. Emergency Phone">
+            {emp.alternateEmergencyContactPhone ? <a href={`tel:${emp.alternateEmergencyContactPhone}`}>{emp.alternateEmergencyContactPhone}</a> : '—'}
           </Descriptions.Item>
         </Descriptions>
       </Card>
 
       <Card title={<span><IdcardOutlined style={{ marginRight: 8 }} />Government Identifiers</span>}
         style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
-        <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
-          <Descriptions.Item label="PAN Card"><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{emp.maskedPAN || '—'}</span></Descriptions.Item>
-          <Descriptions.Item label="Aadhaar Card"><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{emp.maskedAadhar || '—'}</span></Descriptions.Item>
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+          <Descriptions.Item label="PAN Card"><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{maskPAN(emp.maskedPAN) || '—'}</span></Descriptions.Item>
+          <Descriptions.Item label="Aadhaar Card"><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{maskAadhar(emp.maskedAadhar) || '—'}</span></Descriptions.Item>
           <Descriptions.Item label="UAN Number"><span style={{ fontFamily: 'monospace' }}>{emp.uanNumber || '—'}</span></Descriptions.Item>
           <Descriptions.Item label="ESI Number"><span style={{ fontFamily: 'monospace' }}>{emp.esiNumber || '—'}</span></Descriptions.Item>
           <Descriptions.Item label="Passport Number"><span style={{ fontFamily: 'monospace' }}>{emp.passportNumber || '—'}</span></Descriptions.Item>
@@ -677,18 +796,70 @@ export default function EmployeeDetailPage() {
   // ── TAB: Employment ───────────────────────────────────────────────────────
   const EmploymentTab = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <Card title={<span><BuildOutlined style={{ marginRight: 8 }} />Employment Details</span>}
+      {/* 1. Placement Hierarchy */}
+      <Card title={<span><BuildOutlined style={{ marginRight: 8 }} />Organizational Placement</span>}
         style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
-        <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+          <Descriptions.Item label="Business Unit">{emp.businessUnitName || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Division">{emp.divisionName || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Department">{emp.departmentName || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Sub-Department">{emp.subDeptName || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Team / Section">{emp.teamName || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Location">{emp.locationName || '—'}</Descriptions.Item>
+        </Descriptions>
+      </Card>
+
+      {/* 2. Job Architecture */}
+      <Card title={<span><IdcardOutlined style={{ marginRight: 8 }} />Job Architecture & Classification</span>}
+        style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+          <Descriptions.Item label="Grade">{emp.gradeName || '—'} {emp.gradeCode ? `(${emp.gradeCode})` : ''}</Descriptions.Item>
+          <Descriptions.Item label="Band / Level">{emp.bandName || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Job Family">{emp.jobFamilyName || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Job Function">{emp.jobFunctionName || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Designation">{emp.designationTitle || '—'}</Descriptions.Item>
+        </Descriptions>
+      </Card>
+
+      {/* 3. Cost Accounting */}
+      <Card title={<span><DollarOutlined style={{ marginRight: 8 }} />Cost & Profit Centers</span>}
+        style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+          <Descriptions.Item label="Cost Center">{emp.costCenterName || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Profit Center">{emp.profitCenterName || '—'}</Descriptions.Item>
+        </Descriptions>
+      </Card>
+
+      {/* 4. Shift & Work Settings */}
+      <Card title={<span><CalendarOutlined style={{ marginRight: 8 }} />Work Mode & Shifts</span>}
+        style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+          <Descriptions.Item label="Work Mode">
+            {emp.workMode ? <Tag color="green">{WORK_MODE.find(w => w.value === emp.workMode)?.label || emp.workMode}</Tag> : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Shift">
+            {emp.shiftName ? <Tag color="magenta">{emp.shiftName}</Tag> : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Weekly Off Pattern">
+            {emp.weeklyOffPattern ? <Tag color="blue">{WEEKLY_OFF_PATTERN.find(w => w.value === emp.weeklyOffPattern)?.label || emp.weeklyOffPattern}</Tag> : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Notice Period">{emp.noticePeriodDays !== undefined ? `${emp.noticePeriodDays} Days` : '—'}</Descriptions.Item>
+        </Descriptions>
+      </Card>
+
+      {/* 5. Classification & Status */}
+      <Card title={<span><SafetyCertificateOutlined style={{ marginRight: 8 }} />Employment Status & Payroll</span>}
+        style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
           <Descriptions.Item label="Joining Date">{dayjs(emp.joiningDate).format('DD MMM YYYY')}</Descriptions.Item>
           <Descriptions.Item label="Confirmation Date">{emp.confirmationDate ? dayjs(emp.confirmationDate).format('DD MMM YYYY') : '—'}</Descriptions.Item>
-          <Descriptions.Item label="Department">{emp.departmentName || '—'}</Descriptions.Item>
-          <Descriptions.Item label="Designation">{emp.designationTitle || '—'}</Descriptions.Item>
-          <Descriptions.Item label="Location">{emp.locationName || '—'}</Descriptions.Item>
-          <Descriptions.Item label="Cost Center">{emp.costCenterName || '—'}</Descriptions.Item>
-          <Descriptions.Item label="Employment Type"><StatusBadge status={emp.employmentType} size="small" /></Descriptions.Item>
+          <Descriptions.Item label="Employment Type">
+            {emp.employmentType ? <Tag color="orange">{EMPLOYMENT_TYPE.find(e => e.value === emp.employmentType)?.label || emp.employmentType}</Tag> : '—'}
+          </Descriptions.Item>
           <Descriptions.Item label="Employment Status"><StatusBadge status={emp.employmentStatus} /></Descriptions.Item>
-          <Descriptions.Item label="Official Email">{emp.officialEmail || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Payroll Group">
+            {emp.payrollGroup ? <Tag color="purple">{PAYROLL_GROUP.find(p => p.value === emp.payrollGroup)?.label || emp.payrollGroup}</Tag> : '—'}
+          </Descriptions.Item>
           <Descriptions.Item label="Reporting Manager">
             {managerObj ? (
               <span style={{ cursor: 'pointer', textDecoration: 'underline', color: isDarkMode ? '#FAA71A' : '#10113F', fontWeight: 600 }}
@@ -697,12 +868,29 @@ export default function EmployeeDetailPage() {
               </span>
             ) : '—'}
           </Descriptions.Item>
+          {emp.employmentType === 'Contract' && (
+            <Descriptions.Item label="Contract End Date" span={2}>
+              <span style={{ color: '#ff4d4f', fontWeight: 600 }}>
+                {emp.contractEndDate ? dayjs(emp.contractEndDate).format('DD MMM YYYY') : 'Not Set'}
+              </span>
+            </Descriptions.Item>
+          )}
+          {emp.employmentType === 'Intern' && (
+            <Descriptions.Item label="Internship Duration" span={2}>
+              {emp.internshipDurationMonths ? `${emp.internshipDurationMonths} Months` : 'Not Set'}
+            </Descriptions.Item>
+          )}
+          {emp.employmentType === 'Consultant' && (
+            <Descriptions.Item label="Vendor Name" span={2}>
+              {emp.vendorName || 'Not Specified'}
+            </Descriptions.Item>
+          )}
         </Descriptions>
       </Card>
 
       <Card title={<span><CalendarOutlined style={{ marginRight: 8 }} />Probation & Confirmation</span>}
         style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
-        <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
           <Descriptions.Item label="Probation End Date">{emp.probationEndDate ? dayjs(emp.probationEndDate).format('DD MMM YYYY') : '—'}</Descriptions.Item>
           <Descriptions.Item label="Status">
             {emp.confirmationDate
@@ -720,85 +908,175 @@ export default function EmployeeDetailPage() {
   )
 
   // ── TAB: Reporting Structure ───────────────────────────────────────────────
+  const l2ManagerObj = allEmployees.find(e => e.employeeId === emp.l2ReportingManagerId)
+  const functionalManagerObj = allEmployees.find(e => e.employeeId === emp.functionalManagerId)
+
   const ReportingTab = (
     <Card title={<span><BranchesOutlined style={{ marginRight: 8 }} />Reporting Hierarchy</span>}
       style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)', padding: '16px 0' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 24px' }}>
-        {/* Manager */}
-        <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
-          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Reporting Manager</div>
-          {managerObj ? (
-            <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${managerObj.employeeId}`)}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
-              <Avatar src={managerObj.profilePhoto} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
-                {managerObj.firstName?.[0]}{managerObj.lastName?.[0]}
-              </Avatar>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{managerObj.firstName} {managerObj.lastName}</div>
-                <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{managerObj.designationTitle}</div>
-                <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{managerObj.employeeCode}</div>
-              </div>
-            </motion.div>
-          ) : (
-            <div style={{ padding: '12px 20px', background: isDarkMode ? 'rgba(255,255,255,0.02)' : '#f1f5f9', borderRadius: 14, border: isDarkMode ? '1.5px dashed rgba(255,255,255,0.15)' : '1.5px dashed #cbd5e1', color: 'var(--color-text-muted)', fontSize: 13, fontWeight: 600 }}>
-              Board of Directors (No Manager)
-            </div>
-          )}
-        </div>
+      <Row gutter={[24, 24]}>
+        {/* Line Hierarchy Column */}
+        <Col xs={24} md={16} style={{ borderRight: isDarkMode ? '1px solid rgba(160, 90, 255, 0.18)' : '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 40 }}>
-          <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
-          <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 14, marginTop: -6 }} />
-        </div>
-
-        {/* Current employee */}
-        <div style={{ textAlign: 'center', width: 320, margin: '8px 0' }}>
-          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Current Position</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 24px', background: isDarkMode ? 'rgba(250, 167, 26, 0.15)' : 'rgba(250, 167, 26, 0.08)', borderRadius: 16, border: '2px solid #FAA71A', boxShadow: '0 8px 16px rgba(250, 167, 26, 0.1)' }}>
-            <Avatar size={48} src={emp.profilePhoto} style={{ background: 'linear-gradient(135deg, #10113F 0%, #2d2f82 100%)', fontWeight: 700 }}>
-              {emp.firstName?.[0]}{emp.lastName?.[0]}
-            </Avatar>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--color-text-primary)' }}>{fullName}</div>
-              <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{emp.designationTitle}</div>
-              <div style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{emp.employeeCode}</div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 40 }}>
-          <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
-          <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 14, marginTop: -6 }} />
-        </div>
-
-        {/* Direct reports */}
-        <div style={{ textAlign: 'center', width: '100%' }}>
-          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 12, fontWeight: 700 }}>
-            Direct Reports ({directReports.length})
-          </div>
-          {directReports.length > 0 ? (
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-              {directReports.map((dr) => (
-                <motion.div key={dr.employeeId} whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${dr.employeeId}`)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 12, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer', width: 240 }}>
-                  <Avatar src={dr.profilePhoto} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', fontWeight: 600 }}>
-                    {dr.firstName?.[0]}{dr.lastName?.[0]}
+            {/* Skip-Level Manager (L2) */}
+            {l2ManagerObj ? (
+              <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
+                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Skip-Level Manager (L2)</div>
+                <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${l2ManagerObj.employeeId}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
+                  <Avatar src={getAvatarUrl(l2ManagerObj.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
+                    {l2ManagerObj.firstName?.[0]}{l2ManagerObj.lastName?.[0]}
                   </Avatar>
-                  <div style={{ overflow: 'hidden' }}>
-                    <div style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{dr.firstName} {dr.lastName}</div>
-                    <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{dr.designationTitle}</div>
-                    <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{dr.employeeCode}</div>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{l2ManagerObj.firstName} {l2ManagerObj.lastName}</div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{l2ManagerObj.designationTitle}</div>
+                    <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{l2ManagerObj.employeeCode}</div>
                   </div>
                 </motion.div>
-              ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
+                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Skip-Level Manager (L2)</div>
+                <div style={{ padding: '12px 20px', background: isDarkMode ? 'rgba(140, 70, 255, 0.06)' : '#f1f5f9', borderRadius: 14, border: isDarkMode ? '1.5px dashed rgba(160, 90, 255, 0.3)' : '1.5px dashed #cbd5e1', color: 'var(--color-text-muted)', fontSize: 12, fontWeight: 600 }}>
+                  No Skip-Level Manager Assigned
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
+              <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
+              <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
             </div>
-          ) : (
-            <div style={{ display: 'inline-block', padding: '12px 24px', background: isDarkMode ? 'rgba(255,255,255,0.02)' : '#f8fafc', borderRadius: 12, border: isDarkMode ? '1.5px dashed rgba(255,255,255,0.15)' : '1.5px dashed #e2e8f0', color: 'var(--color-text-muted)', fontSize: 13 }}>
-              No direct reports assigned
+
+            {/* Reporting Manager (L1) */}
+            <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
+              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Reporting Manager (L1)</div>
+              {managerObj ? (
+                <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${managerObj.employeeId}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
+                  <Avatar src={getAvatarUrl(managerObj.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
+                    {managerObj.firstName?.[0]}{managerObj.lastName?.[0]}
+                  </Avatar>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{managerObj.firstName} {managerObj.lastName}</div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{managerObj.designationTitle}</div>
+                    <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{managerObj.employeeCode}</div>
+                  </div>
+                </motion.div>
+              ) : (
+                <div style={{ padding: '12px 20px', background: isDarkMode ? 'rgba(140, 70, 255, 0.06)' : '#f1f5f9', borderRadius: 14, border: isDarkMode ? '1.5px dashed rgba(160, 90, 255, 0.3)' : '1.5px dashed #cbd5e1', color: 'var(--color-text-muted)', fontSize: 12, fontWeight: 600 }}>
+                  Board of Directors (No Manager)
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
+              <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
+              <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
+            </div>
+
+            {/* Current employee */}
+            <div style={{ textAlign: 'center', width: 320, margin: '8px 0' }}>
+              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Current Position</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 24px', background: isDarkMode ? 'rgba(250, 167, 26, 0.15)' : 'rgba(250, 167, 26, 0.08)', borderRadius: 16, border: '2px solid #FAA71A', boxShadow: '0 8px 16px rgba(250, 167, 26, 0.1)' }}>
+                <Avatar size={48} src={getAvatarUrl(emp.profilePhoto)} style={{ background: 'linear-gradient(135deg, #10113F 0%, #2d2f82 100%)', fontWeight: 700 }}>
+                  {emp.firstName?.[0]}{emp.lastName?.[0]}
+                </Avatar>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--color-text-primary)' }}>{fullName}</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{emp.designationTitle}</div>
+                  <div style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{emp.employeeCode}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
+              <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
+              <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
+            </div>
+
+            {/* Direct reports */}
+            <div style={{ textAlign: 'center', width: '100%' }}>
+              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 12, fontWeight: 700 }}>
+                Direct Reports ({directReports.length})
+              </div>
+              {directReports.length > 0 ? (
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {directReports.map((dr) => (
+                    <motion.div key={dr.employeeId} whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${dr.employeeId}`)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 12, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer', width: 240 }}>
+                      <Avatar src={getAvatarUrl(dr.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', fontWeight: 600 }}>
+                        {dr.firstName?.[0]}{dr.lastName?.[0]}
+                      </Avatar>
+                      <div style={{ overflow: 'hidden', textAlign: 'left' }}>
+                        <div style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{dr.firstName} {dr.lastName}</div>
+                        <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{dr.designationTitle}</div>
+                        <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{dr.employeeCode}</div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ display: 'inline-block', padding: '12px 24px', background: isDarkMode ? 'rgba(140, 70, 255, 0.06)' : '#f8fafc', borderRadius: 12, border: isDarkMode ? '1.5px dashed rgba(160, 90, 255, 0.3)' : '1.5px dashed #e2e8f0', color: 'var(--color-text-muted)', fontSize: 12 }}>
+                  No direct reports assigned
+                </div>
+              )}
+            </div>
+
+          </div>
+        </Col>
+
+        {/* Functional Hierarchy Column */}
+        <Col xs={24} md={8}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Functional Hierarchy</div>
+            {functionalManagerObj ? (
+              <div style={{ textAlign: 'center', marginBottom: 8, width: '100%' }}>
+                <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 8 }}>Functional Manager</div>
+                <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${functionalManagerObj.employeeId}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
+                  <Avatar src={getAvatarUrl(functionalManagerObj.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
+                    {functionalManagerObj.firstName?.[0]}{functionalManagerObj.lastName?.[0]}
+                  </Avatar>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{functionalManagerObj.firstName} {functionalManagerObj.lastName}</div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{functionalManagerObj.designationTitle}</div>
+                    <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{functionalManagerObj.employeeCode}</div>
+                  </div>
+                </motion.div>
+              </div>
+            ) : (
+              <div style={{ padding: '16px 20px', background: isDarkMode ? 'rgba(140, 70, 255, 0.06)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? '1.5px dashed rgba(160, 90, 255, 0.3)' : '1.5px dashed #cbd5e1', color: 'var(--color-text-muted)', fontSize: 12, textAlign: 'center', width: '100%' }}>
+                No Functional Manager Assigned
+              </div>
+            )}
+
+            {functionalManagerObj && (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
+                  <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
+                  <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
+                </div>
+
+                {/* Current Employee Target */}
+                <div style={{ textAlign: 'center', width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', opacity: 0.8 }}>
+                    <Avatar src={getAvatarUrl(emp.profilePhoto)} style={{ background: 'linear-gradient(135deg, #10113F 0%, #2d2f82 100%)' }}>
+                      {emp.firstName?.[0]}{emp.lastName?.[0]}
+                    </Avatar>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{fullName}</div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{emp.designationTitle}</div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+          </div>
+        </Col>
+      </Row>
     </Card>
   )
 
@@ -809,9 +1087,20 @@ export default function EmployeeDetailPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
         {DOC_TYPES.map((type) => {
           const doc = findDoc(type.key)
+          let expiryTag = null;
+          if (doc && doc.expiryDate) {
+            const exp = dayjs(doc.expiryDate);
+            const today = dayjs();
+            const daysToExpiry = exp.diff(today, 'day');
+            if (daysToExpiry < 0) {
+              expiryTag = <Tag color="error" style={{ marginTop: 4 }}>Expired</Tag>;
+            } else if (daysToExpiry <= 30) {
+              expiryTag = <Tag color="warning" style={{ marginTop: 4 }}>Expiring in {daysToExpiry} days</Tag>;
+            }
+          }
           return (
             <Card key={type.key} type="inner"
-              style={{ borderRadius: 12, border: doc ? '1px solid var(--color-border)' : (isDarkMode ? '1.5px dashed rgba(255,255,255,0.12)' : '1.5px dashed #cbd5e1'), background: doc ? 'var(--color-card-bg-elevated)' : (isDarkMode ? 'rgba(255,255,255,0.02)' : '#fafafa'), position: 'relative' }}
+              style={{ borderRadius: 12, border: doc ? '1px solid var(--color-border)' : (isDarkMode ? '1.5px dashed rgba(160, 90, 255, 0.25)' : '1.5px dashed #cbd5e1'), background: doc ? 'var(--color-card-bg-elevated)' : (isDarkMode ? 'rgba(140, 70, 255, 0.06)' : '#fafafa'), position: 'relative' }}
               styles={{ body: { padding: 16, display: 'flex', flexDirection: 'column', gap: 12 } }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <span style={{ fontSize: 28, color: doc ? '#FAA71A' : 'var(--color-text-muted)' }}><FileOutlined /></span>
@@ -819,20 +1108,36 @@ export default function EmployeeDetailPage() {
                   doc.isVerified
                     ? <Tag color="success" style={{ margin: 0 }}><CheckCircleOutlined /> Verified</Tag>
                     : <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                        <Tag color="warning" style={{ margin: 0 }}>Pending</Tag>
-                        {can(PERMISSIONS.EMPLOYEE.EDIT) && (
-                          <Tooltip title="Verify document">
-                            <Button size="small" type="text" icon={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                              onClick={() => verifyDocMutation.mutate({ docId: doc.docId })} />
-                          </Tooltip>
-                        )}
-                      </div>
-                ) : <Tag style={{ margin: 0, background: isDarkMode ? '#1a2155' : '#e2e8f0', color: isDarkMode ? '#aaa' : '#64748b', border: 'none' }}>Missing</Tag>}
+                      <Tag color="warning" style={{ margin: 0 }}>Pending</Tag>
+                      {can(PERMISSIONS.EMPLOYEE.EDIT) && (
+                        <Tooltip title="Verify document">
+                          <Button size="small" type="text" icon={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                            onClick={() => verifyDocMutation.mutate({ docId: doc.docId })} />
+                        </Tooltip>
+                      )}
+                    </div>
+                ) : <Tag style={{ margin: 0, background: isDarkMode ? 'rgba(140, 70, 255, 0.15)' : '#e2e8f0', color: isDarkMode ? 'rgba(200, 160, 255, 0.8)' : '#64748b', border: 'none' }}>Missing</Tag>}
               </div>
               <div>
                 <strong style={{ fontSize: 13, color: 'var(--color-text-primary)', display: 'block' }}>{type.label}</strong>
-                {doc && <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{doc.docName}</span>}
-                {doc && <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                {doc && <span style={{ fontSize: 11, color: 'var(--color-text-muted)', wordBreak: 'break-all' }}>{doc.docName}</span>}
+                {doc && doc.documentNumber && (
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-secondary)', marginTop: 2 }}>
+                    No: {doc.documentNumber}
+                  </div>
+                )}
+                {doc && doc.expiryDate && (
+                  <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                    Expires: {dayjs(doc.expiryDate).format('DD MMM YYYY')}
+                  </div>
+                )}
+                {expiryTag && <div>{expiryTag}</div>}
+                {doc && doc.remarks && (
+                  <div style={{ fontSize: 10.5, fontStyle: 'italic', color: 'var(--color-text-secondary)', marginTop: 4 }}>
+                    "{doc.remarks}"
+                  </div>
+                )}
+                {doc && <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginTop: 4 }}>
                   Uploaded {dayjs(doc.uploadedAt).format('DD MMM YYYY')}
                   {doc.isVerified && doc.verifiedAt && ` · Verified ${dayjs(doc.verifiedAt).format('DD MMM YYYY')}`}
                 </div>}
@@ -849,14 +1154,14 @@ export default function EmployeeDetailPage() {
                     </Button>
                     {can(PERMISSIONS.EMPLOYEE.EDIT) && (
                       <Button size="small" icon={<UploadOutlined />} style={{ borderRadius: 6 }}
-                        onClick={() => triggerFileUpload(type.strVal)}>
+                        onClick={() => openDocUploadModal(type.strVal)}>
                         Replace
                       </Button>
                     )}
                   </>
                 ) : can(PERMISSIONS.EMPLOYEE.EDIT) ? (
                   <Button size="small" icon={<UploadOutlined />} style={{ flex: 1, borderRadius: 6 }}
-                    onClick={() => triggerFileUpload(type.strVal)}>
+                    onClick={() => openDocUploadModal(type.strVal)}>
                     Upload
                   </Button>
                 ) : (
@@ -873,6 +1178,15 @@ export default function EmployeeDetailPage() {
   // ── TAB: Bank Details ─────────────────────────────────────────────────────
   const BankTab = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* NPS and Previous PF Info */}
+      {(emp.npspranNumber || emp.previousEmployerPFNumber) && (
+        <Card title="Pension & PF Information" style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+          <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+            <Descriptions.Item label="NPS PRAN Number"><span style={{ fontFamily: 'monospace' }}>{emp.npspranNumber || '—'}</span></Descriptions.Item>
+            <Descriptions.Item label="Previous PF Number"><span style={{ fontFamily: 'monospace' }}>{emp.previousEmployerPFNumber || '—'}</span></Descriptions.Item>
+          </Descriptions>
+        </Card>
+      )}
       {can(PERMISSIONS.EMPLOYEE.EDIT) && (
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Button type="primary" icon={<PlusOutlined />} onClick={openBankModal}
@@ -884,38 +1198,48 @@ export default function EmployeeDetailPage() {
       {banks.length > 0 ? (
         <Row gutter={[16, 16]}>
           {banks.map((b) => (
-            <Col xs={24} md={12} key={b.bankDetailId}>
-              <div style={{ position: 'relative' }}>
-                <Card style={{ borderRadius: 16, background: 'linear-gradient(135deg, #10113F 0%, #1c1d5b 100%)', color: '#fff', border: 'none', boxShadow: '0 8px 20px rgba(16, 17, 63, 0.25)', overflow: 'hidden', height: 190 }}>
+            <Col xs={24} md={16} lg={14} key={b.bankDetailId}>
+              <div>
+                <Card className="premium-bank-card" style={{ borderRadius: 16, overflow: 'hidden', height: 185 }}>
                   <div style={{ position: 'absolute', right: -20, bottom: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(250, 167, 26, 0.15)', filter: 'blur(30px)', pointerEvents: 'none' }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 1 }}>
                     <div>
                       <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Corporate Bank</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>{b.bankName}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2, color: '#ffffff' }}>{b.bankName}</div>
                     </div>
-                    <span style={{ fontSize: 24, color: '#FAA71A' }}><CreditCardOutlined /></span>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <span style={{ fontSize: 22, color: '#FAA71A' }}><CreditCardOutlined /></span>
+                      {can(PERMISSIONS.EMPLOYEE.EDIT) && (
+                        <Popconfirm title="Remove this bank account?" onConfirm={() => deleteBankMutation.mutate(b.bankDetailId)} okText="Remove" okButtonProps={{ danger: true }}>
+                          <Button danger type="text" size="small" icon={<DeleteOutlined />}
+                            style={{ color: 'rgba(255,80,80,0.9)', background: 'rgba(255,255,255,0.15)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 28, width: 28, padding: 0 }} />
+                        </Popconfirm>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ marginTop: 20 }}>
+                  <div style={{ zIndex: 1 }}>
                     <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>Account Number</div>
-                    <div style={{ fontSize: 17, fontWeight: 600, fontFamily: 'monospace', letterSpacing: '0.1em', marginTop: 4 }}>{b.maskedAccountNumber}</div>
+                    <div style={{ fontSize: 16, fontWeight: 600, fontFamily: 'monospace', letterSpacing: '0.08em', marginTop: 2, color: '#ffffff' }}>{maskBankAcc(b.maskedAccountNumber)}</div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
-                    <div>
-                      <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.5)' }}>IFSC: </span>
-                      <span style={{ fontSize: 11, fontWeight: 600, fontFamily: 'monospace' }}>{b.ifscCode}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 1 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 100 }}>
+                      <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>IFSC Code</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, fontFamily: 'monospace', color: '#ffffff', marginTop: 2 }}>{b.ifscCode}</span>
                     </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap' }}>
                       <Tag style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 9, border: 'none', margin: 0 }}>{b.accountType}</Tag>
                       {b.isPrimary && <Tag style={{ background: '#FAA71A', color: '#10113F', fontWeight: 700, border: 'none', fontSize: 9, margin: 0 }}>PRIMARY</Tag>}
+                      {b.verificationStatus && (
+                        <Tag color={
+                          b.verificationStatus === 'Verified' ? 'success' :
+                            b.verificationStatus === 'Failed' ? 'error' : 'warning'
+                        } style={{ fontSize: 9, margin: 0, fontWeight: 700 }}>
+                          {b.verificationStatus.toUpperCase()}
+                        </Tag>
+                      )}
                     </div>
                   </div>
                 </Card>
-                {can(PERMISSIONS.EMPLOYEE.EDIT) && (
-                  <Popconfirm title="Remove this bank account?" onConfirm={() => deleteBankMutation.mutate(b.bankDetailId)} okText="Remove" okButtonProps={{ danger: true }}>
-                    <Button danger type="text" size="small" icon={<DeleteOutlined />}
-                      style={{ position: 'absolute', top: 8, right: 8, color: 'rgba(255,80,80,0.8)', background: 'rgba(0,0,0,0.3)', borderRadius: 6 }} />
-                  </Popconfirm>
-                )}
               </div>
             </Col>
           ))}
@@ -1029,7 +1353,7 @@ export default function EmployeeDetailPage() {
         </div>
         <Progress percent={Math.min(nomTotal, 100)} showInfo={false}
           strokeColor={nomTotal === 100 ? '#52c41a' : nomTotal > 100 ? '#ff4d4f' : '#FAA71A'}
-          trailColor={isDarkMode ? 'rgba(255,255,255,0.08)' : '#e2e8f0'} />
+          trailColor={isDarkMode ? 'rgba(160, 90, 255, 0.2)' : '#e2e8f0'} />
         {nomTotal !== 100 && nominees.length > 0 && (
           <div style={{ marginTop: 8, fontSize: 12, color: '#ff4d4f', fontWeight: 600 }}>
             ⚠ Total is {nomTotal}%. {nomTotal < 100 ? `Add ${100 - nomTotal}% more` : `Reduce by ${nomTotal - 100}%`} to reach 100%.
@@ -1078,6 +1402,10 @@ export default function EmployeeDetailPage() {
                       <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>DOB:</span>
                       <span style={{ fontSize: 12, fontWeight: 600 }}>{n.dateOfBirth ? dayjs(n.dateOfBirth).format('DD MMM YYYY') : '—'}</span>
                     </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Aadhaar Number:</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, fontFamily: 'monospace' }}>{n.aadharNumber || '—'}</span>
+                    </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Share:</span>
                       <span style={{ fontSize: 20, fontWeight: 800, color: '#FAA71A' }}>{n.percentage}%</span>
@@ -1117,7 +1445,7 @@ export default function EmployeeDetailPage() {
         }] : []),
         ...(salaryHistory || []).map((sal) => ({
           label: dayjs(sal.effectiveFrom).format('DD MMM YYYY'),
-          children: (<div><h4 style={{ margin: 0, fontWeight: 700, color: 'var(--color-text-primary)' }}>Salary Revision {sal.isActive ? <Tag color="success" style={{ marginLeft: 8 }}>Active</Tag> : null}</h4><p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--color-text-secondary)' }}>Revised Gross CTC: <strong>₹{Number(sal.grossCTC).toLocaleString('en-IN')}</strong>. {sal.revisionReason ? `Reason: ${sal.revisionReason}.` : ''}</p></div>),
+          children: (<div><h4 style={{ margin: 0, fontWeight: 700, color: 'var(--color-text-primary)' }}>Salary Revision {sal.isActive ? <Tag color="success" style={{ marginLeft: 8 }}>Active</Tag> : null}</h4><p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--color-text-secondary)' }}>Revised Gross CTC: <strong>{hasPayrollView ? `₹${Number(sal.grossCTC).toLocaleString('en-IN')}` : '₹ ****'}</strong>. {sal.revisionReason && hasPayrollView ? `Reason: ${sal.revisionReason}.` : ''}</p></div>),
           color: sal.isActive ? 'green' : 'gray',
         })),
       ]} />
@@ -1125,15 +1453,15 @@ export default function EmployeeDetailPage() {
   )
 
   const tabs = [
-    { key: 'overview',   label: <span><UserOutlined /> Overview</span>,           children: OverviewTab },
-    { key: 'employment', label: <span><BuildOutlined /> Employment</span>,        children: EmploymentTab },
-    { key: 'reporting',  label: <span><ApartmentOutlined /> Hierarchy</span>,    children: ReportingTab },
-    { key: 'documents',  label: <span><FileOutlined /> Documents</span>,         children: DocumentsTab },
-    { key: 'bank',       label: <span><BankOutlined /> Bank Details</span>,      children: BankTab },
-    { key: 'education',  label: <span><BookOutlined /> Education</span>,         children: EducationTab },
-    { key: 'experience', label: <span><TrophyOutlined /> Experience</span>,      children: ExperienceTab },
-    { key: 'nominees',   label: <span><SafetyCertificateOutlined /> Nominees</span>, children: NomineesTab },
-    { key: 'timeline',   label: <span><HistoryOutlined /> Timeline</span>,       children: TimelineTab },
+    { key: 'overview', label: <span><UserOutlined /> Overview</span>, children: OverviewTab },
+    { key: 'employment', label: <span><BuildOutlined /> Employment</span>, children: EmploymentTab },
+    { key: 'reporting', label: <span><ApartmentOutlined /> Hierarchy</span>, children: ReportingTab },
+    { key: 'documents', label: <span><FileOutlined /> Documents</span>, children: DocumentsTab },
+    ...(showBankTab ? [{ key: 'bank', label: <span><BankOutlined /> Bank Details</span>, children: BankTab }] : []),
+    { key: 'education', label: <span><BookOutlined /> Education</span>, children: EducationTab },
+    { key: 'experience', label: <span><TrophyOutlined /> Experience</span>, children: ExperienceTab },
+    { key: 'nominees', label: <span><SafetyCertificateOutlined /> Nominees</span>, children: NomineesTab },
+    { key: 'timeline', label: <span><HistoryOutlined /> Timeline</span>, children: TimelineTab },
   ]
 
   return (
@@ -1159,21 +1487,21 @@ export default function EmployeeDetailPage() {
               const isJoiningDateInFuture = emp?.joiningDate ? dayjs(emp.joiningDate).isAfter(dayjs()) : false;
               return (
                 <Tooltip title={isJoiningDateInFuture ? "Employee cannot be confirmed before their joining date." : ""}>
-                  <Popconfirm 
-                    title="Confirm employment?" 
+                  <Popconfirm
+                    title="Confirm employment?"
                     onConfirm={() => confirmMutation.mutate()}
                     disabled={isJoiningDateInFuture}
                   >
-                    <Button 
-                      icon={<CheckCircleOutlined />} 
-                      type="primary" 
+                    <Button
+                      icon={<CheckCircleOutlined />}
+                      type="primary"
                       loading={confirmMutation.isPending}
                       disabled={isJoiningDateInFuture}
-                      style={{ 
-                        borderRadius: 8, 
-                        background: isJoiningDateInFuture ? undefined : '#52c41a', 
-                        borderColor: isJoiningDateInFuture ? undefined : '#52c41a', 
-                        fontWeight: 600 
+                      style={{
+                        borderRadius: 8,
+                        background: isJoiningDateInFuture ? undefined : '#52c41a',
+                        borderColor: isJoiningDateInFuture ? undefined : '#52c41a',
+                        fontWeight: 600
                       }}
                     >
                       Confirm Employment
@@ -1204,7 +1532,7 @@ export default function EmployeeDetailPage() {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
                 {/* Avatar with camera overlay */}
                 <div style={{ position: 'relative', display: 'inline-block' }}>
-                  <Avatar size={96} src={emp.profilePhoto}
+                  <Avatar size={96} src={getAvatarUrl(emp.profilePhoto)}
                     style={{ border: '4px solid var(--color-surface)', background: 'linear-gradient(135deg, #10113F 0%, #2d2f82 100%)', fontSize: 32, fontWeight: 800, boxShadow: 'var(--shadow-medium)' }}>
                     {emp.firstName?.[0]}{emp.lastName?.[0]}
                   </Avatar>
@@ -1226,6 +1554,18 @@ export default function EmployeeDetailPage() {
                   <StatusBadge status={emp.employmentStatus} size="small" />
                 </div>
 
+                {/* Premium Metadata Chips */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 8px', justifyContent: 'center', width: '100%', margin: '14px 0 6px' }}>
+                  {emp.gradeName && <Tag color="blue" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>Grade: {emp.gradeName}</Tag>}
+                  {emp.bandName && <Tag color="purple" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>{emp.bandName}</Tag>}
+                  {emp.jobFamilyName && <Tag color="cyan" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>{emp.jobFamilyName}</Tag>}
+                  {emp.employmentType && <Tag color="gold" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>{EMPLOYMENT_TYPE.find(t => t.value === emp.employmentType)?.label || emp.employmentType}</Tag>}
+                  {emp.workMode && <Tag color="green" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>{WORK_MODE.find(w => w.value === emp.workMode)?.label || emp.workMode}</Tag>}
+                  {emp.shiftName && <Tag color="magenta" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>Shift: {emp.shiftName}</Tag>}
+                  {emp.payrollGroup && <Tag color="orange" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>{PAYROLL_GROUP.find(p => p.value === emp.payrollGroup)?.label || emp.payrollGroup}</Tag>}
+                  {emp.costCenterName && <Tag color="geekblue" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>CC: {emp.costCenterName}</Tag>}
+                </div>
+
                 {/* Profile completion */}
                 <div style={{ width: '100%', marginTop: 18, background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', padding: 12, borderRadius: 12, border: isDarkMode ? 'var(--border-glass)' : '1px solid #f1f5f9' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -1234,8 +1574,8 @@ export default function EmployeeDetailPage() {
                   </div>
                   <Progress percent={completionPct} showInfo={false}
                     strokeColor={completionPct >= 80 ? '#52c41a' : completionPct >= 50 ? '#FAA71A' : '#ff4d4f'}
-                    trailColor={isDarkMode ? 'rgba(255,255,255,0.08)' : '#e2e8f0'} size="small" />
-                  
+                    trailColor={isDarkMode ? 'rgba(160, 90, 255, 0.2)' : '#e2e8f0'} size="small" />
+
                   <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {completionChecks.map((c) => (
                       <div key={c.label} style={{ fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1317,11 +1657,15 @@ export default function EmployeeDetailPage() {
         onOk={() => bankForm.submit()} confirmLoading={addBankMutation.isPending} destroyOnClose>
         <Form form={bankForm} layout="vertical" onFinish={(values) => addBankMutation.mutate(values)} validateTrigger={['onBlur', 'onChange']}>
           <Row gutter={16}>
-            <Col span={12}><Form.Item name="bankName" label="Bank Name" rules={[VALIDATORS.required('Bank Name')]}><Input placeholder="e.g. HDFC Bank" style={{ borderRadius: 8 }} /></Form.Item></Col>
             <Col span={12}>
-              <Form.Item 
-                name="accountNumber" 
-                label="Account Number" 
+              <Form.Item name="bankName" label="Bank Name" rules={[VALIDATORS.requiredSelect('Bank Name')]}>
+                <Select placeholder="Select bank" options={BANK_LIST} style={{ borderRadius: 8 }} showSearch optionFilterProp="label" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="accountNumber"
+                label="Account Number"
                 rules={[VALIDATORS.required('Account Number'), VALIDATORS.accountNumber]}
                 normalize={NORMALIZE.numeric}
                 onKeyPress={FILTER_KEYPRESS.numericOnly}
@@ -1330,9 +1674,40 @@ export default function EmployeeDetailPage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item 
-                name="ifscCode" 
-                label="IFSC Code" 
+              <Form.Item
+                name="confirmAccountNumber"
+                label="Confirm Account Number"
+                dependencies={['accountNumber']}
+                rules={[
+                  VALIDATORS.required('Confirm Account Number'),
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue('accountNumber') === value) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(new Error('The two account numbers that you entered do not match!'));
+                    },
+                  }),
+                ]}
+              >
+                <Input.Password
+                  placeholder="Re-enter Account Number"
+                  style={{ borderRadius: 8 }}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    notification.warning({
+                      message: 'Paste Blocked',
+                      description: 'Pasting is disabled for Confirm Account Number.',
+                      placement: 'topRight'
+                    });
+                  }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="ifscCode"
+                label="IFSC Code"
                 extra="IFSC → HDFC0001234"
                 rules={[VALIDATORS.required('IFSC Code'), VALIDATORS.ifsc]}
                 normalize={NORMALIZE.uppercase}
@@ -1361,9 +1736,9 @@ export default function EmployeeDetailPage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item 
-                name="percentage" 
-                label="Percentage / CGPA" 
+              <Form.Item
+                name="percentage"
+                label="Percentage / CGPA"
                 rules={[
                   VALIDATORS.required('Percentage / CGPA'),
                   {
@@ -1395,9 +1770,9 @@ export default function EmployeeDetailPage() {
           <Form.Item name="designation" label="Designation / Role" rules={[VALIDATORS.required('Designation / Role')]}><Input style={{ borderRadius: 8 }} placeholder="e.g. Software Engineer" /></Form.Item>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item 
-                name="fromDate" 
-                label="From Date" 
+              <Form.Item
+                name="fromDate"
+                label="From Date"
                 rules={[
                   VALIDATORS.required('From Date'),
                   {
@@ -1414,8 +1789,8 @@ export default function EmployeeDetailPage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item 
-                name="toDate" 
+              <Form.Item
+                name="toDate"
                 label="To Date (leave blank if current)"
                 dependencies={['fromDate']}
                 rules={[
@@ -1457,8 +1832,8 @@ export default function EmployeeDetailPage() {
           <Row gutter={16}>
             <Col span={12}><Form.Item name="relationship" label="Relationship" rules={[VALIDATORS.requiredSelect('Relationship')]}><Select placeholder="Select relation" options={RELATIONSHIP_OPTIONS} style={{ borderRadius: 8 }} /></Form.Item></Col>
             <Col span={12}>
-              <Form.Item 
-                name="dateOfBirth" 
+              <Form.Item
+                name="dateOfBirth"
                 label="Date of Birth"
                 rules={[
                   VALIDATORS.required('Date of Birth'),
@@ -1476,15 +1851,76 @@ export default function EmployeeDetailPage() {
               </Form.Item>
             </Col>
           </Row>
+          <Form.Item
+            name="aadharNumber"
+            label="Aadhaar Number"
+            rules={[
+              {
+                pattern: /^\d{12}$/,
+                message: 'Aadhaar number must be exactly 12 digits.'
+              }
+            ]}
+          >
+            <Input style={{ borderRadius: 8 }} placeholder="Enter 12-digit Aadhaar number" maxLength={12} />
+          </Form.Item>
           <Form.Item name="percentage" label="Share Percentage (%)" rules={[
             { required: true, message: 'Please specify nominee share percentage.' },
-            { validator: (_, v) => {
+            {
+              validator: (_, v) => {
                 const avail = 100 - nomTotal + (nomineeModal.editing ? Number(nomineeModal.editing.percentage) : 0)
                 return v > 0 && v <= avail ? Promise.resolve() : Promise.reject(new Error(`Must be between 1 and ${avail}%`))
               }
             }
           ]}>
             <InputNumber style={{ width: '100%', borderRadius: 8 }} min={1} max={100} precision={2} addonAfter="%" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ── Document Upload Modal ── */}
+      <Modal
+        title={`Upload ${DOC_TYPES.find(d => d.strVal === docModal.docType)?.label || 'Document'}`}
+        open={docModal.open}
+        onCancel={() => { setDocModal({ open: false, docType: null }); docForm.resetFields(); setSelectedFile(null) }}
+        onOk={() => docForm.submit()}
+        confirmLoading={uploadDocMutation.isPending}
+        destroyOnClose
+      >
+        <Form form={docForm} layout="vertical" onFinish={async (values) => {
+          if (!selectedFile) {
+            notification.warning({
+              message: 'No File Selected',
+              description: 'Please select a document file to upload.',
+              placement: 'topRight'
+            })
+            return
+          }
+          try {
+            uploadDocMutation.mutate({
+              file: selectedFile,
+              docType: docModal.docType,
+              documentNumber: values.documentNumber,
+              expiryDate: values.expiryDate ? values.expiryDate.format('YYYY-MM-DD') : null,
+              remarks: values.remarks
+            })
+          } catch (_) { }
+        }}>
+          <Form.Item label="Select File" required>
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              onChange={(e) => setSelectedFile(e.target.files?.[0])}
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+          <Form.Item name="documentNumber" label="Document Number">
+            <Input placeholder="Enter document identifier / number" style={{ borderRadius: 8 }} />
+          </Form.Item>
+          <Form.Item name="expiryDate" label="Expiry Date">
+            <DatePicker style={{ width: '100%', borderRadius: 8 }} placeholder="Select expiry date if applicable" />
+          </Form.Item>
+          <Form.Item name="remarks" label="Remarks">
+            <Input.TextArea rows={2} placeholder="Add any notes or remarks" style={{ borderRadius: 8 }} />
           </Form.Item>
         </Form>
       </Modal>

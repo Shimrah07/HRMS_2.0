@@ -110,6 +110,10 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<JobApplication> JobApplications { get; }
     public IRepository<InterviewRound> InterviewRounds { get; }
     public IRepository<OfferLetter> OfferLetters { get; }
+    public IRepository<JobPosting> JobPostings { get; }
+    public IRepository<InterviewRoundPanelist> InterviewRoundPanelists { get; }
+    public IRepository<BGVRecord> BGVRecords { get; }
+    public IRepository<OnboardingProcess> OnboardingProcesses { get; }
     public IRepository<AppraisalCycle> AppraisalCycles { get; }
     public IRepository<EmployeeGoal> EmployeeGoals { get; }
     public IRepository<PerformanceReview> PerformanceReviews { get; }
@@ -164,6 +168,10 @@ public class UnitOfWork : IUnitOfWork
         JobApplications = new Repository<JobApplication>(context);
         InterviewRounds = new Repository<InterviewRound>(context);
         OfferLetters = new Repository<OfferLetter>(context);
+        JobPostings = new Repository<JobPosting>(context);
+        InterviewRoundPanelists = new Repository<InterviewRoundPanelist>(context);
+        BGVRecords = new Repository<BGVRecord>(context);
+        OnboardingProcesses = new Repository<OnboardingProcess>(context);
         AppraisalCycles = new Repository<AppraisalCycle>(context);
         EmployeeGoals = new Repository<EmployeeGoal>(context);
         PerformanceReviews = new Repository<PerformanceReview>(context);

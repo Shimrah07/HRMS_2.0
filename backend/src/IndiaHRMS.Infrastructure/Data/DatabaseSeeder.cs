@@ -6,12 +6,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using IndiaHRMS.Application.Interfaces;
 
 namespace IndiaHRMS.Infrastructure.Data;
 
 public static class DatabaseSeeder
 {
-    public static async Task SeedAsync(AppDbContext context)
+    public static async Task SeedAsync(AppDbContext context, IEncryptionService encryption)
     {
         // 1. Ensure Company exists
         var company = await context.Companies.FirstOrDefaultAsync();
@@ -38,6 +39,37 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
         }
 
+        // Clean all dummy/transactional/previous entities to guarantee a small clean testing state
+        context.ProbationReviews.RemoveRange(await context.ProbationReviews.ToListAsync());
+        context.OnboardingTasks.RemoveRange(await context.OnboardingTasks.ToListAsync());
+        context.OnboardingProcesses.RemoveRange(await context.OnboardingProcesses.ToListAsync());
+        context.BGVRecords.RemoveRange(await context.BGVRecords.ToListAsync());
+        context.OfferLetters.RemoveRange(await context.OfferLetters.ToListAsync());
+        context.InterviewRoundPanelists.RemoveRange(await context.InterviewRoundPanelists.ToListAsync());
+        context.InterviewRounds.RemoveRange(await context.InterviewRounds.ToListAsync());
+        context.JobApplications.RemoveRange(await context.JobApplications.ToListAsync());
+        context.Candidates.RemoveRange(await context.Candidates.ToListAsync());
+        context.JobPostings.RemoveRange(await context.JobPostings.ToListAsync());
+        context.JobRequisitions.RemoveRange(await context.JobRequisitions.ToListAsync());
+        context.RequisitionAuditTrails.RemoveRange(await context.RequisitionAuditTrails.ToListAsync());
+        context.ApprovalWorkflowConfigs.RemoveRange(await context.ApprovalWorkflowConfigs.ToListAsync());
+        
+        context.Users.RemoveRange(await context.Users.ToListAsync());
+        context.UserRoles.RemoveRange(await context.UserRoles.ToListAsync());
+
+        // Nullify circular references (HODEmployeeId) to allow deletion of Employees and Departments
+        var deptsToClear = await context.Departments.ToListAsync();
+        foreach (var d in deptsToClear)
+        {
+            d.HODEmployeeId = null;
+        }
+        await context.SaveChangesAsync();
+
+        context.Employees.RemoveRange(await context.Employees.ToListAsync());
+        context.Departments.RemoveRange(deptsToClear);
+        context.Designations.RemoveRange(await context.Designations.ToListAsync());
+        await context.SaveChangesAsync();
+
         // 2. Ensure Location exists
         var location = await context.Locations.FirstOrDefaultAsync(l => l.CompanyId == company.CompanyId);
         if (location == null)
@@ -59,19 +91,86 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
         }
 
+        // Seed Cost Centers
+        var costCenter = await context.CostCenters.FirstOrDefaultAsync(c => c.CompanyId == company.CompanyId);
+        if (costCenter == null)
+        {
+            context.CostCenters.Add(new CostCenter { CompanyId = company.CompanyId, CostCenterName = "R&D Cost Center", CostCenterCode = "CC01", IsActive = true, CreatedAt = DateTime.UtcNow });
+            context.CostCenters.Add(new CostCenter { CompanyId = company.CompanyId, CostCenterName = "Operations Cost Center", CostCenterCode = "CC02", IsActive = true, CreatedAt = DateTime.UtcNow });
+            await context.SaveChangesAsync();
+        }
+
+        // Seed Shifts
+        var shift = await context.ShiftMasters.FirstOrDefaultAsync(s => s.CompanyId == company.CompanyId);
+        if (shift == null)
+        {
+            context.ShiftMasters.Add(new ShiftMaster { CompanyId = company.CompanyId, ShiftName = "General Shift", ShiftCode = "GEN", StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0), GracePeriodMins = 15, IsNightShift = false, WeeklyOffDays = "Saturday,Sunday", IsActive = true, CreatedAt = DateTime.UtcNow });
+            await context.SaveChangesAsync();
+        }
+
+        // Seed Business Units & Divisions
+        var businessUnit = await context.BusinessUnits.FirstOrDefaultAsync(b => b.CompanyId == company.CompanyId);
+        if (businessUnit == null)
+        {
+            businessUnit = new BusinessUnit { CompanyId = company.CompanyId, Name = "Product Development", Code = "BU01", IsActive = true, CreatedAt = DateTime.UtcNow };
+            context.BusinessUnits.Add(businessUnit);
+            await context.SaveChangesAsync();
+        }
+
+        var division = await context.Divisions.FirstOrDefaultAsync();
+        if (division == null)
+        {
+            context.Divisions.Add(new Division { BusinessUnitId = businessUnit.BusinessUnitId, Name = "Core Engineering", Code = "DIV01", IsActive = true, CreatedAt = DateTime.UtcNow });
+            await context.SaveChangesAsync();
+        }
+
+        // Seed Grades & Bands
+        var grade = await context.GradeMasters.FirstOrDefaultAsync(g => g.CompanyId == company.CompanyId);
+        if (grade == null)
+        {
+            context.GradeMasters.AddRange(new List<GradeMaster>
+            {
+                new GradeMaster { CompanyId = company.CompanyId, Name = "Grade A", Code = "A", NoticePeriodDays = 30, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new GradeMaster { CompanyId = company.CompanyId, Name = "Grade M1", Code = "M1", NoticePeriodDays = 90, IsActive = true, CreatedAt = DateTime.UtcNow }
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var band = await context.BandMasters.FirstOrDefaultAsync(b => b.CompanyId == company.CompanyId);
+        if (band == null)
+        {
+            context.BandMasters.AddRange(new List<BandMaster>
+            {
+                new BandMaster { CompanyId = company.CompanyId, Name = "Individual Contributor", Code = "IC", IsActive = true, CreatedAt = DateTime.UtcNow },
+                new BandMaster { CompanyId = company.CompanyId, Name = "Manager", Code = "MGR", IsActive = true, CreatedAt = DateTime.UtcNow }
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var jobFamily = await context.JobFamilies.FirstOrDefaultAsync(j => j.CompanyId == company.CompanyId);
+        if (jobFamily == null)
+        {
+            jobFamily = new JobFamily { CompanyId = company.CompanyId, Name = "Technology", Code = "TECH", IsActive = true, CreatedAt = DateTime.UtcNow };
+            context.JobFamilies.Add(jobFamily);
+            await context.SaveChangesAsync();
+        }
+
         // 3. Ensure Roles exist
         var requiredRoles = new List<(string Code, string Name, string Desc)>
         {
             (RoleCodes.SuperAdmin, "Super Admin", "Full access to all modules and configurations."),
             (RoleCodes.HRAdmin, "HR Admin", "Full access to HR operations."),
             (RoleCodes.HRManager, "HR Manager", "Manage HR processes and approvals."),
-            (RoleCodes.PayrollAdmin, "Payroll Admin", "Process and approve payroll."),
+            (RoleCodes.HRExecutive, "HR Executive", "Create & edit employees."),
+            (RoleCodes.PayrollAdmin, "Payroll Admin", "Process payroll, salary, banking, tax."),
             (RoleCodes.RecruitmentManager, "Recruitment Manager", "Manage recruitment and offers."),
+            (RoleCodes.ReportingManager, "Reporting Manager", "View and approve direct reports only."),
             (RoleCodes.DeptManager, "Department Manager", "Manage team attendance, leaves, and appraisals."),
             (RoleCodes.Employee, "Employee", "Standard employee self-service access."),
-            (RoleCodes.Auditor, "Auditor", "Read-only access to audit logs and reports."),
             (RoleCodes.ITAdmin, "IT Admin", "Manage users and system settings."),
-            (RoleCodes.FinanceViewer, "Finance Viewer", "View payroll and financial reports.")
+            (RoleCodes.CEO, "CEO", "Chief Executive Officer."),
+            (RoleCodes.COO, "COO", "Chief Operating Officer."),
+            (RoleCodes.FinanceHead, "Finance Head", "Head of Finance & Accounts department.")
         };
 
         var dbRoles = await context.Roles.ToListAsync();
@@ -90,266 +189,206 @@ public static class DatabaseSeeder
                     CreatedAt = DateTime.UtcNow
                 };
                 context.Roles.Add(newRole);
+                dbRoles.Add(newRole);
             }
         }
         await context.SaveChangesAsync();
-        dbRoles = await context.Roles.ToListAsync();
 
-        // 4. Ensure Departments exist
-        var departments = new Dictionary<string, string>
+        // 4. Seed EXACTLY 3 Departments
+        var deptsToSeed = new List<(string Code, string Name)>
         {
-            { "HR", "Human Resources" },
-            { "IT", "Information Technology" },
-            { "FIN", "Finance & Accounts" },
-            { "REC", "Recruitment" },
-            { "ENG", "Engineering" },
-            { "AUD", "Compliance & Audit" }
+            ("HR", "Human Resources"),
+            ("FIN", "Finance"),
+            ("ENG", "Product Engineering")
         };
-        var dbDepts = await context.Departments.ToListAsync();
-        foreach (var kvp in departments)
+
+        var dbDepts = new List<Department>();
+        foreach (var dInfo in deptsToSeed)
         {
-            if (!dbDepts.Any(d => d.DeptCode == kvp.Key))
+            var newDept = new Department
             {
-                var newDept = new Department
-                {
-                    DeptId = Guid.NewGuid(),
-                    CompanyId = company.CompanyId,
-                    DeptCode = kvp.Key,
-                    DeptName = kvp.Value,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-                context.Departments.Add(newDept);
-            }
+                DeptId = Guid.NewGuid(),
+                CompanyId = company.CompanyId,
+                DeptCode = dInfo.Code,
+                DeptName = dInfo.Name,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            context.Departments.Add(newDept);
+            dbDepts.Add(newDept);
         }
         await context.SaveChangesAsync();
-        dbDepts = await context.Departments.ToListAsync();
 
-        // 5. Ensure Designations exist
+        // 5. Seed Designation Titles
         var designations = new Dictionary<string, string>
         {
-            { "SYS_ADMIN", "System Administrator" },
-            { "IT_SPEC", "IT Specialist" },
+            { "CEO", "Chief Executive Officer" },
+            { "COO", "Chief Operating Officer" },
             { "HR_HEAD", "Head of HR" },
-            { "HR_MGR", "HR Manager" },
-            { "REC_MGR", "Recruitment Manager" },
-            { "PAY_SPEC", "Payroll Specialist" },
-            { "FIN_ANAL", "Financial Analyst" },
-            { "DEPT_HEAD", "Department Head" },
-            { "ENG_MEMBER", "Software Engineer" },
-            { "AUD_LEAD", "Lead Compliance Auditor" }
+            { "FIN_HEAD", "Head of Finance" },
+            { "ENG_HOD", "Head of Engineering" },
+            { "SWE", "Software Engineer" }
         };
-        var dbDesigs = await context.Designations.ToListAsync();
+        var dbDesigs = new List<Designation>();
         foreach (var kvp in designations)
         {
-            if (!dbDesigs.Any(d => d.Title == kvp.Value))
+            var newDesig = new Designation
             {
-                var newDesig = new Designation
-                {
-                    DesignationId = Guid.NewGuid(),
-                    CompanyId = company.CompanyId,
-                    Title = kvp.Value,
-                    Grade = kvp.Key,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-                context.Designations.Add(newDesig);
-            }
+                DesignationId = Guid.NewGuid(),
+                CompanyId = company.CompanyId,
+                Title = kvp.Value,
+                Grade = kvp.Key,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            context.Designations.Add(newDesig);
+            dbDesigs.Add(newDesig);
         }
         await context.SaveChangesAsync();
-        dbDesigs = await context.Designations.ToListAsync();
 
-        // 6. Seed Demo Users
-        // Password hash for "Hrms@123456" with workFactor=12 (using BCrypt)
-        var passwordHash = "$2a$12$Blw6FugNtPSkQERm02PwYuAsP5.UwvwQA4kO.o4qq3I0ryM/kIS5O";
+        // 6. Seed exactly 8 Employees and Users
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword("Demo@123", 12);
+        var dbGrades = await context.GradeMasters.ToListAsync();
+        var dbBands = await context.BandMasters.ToListAsync();
+        var dbShifts = await context.ShiftMasters.ToListAsync();
+        var dbCostCenters = await context.CostCenters.ToListAsync();
+        var dbBusinessUnits = await context.BusinessUnits.ToListAsync();
 
-        var demoUsers = new List<(string Username, string RoleCode, string EmpCode, string Email, string FirstName, string LastName, string DeptCode, string DesigTitle)>
+        var locationId = location.LocationId;
+        var compId = company.CompanyId;
+
+        // Definition list for the 8 exact test users
+        var empDefinitions = new List<(string Username, string RoleCode, string EmpCode, string Email, string FirstName, string LastName, string DeptCode, string DesigTitle)>
         {
-            ("admin", RoleCodes.SuperAdmin, "EMP0001", "admin@acme.example.com", "System", "Administrator", "HR", "System Administrator"),
-            ("super_admin", RoleCodes.SuperAdmin, "EMP0010", "superadmin@acme.example.com", "Super", "Admin", "HR", "System Administrator"),
-            ("it_admin", RoleCodes.ITAdmin, "EMP0011", "itadmin@acme.example.com", "IT", "Administrator", "IT", "IT Specialist"),
-            ("hr_admin", RoleCodes.HRAdmin, "EMP0012", "hradmin@acme.example.com", "HR", "Admin", "HR", "Head of HR"),
-            ("hr_manager", RoleCodes.HRManager, "EMP0013", "hrmanager@acme.example.com", "HR", "Manager", "HR", "HR Manager"),
-            ("recruitment_manager", RoleCodes.RecruitmentManager, "EMP0014", "recruiter@acme.example.com", "Recruitment", "Manager", "REC", "Recruitment Manager"),
-            ("payroll_admin", RoleCodes.PayrollAdmin, "EMP0015", "payroll@acme.example.com", "Payroll", "Admin", "FIN", "Payroll Specialist"),
-            ("finance_viewer", RoleCodes.FinanceViewer, "EMP0016", "finance@acme.example.com", "Finance", "Viewer", "FIN", "Financial Analyst"),
-            ("dept_manager", RoleCodes.DeptManager, "EMP0017", "manager@acme.example.com", "Department", "Manager", "ENG", "Department Head"),
-            ("employee", RoleCodes.Employee, "EMP0018", "employee@acme.example.com", "Standard", "Employee", "ENG", "Software Engineer"),
-            ("auditor", RoleCodes.Auditor, "EMP0019", "auditor@acme.example.com", "Lead", "Auditor", "AUD", "Lead Compliance Auditor")
+            ("admin@company.com", RoleCodes.SuperAdmin, "EMP0001", "admin@company.com", "System", "Admin", "HR", "Chief Executive Officer"),
+            ("coo@company.com", RoleCodes.COO, "EMP0002", "coo@company.com", "Rohan", "COO", "HR", "Chief Operating Officer"),
+            ("hradmin@company.com", RoleCodes.HRAdmin, "EMP0003", "hradmin@company.com", "Sneha", "HR", "HR", "Head of HR"),
+            ("finance@company.com", RoleCodes.FinanceHead, "EMP0004", "finance@company.com", "Aditya", "Finance", "FIN", "Head of Finance"),
+            ("enghod@company.com", RoleCodes.DeptManager, "EMP0005", "enghod@company.com", "Rajesh", "Engineering", "ENG", "Head of Engineering"),
+            ("emp1@company.com", RoleCodes.Employee, "EMP0006", "emp1@company.com", "Amit", "EngineerOne", "ENG", "Software Engineer"),
+            ("emp2@company.com", RoleCodes.Employee, "EMP0007", "emp2@company.com", "Sumit", "EngineerTwo", "ENG", "Software Engineer"),
+            ("emp3@company.com", RoleCodes.Employee, "EMP0008", "emp3@company.com", "Karan", "EngineerThree", "ENG", "Software Engineer")
         };
 
-        foreach (var u in demoUsers)
+        var employeeDict = new Dictionary<string, Employee>();
+        int idx = 0;
+        foreach (var def in empDefinitions)
         {
-            var existingUser = await context.Users.FirstOrDefaultAsync(usr => usr.Username == u.Username);
-            if (existingUser == null)
+            var dept = dbDepts.First(d => d.DeptCode == def.DeptCode);
+            var desig = dbDesigs.First(d => d.Title == def.DesigTitle);
+
+            var emp = new Employee
             {
-                // Find department and designation
-                var dept = dbDepts.First(d => d.DeptCode == u.DeptCode);
-                var desig = dbDesigs.First(d => d.Title == u.DesigTitle);
+                EmployeeId = Guid.NewGuid(),
+                CompanyId = compId,
+                EmployeeCode = def.EmpCode,
+                FirstName = def.FirstName,
+                LastName = def.LastName,
+                OfficialEmail = def.Email,
+                PersonalEmail = def.Email.Replace("@company.com", "@gmail.com"),
+                PersonalPhone = $"+91-999990000{idx}",
+                DeptId = dept.DeptId,
+                DesignationId = desig.DesignationId,
+                LocationId = locationId,
+                JoiningDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-6)),
+                EmploymentType = EmploymentType.FullTime,
+                EmploymentStatus = EmploymentStatus.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                GradeId = dbGrades[idx % dbGrades.Count].GradeId,
+                BandId = dbBands[idx % dbBands.Count].BandId,
+                ShiftId = dbShifts[0].ShiftId,
+                CostCenterId = dbCostCenters[0].CostCenterId,
+                BusinessUnitId = dbBusinessUnits[0].BusinessUnitId
+            };
 
-                // Create Employee first
-                var employee = new Employee
-                {
-                    EmployeeId = Guid.NewGuid(),
-                    CompanyId = company.CompanyId,
-                    EmployeeCode = u.EmpCode,
-                    FirstName = u.FirstName,
-                    LastName = u.LastName,
-                    OfficialEmail = u.Email,
-                    DeptId = dept.DeptId,
-                    DesignationId = desig.DesignationId,
-                    LocationId = location.LocationId,
-                    JoiningDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-1)),
-                    EmploymentType = EmploymentType.FullTime,
-                    EmploymentStatus = EmploymentStatus.Active,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-                context.Employees.Add(employee);
-                await context.SaveChangesAsync();
+            context.Employees.Add(emp);
+            employeeDict.Add(def.Email, emp);
 
-                // Create User
-                var newUser = new User
-                {
-                    UserId = Guid.NewGuid(),
-                    EmployeeId = employee.EmployeeId,
-                    Username = u.Username,
-                    Email = u.Email,
-                    FirstName = u.FirstName,
-                    LastName = u.LastName,
-                    PasswordHash = passwordHash,
-                    PasswordSalt = string.Empty,
-                    IsActive = true,
-                    IsLocked = false,
-                    FailedLoginCount = 0,
-                    MustChangePassword = false,
-                    CreatedAt = DateTime.UtcNow
-                };
-                context.Users.Add(newUser);
-                await context.SaveChangesAsync();
-
-                // Map Role
-                var roleObj = dbRoles.First(r => r.RoleCode == u.RoleCode);
-                var userRole = new UserRole
-                {
-                    UserRoleId = Guid.NewGuid(),
-                    UserId = newUser.UserId,
-                    RoleId = roleObj.RoleId,
-                    AssignedAt = DateTime.UtcNow,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-                context.UserRoles.Add(userRole);
-                await context.SaveChangesAsync();
-            }
-            else
+            var user = new User
             {
-                existingUser.PasswordHash = passwordHash;
-                existingUser.IsLocked = false;
-                existingUser.FailedLoginCount = 0;
-                await context.SaveChangesAsync();
-            }
+                UserId = Guid.NewGuid(),
+                EmployeeId = emp.EmployeeId,
+                Username = def.Email,
+                Email = def.Email,
+                FirstName = def.FirstName,
+                LastName = def.LastName,
+                PasswordHash = passwordHash,
+                PasswordSalt = string.Empty,
+                IsActive = true,
+                IsLocked = false,
+                FailedLoginCount = 0,
+                MustChangePassword = false,
+                CreatedAt = DateTime.UtcNow
+            };
+            context.Users.Add(user);
+
+            var roleObj = dbRoles.First(r => r.RoleCode == def.RoleCode);
+            context.UserRoles.Add(new UserRole
+            {
+                UserRoleId = Guid.NewGuid(),
+                UserId = user.UserId,
+                RoleId = roleObj.RoleId,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            idx++;
         }
+        await context.SaveChangesAsync();
 
-        // 7. Seed Role Permissions according to BRD requirements
+        // 7. Establish Clean Reporting Hierarchy
+        var ceo = employeeDict["admin@company.com"];
+        var coo = employeeDict["coo@company.com"];
+        var hrAdmin = employeeDict["hradmin@company.com"];
+        var financeHead = employeeDict["finance@company.com"];
+        var engHod = employeeDict["enghod@company.com"];
+        var emp1 = employeeDict["emp1@company.com"];
+        var emp2 = employeeDict["emp2@company.com"];
+        var emp3 = employeeDict["emp3@company.com"];
+
+        // HODs report to COO
+        hrAdmin.ReportingManagerId = coo.EmployeeId;
+        financeHead.ReportingManagerId = coo.EmployeeId;
+        engHod.ReportingManagerId = coo.EmployeeId;
+
+        // Software Engineers report to Engineering HOD
+        emp1.ReportingManagerId = engHod.EmployeeId;
+        emp2.ReportingManagerId = engHod.EmployeeId;
+        emp3.ReportingManagerId = engHod.EmployeeId;
+
+        // COO reports to CEO (Super Admin)
+        coo.ReportingManagerId = ceo.EmployeeId;
+
+        // Set HOD Employee IDs to their respective Departments
+        dbDepts.First(d => d.DeptCode == "HR").HODEmployeeId = hrAdmin.EmployeeId;
+        dbDepts.First(d => d.DeptCode == "FIN").HODEmployeeId = financeHead.EmployeeId;
+        dbDepts.First(d => d.DeptCode == "ENG").HODEmployeeId = engHod.EmployeeId;
+
+        await context.SaveChangesAsync();
+
+        // 8. Seed Role Permissions for New Roles (COO, Finance Head, etc.)
         var allPermissions = await context.Permissions.ToListAsync();
-
-        // Standard mapping configurations per RoleCode -> list of PermissionCodes
-        var rolePermissionsMapping = new Dictionary<string, List<string>>
-        {
-            [RoleCodes.SuperAdmin] = allPermissions.Select(p => p.PermissionCode).ToList(),
-
-            [RoleCodes.ITAdmin] = new List<string>
-            {
-                "USER_MGMT.VIEW", "USER_MGMT.CREATE", "USER_MGMT.EDIT", "USER_MGMT.DELETE", "USER_MGMT.ASSIGN",
-                "COMPANY_SETUP.VIEW", "COMPANY_SETUP.EDIT",
-                "AUDIT.VIEW", "AUDIT.EXPORT",
-                "COMPLIANCE.VIEW"
-            },
-
-            [RoleCodes.HRAdmin] = allPermissions.Where(p => 
-                p.PermissionCode.StartsWith("EMPLOYEE.") ||
-                p.PermissionCode.StartsWith("ATTENDANCE.") ||
-                p.PermissionCode.StartsWith("LEAVE.") ||
-                p.PermissionCode.StartsWith("RECRUITMENT.") ||
-                p.PermissionCode.StartsWith("PERFORMANCE.") ||
-                p.PermissionCode.StartsWith("TRAINING.") ||
-                p.PermissionCode.StartsWith("SEPARATION.") ||
-                p.PermissionCode.StartsWith("COMPANY_SETUP.") ||
-                p.PermissionCode.StartsWith("COMPLIANCE.") ||
-                p.PermissionCode.StartsWith("REPORTS.")
-            ).Select(p => p.PermissionCode).Except(new[] { "LEAVE.CONFIGURE", "PAYROLL.CONFIGURE", "COMPLIANCE.MANAGE" }).ToList(),
-
-            [RoleCodes.HRManager] = new List<string>
-            {
-                "EMPLOYEE.VIEW", "EMPLOYEE.CREATE", "EMPLOYEE.EDIT",
-                "ATTENDANCE.VIEW", "ATTENDANCE.CREATE", "ATTENDANCE.EDIT", "ATTENDANCE.APPROVE",
-                "LEAVE.VIEW", "LEAVE.CREATE", "LEAVE.EDIT", "LEAVE.APPROVE", "LEAVE.REJECT",
-                "RECRUITMENT.VIEW",
-                "PERFORMANCE.VIEW", "PERFORMANCE.EDIT",
-                "TRAINING.VIEW", "TRAINING.ASSIGN",
-                "SEPARATION.VIEW",
-                "REPORTS.VIEW",
-                "COMPANY_SETUP.VIEW",
-                "COMPLIANCE.VIEW"
-            },
-
-            [RoleCodes.RecruitmentManager] = new List<string>
-            {
-                "RECRUITMENT.VIEW", "RECRUITMENT.CREATE", "RECRUITMENT.EDIT", "RECRUITMENT.DELETE", "RECRUITMENT.APPROVE", "RECRUITMENT.EXPORT",
-                "TRAINING.VIEW"
-            },
-
-            [RoleCodes.PayrollAdmin] = new List<string>
-            {
-                "PAYROLL.VIEW", "PAYROLL.PROCESS", "PAYROLL.APPROVE", "PAYROLL.EXPORT", "PAYROLL.GENERATE", "PAYROLL.CONFIGURE",
-                "COMPLIANCE.VIEW", "COMPLIANCE.MANAGE", "COMPLIANCE.EXPORT",
-                "REPORTS.VIEW", "REPORTS.EXPORT"
-            },
-
-            [RoleCodes.FinanceViewer] = new List<string>
-            {
-                "PAYROLL.VIEW",
-                "COMPLIANCE.VIEW",
-                "REPORTS.VIEW", "REPORTS.EXPORT"
-            },
-
-            [RoleCodes.DeptManager] = new List<string>
-            {
-                "EMPLOYEE.VIEW",
-                "ATTENDANCE.VIEW", "ATTENDANCE.APPROVE",
-                "LEAVE.VIEW", "LEAVE.APPROVE", "LEAVE.REJECT",
-                "PERFORMANCE.VIEW", "PERFORMANCE.EDIT"
-            },
-
-            [RoleCodes.Employee] = new List<string>
-            {
-                "LEAVE.CREATE", "LEAVE.VIEW",
-                "ATTENDANCE.VIEW", "ATTENDANCE.CREATE",
-                "PAYROLL.VIEW",
-                "PERFORMANCE.VIEW"
-            },
-
-            [RoleCodes.Auditor] = new List<string>
-            {
-                "EMPLOYEE.VIEW",
-                "ATTENDANCE.VIEW",
-                "LEAVE.VIEW",
-                "PAYROLL.VIEW",
-                "COMPLIANCE.VIEW",
-                "AUDIT.VIEW",
-                "REPORTS.VIEW"
-            }
-        };
-
-        // Add mappings to database
         var currentRolePermissions = await context.RolePermissions.ToListAsync();
 
-        foreach (var mapping in rolePermissionsMapping)
+        var newRolePermissions = new Dictionary<string, List<string>>
         {
-            var roleObj = dbRoles.FirstOrDefault(r => r.RoleCode == mapping.Key);
-            if (roleObj == null) continue;
+            [RoleCodes.HRAdmin] = allPermissions.Select(p => p.PermissionCode).ToList(),
+            [RoleCodes.COO] = allPermissions.Where(p => p.PermissionCode.StartsWith("RECRUITMENT.") || p.PermissionCode.StartsWith("EMPLOYEE.VIEW")).Select(p => p.PermissionCode).ToList(),
+            [RoleCodes.FinanceHead] = allPermissions.Where(p => p.PermissionCode.StartsWith("PAYROLL.") || p.PermissionCode.StartsWith("COMPLIANCE.") || p.PermissionCode.StartsWith("RECRUITMENT.")).Select(p => p.PermissionCode).ToList(),
+            [RoleCodes.DeptManager] = allPermissions.Where(p => 
+                p.PermissionCode.StartsWith("RECRUITMENT.CREATE") || 
+                p.PermissionCode.StartsWith("RECRUITMENT.EDIT") || 
+                p.PermissionCode.StartsWith("RECRUITMENT.VIEW") || 
+                p.PermissionCode.StartsWith("EMPLOYEE.VIEW") || 
+                p.PermissionCode.StartsWith("ATTENDANCE.") || 
+                p.PermissionCode.StartsWith("LEAVE.") || 
+                p.PermissionCode.StartsWith("PERFORMANCE.")).Select(p => p.PermissionCode).ToList()
+        };
 
+        foreach (var mapping in newRolePermissions)
+        {
+            var roleObj = dbRoles.First(r => r.RoleCode == mapping.Key);
             foreach (var permCode in mapping.Value)
             {
                 var permObj = allPermissions.FirstOrDefault(p => p.PermissionCode == permCode);
@@ -367,61 +406,77 @@ public static class DatabaseSeeder
                 }
             }
         }
-
         await context.SaveChangesAsync();
 
-        // 8. Seed sample notifications for all users
-        var currentNotifications = await context.Notifications.CountAsync();
-        if (currentNotifications == 0)
+        // 9. Seed dynamic approval workflow config matching workflow: COO (1) -> HR Admin (2) -> Finance Head (3)
+        var approversList = new List<object>
         {
-            var users = await context.Users.ToListAsync();
-            foreach (var user in users)
+            new { Sequence = 1, RoleCode = RoleCodes.COO, Status = "PendingCOO" },
+            new { Sequence = 2, RoleCode = RoleCodes.HRAdmin, Status = "PendingHR" },
+            new { Sequence = 3, RoleCode = RoleCodes.FinanceHead, Status = "PendingFinance" }
+        };
+
+        var config = new ApprovalWorkflowConfig
+        {
+            ConfigId = Guid.NewGuid(),
+            CompanyId = compId,
+            ApproverRolesJson = System.Text.Json.JsonSerializer.Serialize(approversList)
+        };
+        context.ApprovalWorkflowConfigs.Add(config);
+
+        // Seed Leave Types
+        var existingLeaveTypes = new List<LeaveType>
+        {
+            new LeaveType { CompanyId = compId, LeaveTypeName = "Earned Leave", LeaveCode = "EL", MaxDaysPerYear = 18, MaxDaysPerApplication = 10, IsCarryForward = true, MaxCarryForwardDays = 30, IsEncashable = true, IsPaidLeave = true, ApplicableGender = "All", MinServiceDaysRequired = 0, IsActive = true, CreatedAt = DateTime.UtcNow },
+            new LeaveType { CompanyId = compId, LeaveTypeName = "Sick Leave", LeaveCode = "SL", MaxDaysPerYear = 12, MaxDaysPerApplication = 5, IsCarryForward = false, MaxCarryForwardDays = 0, IsEncashable = false, IsPaidLeave = true, ApplicableGender = "All", MinServiceDaysRequired = 0, IsActive = true, CreatedAt = DateTime.UtcNow }
+        };
+        context.LeaveTypes.AddRange(existingLeaveTypes);
+        await context.SaveChangesAsync();
+
+        // Seed Leave Balances for all 8 employees for 2026
+        var currentYear = 2026;
+        var employees = await context.Employees.ToListAsync();
+        foreach (var emp in employees)
+        {
+            foreach (var lt in existingLeaveTypes)
             {
-                context.Notifications.AddRange(new List<Notification>
+                decimal defaultBalance = lt.LeaveCode == "EL" ? 15 : 10;
+                context.LeaveBalances.Add(new LeaveBalance
                 {
-                    new Notification
-                    {
-                        NotificationId = Guid.NewGuid(),
-                        UserId = user.UserId,
-                        Title = "Welcome to IndiaHRMS!",
-                        Message = $"Hello {user.FirstName}, your employee account has been successfully set up in the system.",
-                        Type = NotificationType.System,
-                        IsRead = false,
-                        CreatedAt = DateTime.UtcNow.AddDays(-2)
-                    },
-                    new Notification
-                    {
-                        NotificationId = Guid.NewGuid(),
-                        UserId = user.UserId,
-                        Title = "Profile Completion Reminder",
-                        Message = "Please complete your educational qualifications and bank details in My Profile.",
-                        Type = NotificationType.ProbationEndingSoon,
-                        IsRead = false,
-                        CreatedAt = DateTime.UtcNow.AddDays(-1)
-                    },
-                    new Notification
-                    {
-                        NotificationId = Guid.NewGuid(),
-                        UserId = user.UserId,
-                        Title = "Monthly Payroll Run Initiated",
-                        Message = "The payroll run for the current month has been initiated. Payslips will be available soon.",
-                        Type = NotificationType.PayrollRunInitiated,
-                        IsRead = true,
-                        CreatedAt = DateTime.UtcNow.AddHours(-5)
-                    },
-                    new Notification
-                    {
-                        NotificationId = Guid.NewGuid(),
-                        UserId = user.UserId,
-                        Title = "Leave Policy Update",
-                        Message = "The company has updated the carry-forward leave policy for this financial year.",
-                        Type = NotificationType.General,
-                        IsRead = true,
-                        CreatedAt = DateTime.UtcNow.AddDays(-3)
-                    }
+                    EmployeeId = emp.EmployeeId,
+                    LeaveTypeId = lt.LeaveTypeId,
+                    Year = currentYear,
+                    OpeningBalance = defaultBalance,
+                    Accrued = 0,
+                    Taken = 0,
+                    Encashed = 0,
+                    Lapsed = 0,
+                    ClosingBalance = defaultBalance,
+                    CreatedAt = DateTime.UtcNow
                 });
             }
-            await context.SaveChangesAsync();
         }
+
+        // Seed DEFAULT_PASSWORD setting
+        var defaultPasswordSetting = await context.SystemSettings.FirstOrDefaultAsync(s => s.SettingKey == "DEFAULT_PASSWORD");
+        if (defaultPasswordSetting == null)
+        {
+            context.SystemSettings.Add(new SystemSetting
+            {
+                SettingId = Guid.NewGuid(),
+                CompanyId = compId,
+                SettingKey = "DEFAULT_PASSWORD",
+                SettingValue = "Demo@123",
+                DataType = "string",
+                Description = "Default initial password for new employees",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            defaultPasswordSetting.SettingValue = "Demo@123";
+        }
+
+        await context.SaveChangesAsync();
     }
 }
