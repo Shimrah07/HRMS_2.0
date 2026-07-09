@@ -1,5 +1,6 @@
 using IndiaHRMS.Application.DTOs.Organization;
 using IndiaHRMS.Application.Interfaces;
+using IndiaHRMS.Domain.Entities;
 using IndiaHRMS.Domain.Enums;
 using IndiaHRMS.Infrastructure.Data;
 using IndiaHRMS.Shared;
@@ -185,6 +186,165 @@ public class DashboardController : ControllerBase
             WFH = GetCount(AttendanceStatus.WFH),
             Holiday = GetCount(AttendanceStatus.Holiday),
             NotMarked = Math.Max(0, totalEmployees - grouped.Sum(g => g.Count))
+        }));
+    }
+
+    [HttpGet("recruitment")]
+    public async Task<ActionResult<ApiResponse<IndiaHRMS.Application.DTOs.Recruitment.RecruitmentDashboardDto>>> GetRecruitmentDashboard(CancellationToken ct)
+    {
+        var companyId = _currentUser.CompanyId;
+
+        // Postings
+        var postings = await _context.JobPostings
+            .Where(p => !companyId.HasValue || p.JobRequisition.CompanyId == companyId)
+            .ToListAsync(ct);
+
+        var totalPostings = postings.Count;
+        var published = postings.Count(p => p.Status == JobPostingStatus.Active);
+        var draft = postings.Count(p => p.Status == JobPostingStatus.Draft);
+        var closed = postings.Count(p => p.Status == JobPostingStatus.Closed);
+        var expired = postings.Count(p => p.Status == JobPostingStatus.Expired);
+
+        // Candidates
+        var totalCandidates = await _context.Candidates.CountAsync(ct);
+
+        // Applications
+        var apps = await _context.JobApplications
+            .Include(a => a.Candidate)
+            .Include(a => a.Requisition)
+            .Where(a => !companyId.HasValue || a.Requisition.CompanyId == companyId)
+            .ToListAsync(ct);
+
+        var totalApps = apps.Count;
+
+        // Average AI Match Score
+        decimal averageScore = 0;
+        if (apps.Any())
+        {
+            decimal totalScore = 0;
+            foreach (var app in apps)
+            {
+                totalScore += CalculateMatchScore(app.Candidate, app.Requisition);
+            }
+            averageScore = totalScore / apps.Count;
+        }
+
+        // Offers and Joined
+        var offers = apps.Count(a => a.CurrentStage == ApplicationStage.Offer);
+        var joined = apps.Count(a => a.CurrentStage == ApplicationStage.Joined);
+
+        // Calculate Average Time To Hire
+        double avgTimeToHire = 0;
+        var joinedApps = apps.Where(a => a.CurrentStage == ApplicationStage.Joined).ToList();
+        if (joinedApps.Any())
+        {
+            double totalDays = 0;
+            foreach (var app in joinedApps)
+            {
+                var endDate = app.UpdatedAt ?? DateTime.UtcNow;
+                var startDate = app.ApplicationDate;
+                totalDays += (endDate - startDate).TotalDays;
+            }
+            avgTimeToHire = totalDays / joinedApps.Count;
+        }
+
+        // Open positions
+        var openPositions = await _context.JobRequisitions
+            .Where(r => r.Status == RequisitionStatus.Approved && (!companyId.HasValue || r.CompanyId == companyId))
+            .SumAsync(r => r.NoOfPositions, ct);
+
+        // Candidate conversion rate
+        double conversionRate = 0;
+        if (totalApps > 0)
+        {
+            conversionRate = (double)joined / totalApps * 100;
+        }
+
+        // Offer acceptance rate
+        var totalOffers = apps.Count(a => a.CurrentStage == ApplicationStage.Offer || a.CurrentStage == ApplicationStage.BackgroundCheck || a.CurrentStage == ApplicationStage.Joined);
+        double offerAcceptanceRate = 0;
+        if (totalOffers > 0)
+        {
+            offerAcceptanceRate = (double)joined / totalOffers * 100;
+        }
+
+        return Ok(ApiResponse<IndiaHRMS.Application.DTOs.Recruitment.RecruitmentDashboardDto>.Ok(new IndiaHRMS.Application.DTOs.Recruitment.RecruitmentDashboardDto
+        {
+            TotalPostings = totalPostings,
+            Published = published,
+            Draft = draft,
+            Closed = closed,
+            Expired = expired,
+            TotalCandidates = totalCandidates,
+            Applications = totalApps,
+            AverageAiMatch = Math.Round(averageScore, 1),
+            Offers = offers,
+            Joined = joined,
+            AverageTimeToHire = Math.Round(avgTimeToHire, 1),
+            OpenPositions = openPositions,
+            CandidateConversionRate = Math.Round(conversionRate, 1),
+            OfferAcceptanceRate = Math.Round(offerAcceptanceRate, 1)
+        }));
+    }
+
+    private decimal CalculateMatchScore(Candidate candidate, JobRequisition requisition)
+    {
+        decimal score = 50;
+
+        if (requisition.MinExperience.HasValue)
+        {
+            var candExp = candidate.TotalExperience ?? 0;
+            var min = requisition.MinExperience.Value;
+            var max = requisition.MaxExperience ?? (min + 5);
+
+            if (candExp >= min && candExp <= max)
+                score += 20;
+            else if (candExp >= min)
+                score += 15;
+            else if (candExp >= min - 1)
+                score += 10;
+        }
+        else
+        {
+            score += 10;
+        }
+
+        if (!string.IsNullOrEmpty(requisition.SkillsRequired))
+        {
+            var reqSkills = requisition.SkillsRequired.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim().ToLower())
+                .ToList();
+            
+            var matchSource = (candidate.CurrentDesignation ?? "") + " " + (candidate.Source?.ToString() ?? "");
+            var candSkills = matchSource.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(w => w.Trim().ToLower())
+                .ToList();
+
+            var matches = reqSkills.Intersect(candSkills).Count();
+            score += Math.Min(matches * 15, 30);
+        }
+
+        return Math.Clamp(score, 0, 100);
+    }
+
+    [HttpGet("onboarding/summary")]
+    public async Task<ActionResult<ApiResponse<object>>> GetOnboardingSummary(CancellationToken ct)
+    {
+        var onboardings = await _context.OnboardingProcesses
+            .Include(o => o.Candidate)
+            .ToListAsync(ct);
+
+        var total = onboardings.Count;
+        var preJoining = onboardings.Count(o => o.Status == "PreJoining");
+        var inProgress = onboardings.Count(o => o.Status == "InProgress");
+        var completed = onboardings.Count(o => o.Status == "Completed");
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            total,
+            preJoining,
+            inProgress,
+            completed
         }));
     }
 }

@@ -55,6 +55,10 @@ public interface IUnitOfWork : IDisposable
     IRepository<JobApplication> JobApplications { get; }
     IRepository<InterviewRound> InterviewRounds { get; }
     IRepository<OfferLetter> OfferLetters { get; }
+    IRepository<JobPosting> JobPostings { get; }
+    IRepository<InterviewRoundPanelist> InterviewRoundPanelists { get; }
+    IRepository<BGVRecord> BGVRecords { get; }
+    IRepository<OnboardingProcess> OnboardingProcesses { get; }
     IRepository<AppraisalCycle> AppraisalCycles { get; }
     IRepository<EmployeeGoal> EmployeeGoals { get; }
     IRepository<PerformanceReview> PerformanceReviews { get; }
@@ -94,6 +98,7 @@ public interface IEncryptionService
     string Encrypt(string plainText);
     string Decrypt(string cipherText);
     string MaskValue(string value, int visibleChars = 4);
+    string HashValue(string value);
 }
 
 public interface IEmailService

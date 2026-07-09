@@ -9,11 +9,13 @@ import { motion } from 'framer-motion'
 import dayjs from 'dayjs'
 import PageHeader from '../../components/common/PageHeader'
 import useAuthStore from '../../store/authStore'
+import useUIStore from '../../store/uiStore'
 import EmptyState from '../../components/common/EmptyState'
 
 
 export default function LeavePage() {
   const { user } = useAuthStore()
+  const { isDarkMode } = useUIStore()
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false)
   const [leaveBalances, setLeaveBalances] = useState({ PL: 12, CL: 4, SL: 5, CompOff: 2 })
   const [requests, setRequests] = useState([])
@@ -123,10 +125,10 @@ export default function LeavePage() {
   ]
 
   const balancesData = [
-    { label: 'Paid Leave', key: 'PL', max: 18, color: '#10113F' },
+    { label: 'Paid Leave', key: 'PL', max: 18, color: isDarkMode ? '#8B5CF6' : '#10113F' },
     { label: 'Casual Leave', key: 'CL', max: 8, color: '#FAA71A' },
     { label: 'Sick Leave', key: 'SL', max: 6, color: '#861630' },
-    { label: 'Comp Off', key: 'CompOff', max: 2, color: '#4D1B3B' },
+    { label: 'Comp Off', key: 'CompOff', max: 2, color: isDarkMode ? '#c084fc' : '#4D1B3B' },
   ]
 
   return (
@@ -198,7 +200,7 @@ export default function LeavePage() {
                 { name: 'Priya Iyer', dept: 'HR & Operations', type: 'Paid Leave', initial: 'PI' },
               ].map((member, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'var(--color-surface)', borderRadius: 10, border: 'var(--border-glass)' }}>
-                  <Avatar style={{ background: '#10113F', fontWeight: 700 }}>{member.initial}</Avatar>
+                  <Avatar style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', fontWeight: 700 }}>{member.initial}</Avatar>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--color-text-primary)' }}>{member.name}</div>
                     <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{member.dept}</div>

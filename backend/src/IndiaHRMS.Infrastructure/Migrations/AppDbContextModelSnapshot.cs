@@ -79,6 +79,45 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.ToTable("AppraisalCycles");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.ApprovalWorkflowConfig", b =>
+                {
+                    b.Property<Guid>("ConfigId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ApproverRolesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("BudgetThreshold")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("DeptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EmploymentType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ConfigId");
+
+                    b.ToTable("ApprovalWorkflowConfigs");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.AttendanceRecord", b =>
                 {
                     b.Property<Guid>("AttendanceId")
@@ -253,10 +292,21 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.ToTable("AuditLogs");
                 });
 
-            modelBuilder.Entity("IndiaHRMS.Domain.Entities.Candidate", b =>
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.BGVRecord", b =>
                 {
-                    b.Property<Guid>("CandidateId")
+                    b.Property<Guid>("BGVId")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AgencyName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BGVType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("CandidateId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -265,8 +315,157 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("CreditStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CriminalStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DiscrepancyNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EducationStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EmploymentStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IdentityStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("InitiatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReferenceStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("BGVId");
+
+                    b.HasIndex("CandidateId");
+
+                    b.ToTable("BGVRecords");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.BandMaster", b =>
+                {
+                    b.Property<Guid>("BandId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("BandId");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("BandMasters");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.BusinessUnit", b =>
+                {
+                    b.Property<Guid>("BusinessUnitId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("BusinessUnitId");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("BusinessUnits");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.Candidate", b =>
+                {
+                    b.Property<Guid>("CandidateId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CandidateStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("CandidateTags")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal?>("CurrentCTC")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(12,2)");
 
                     b.Property<string>("CurrentCompany")
                         .HasColumnType("nvarchar(max)");
@@ -274,18 +473,40 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<string>("CurrentDesignation")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("CurrentLocation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateOnly?>("DateOfBirth")
+                        .HasColumnType("date");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("ExpectedCTC")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(12,2)");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Gender")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("HighestQualification")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Languages")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("LastApplicationDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("LastName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LinkedIn")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("NoticePeriodDays")
@@ -294,14 +515,30 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<string>("Phone")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Portfolio")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PreferredLocation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("ReferralEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("RelevantExperience")
+                        .HasColumnType("decimal(4,1)");
+
                     b.Property<string>("ResumeFilePath")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Source")
+                    b.Property<string>("Skills")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("TotalExperience")
-                        .HasColumnType("int");
+                    b.Property<string>("Source")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal?>("TotalExperience")
+                        .HasColumnType("decimal(4,1)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -309,9 +546,60 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("WillingToRelocate")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("CandidateId");
 
+                    b.HasIndex("ReferralEmployeeId");
+
                     b.ToTable("Candidates");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.CandidateAnswer", b =>
+                {
+                    b.Property<Guid>("AnswerId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Answer")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("AnsweredBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AnsweredOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CandidateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Passed")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("AnswerId");
+
+                    b.HasIndex("CandidateId");
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("CandidateAnswers");
                 });
 
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.Company", b =>
@@ -532,6 +820,47 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.ToTable("Designations");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.Division", b =>
+                {
+                    b.Property<Guid>("DivisionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BusinessUnitId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("DivisionId");
+
+                    b.HasIndex("BusinessUnitId");
+
+                    b.ToTable("Divisions");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.EmailTemplate", b =>
                 {
                     b.Property<Guid>("TemplateId")
@@ -585,18 +914,40 @@ namespace IndiaHRMS.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AadharHash")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("AadharNumber")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("AlternateEmergencyContactPhone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AlternateMobile")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("BandId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("BloodGroup")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
+                    b.Property<Guid?>("BusinessUnitId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("Category")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateOnly?>("ConfirmationDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("ContractEndDate")
                         .HasColumnType("date");
 
                     b.Property<Guid?>("CostCenterId")
@@ -611,7 +962,16 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<string>("CurrentAddress")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("CurrentAddressLine1")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CurrentAddressLine2")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("CurrentCity")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CurrentDistrict")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CurrentPincode")
@@ -629,6 +989,12 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<Guid>("DesignationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("DivisionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DomicileState")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ESINumber")
                         .HasColumnType("nvarchar(max)");
 
@@ -639,6 +1005,9 @@ namespace IndiaHRMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("EmergencyContactRelation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EmployeeCategory")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("EmployeeCode")
@@ -656,20 +1025,47 @@ namespace IndiaHRMS.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("ExtensionNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FatherName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("FullNameAadhaar")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("FunctionalManagerId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Gender")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<Guid?>("GradeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("InternshipDurationMonths")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<Guid?>("JobFamilyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("JobFunctionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateOnly>("JoiningDate")
                         .HasColumnType("date");
+
+                    b.Property<Guid?>("L2ReportingManagerId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -683,14 +1079,36 @@ namespace IndiaHRMS.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<DateOnly?>("MarriageDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("MiddleName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("MotherTongue")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NPSPRANNumber")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Nationality")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("NoticePeriodDays")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("NumberOfDependents")
+                        .HasColumnType("int");
+
                     b.Property<string>("OfficialEmail")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OfficialMobile")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PANHash")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PANNumber")
                         .HasMaxLength(500)
@@ -702,10 +1120,23 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<string>("PassportNumber")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PayrollGroup")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("PermanentAddress")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PermanentAddressLine1")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PermanentAddressLine2")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("PermanentCity")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PermanentDistrict")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PermanentPincode")
@@ -714,10 +1145,16 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<string>("PermanentState")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PermanentTaluka")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("PersonalEmail")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PersonalPhone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PreviousEmployerPFNumber")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateOnly?>("ProbationEndDate")
@@ -726,11 +1163,38 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<string>("ProfilePhoto")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("ProfitCenterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PwdCertificateNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("PwdStatus")
+                        .HasColumnType("int");
+
                     b.Property<string>("Religion")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid?>("ReportingManagerId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("SameAddressFlag")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("ShiftId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SpouseName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("SubDeptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("TeamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("Title")
+                        .HasColumnType("int");
 
                     b.Property<string>("UANNumber")
                         .HasColumnType("nvarchar(max)");
@@ -741,7 +1205,30 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("VendorName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("WeeklyOffPattern")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("WhatsAppNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("WorkMode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.HasKey("EmployeeId");
+
+                    b.HasIndex("AadharHash")
+                        .IsUnique()
+                        .HasFilter("[AadharHash] IS NOT NULL");
+
+                    b.HasIndex("BandId");
+
+                    b.HasIndex("BusinessUnitId");
 
                     b.HasIndex("CostCenterId");
 
@@ -749,12 +1236,36 @@ namespace IndiaHRMS.Infrastructure.Migrations
 
                     b.HasIndex("DesignationId");
 
+                    b.HasIndex("DivisionId");
+
                     b.HasIndex("EmployeeCode")
                         .IsUnique();
 
+                    b.HasIndex("FunctionalManagerId");
+
+                    b.HasIndex("GradeId");
+
+                    b.HasIndex("JobFamilyId");
+
+                    b.HasIndex("JobFunctionId");
+
+                    b.HasIndex("L2ReportingManagerId");
+
                     b.HasIndex("LocationId");
 
+                    b.HasIndex("PANHash")
+                        .IsUnique()
+                        .HasFilter("[PANHash] IS NOT NULL");
+
+                    b.HasIndex("ProfitCenterId");
+
                     b.HasIndex("ReportingManagerId");
+
+                    b.HasIndex("ShiftId");
+
+                    b.HasIndex("SubDeptId");
+
+                    b.HasIndex("TeamId");
 
                     b.HasIndex("CompanyId", "EmploymentStatus");
 
@@ -806,6 +1317,15 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("VerificationStatus")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("VerifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("BankDetailId");
 
                     b.HasIndex("EmployeeId");
@@ -834,8 +1354,14 @@ namespace IndiaHRMS.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("DocumentNumber")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly?>("ExpiryDate")
+                        .HasColumnType("date");
 
                     b.Property<string>("FilePath")
                         .IsRequired()
@@ -846,6 +1372,9 @@ namespace IndiaHRMS.Infrastructure.Migrations
 
                     b.Property<bool>("IsVerified")
                         .HasColumnType("bit");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -1190,6 +1719,50 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.ToTable("FnFSettlements");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.GradeMaster", b =>
+                {
+                    b.Property<Guid>("GradeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("NoticePeriodDays")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("GradeId");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("GradeMasters");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.HolidayCalendar", b =>
                 {
                     b.Property<Guid>("HolidayId")
@@ -1301,11 +1874,60 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.ToTable("InterviewRounds");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.InterviewRoundPanelist", b =>
+                {
+                    b.Property<Guid>("PanelistId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Feedback")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("Rating")
+                        .HasColumnType("decimal(3,1)");
+
+                    b.Property<Guid>("RoundId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("PanelistId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("RoundId");
+
+                    b.ToTable("InterviewRoundPanelists");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobApplication", b =>
                 {
                     b.Property<Guid>("AppId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("AiMatchScore")
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<DateTime>("ApplicationDate")
                         .HasColumnType("datetime2");
@@ -1348,6 +1970,294 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.ToTable("JobApplications");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobFamily", b =>
+                {
+                    b.Property<Guid>("JobFamilyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("JobFamilyId");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("JobFamilies");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobFunction", b =>
+                {
+                    b.Property<Guid>("JobFunctionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("JobFamilyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("JobFunctionId");
+
+                    b.HasIndex("JobFamilyId");
+
+                    b.ToTable("JobFunctions");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobPosting", b =>
+                {
+                    b.Property<Guid>("JobId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("AutoUnpublish")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Benefits")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EmploymentType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("ExperienceMax")
+                        .HasColumnType("decimal(4,1)");
+
+                    b.Property<decimal?>("ExperienceMin")
+                        .HasColumnType("decimal(4,1)");
+
+                    b.Property<DateOnly?>("ExpiryDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Industry")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("JobCategory")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("JobDescription")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("JobTitle")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("PostedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PublishChannels")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ReqId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Requirements")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RolesAndResponsibilities")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("ScreeningEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowCompanyName")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowSalary")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowSalaryRange")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("SkillsRequired")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("JobId");
+
+                    b.HasIndex("ReqId");
+
+                    b.ToTable("JobPostings");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobPostingChannel", b =>
+                {
+                    b.Property<Guid>("ChannelId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ChannelName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ChannelId");
+
+                    b.HasIndex("JobId");
+
+                    b.ToTable("JobPostingChannels");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobPostingPerk", b =>
+                {
+                    b.Property<Guid>("PerkId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PerkName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("PerkId");
+
+                    b.HasIndex("JobId");
+
+                    b.ToTable("JobPostingPerks");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobPostingQuestion", b =>
+                {
+                    b.Property<Guid>("QuestionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("DealBreaker")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ExpectedAnswer")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("JobPostingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("QuestionType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("Required")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Weightage")
+                        .HasColumnType("int");
+
+                    b.HasKey("QuestionId");
+
+                    b.HasIndex("JobPostingId");
+
+                    b.ToTable("JobPostingQuestions");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobRequisition", b =>
                 {
                     b.Property<Guid>("ReqId")
@@ -1366,19 +2276,38 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("DepartmentDeptId")
+                    b.Property<int>("CurrentApprovalLevel")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("CurrentApproverId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("DeptId")
+                    b.Property<Guid?>("DeptId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("DesignationId")
+                    b.Property<Guid?>("DesignationId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("GradeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("HiringManagerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("InternalHiringJustification")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("InternalHiringRemarks")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("JobDescription")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("JobTitle")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Justification")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -1394,10 +2323,21 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<decimal?>("MinSalary")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("MrfNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("NoOfPositions")
                         .HasColumnType("int");
 
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("RaisedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ReplacingEmployeeId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateOnly>("RequisitionDate")
@@ -1406,10 +2346,17 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<string>("SkillsRequired")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("SourcingPreference")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid?>("SubDeptId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateOnly?>("TargetDate")
                         .HasColumnType("date");
@@ -1420,15 +2367,21 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("VacancyType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("ReqId");
 
                     b.HasIndex("ApprovedBy");
 
                     b.HasIndex("CompanyId");
 
-                    b.HasIndex("DepartmentDeptId");
+                    b.HasIndex("DeptId");
 
                     b.HasIndex("DesignationId");
+
+                    b.HasIndex("GradeId");
 
                     b.HasIndex("RaisedBy");
 
@@ -1831,6 +2784,155 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.ToTable("OfferLetters");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.OnboardingProcess", b =>
+                {
+                    b.Property<Guid>("OnboardingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AccessToken")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AdminChecklistJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AssetAllocation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("BuddyEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CandidateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("DocumentsUploaded")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("HRChecklistJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ITChecklistJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("InductionSchedule")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("PersonalInfoCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("TokenExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TransitionHistoryJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("OnboardingId");
+
+                    b.HasIndex("BuddyEmployeeId");
+
+                    b.HasIndex("CandidateId");
+
+                    b.ToTable("OnboardingProcesses");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.OnboardingTask", b =>
+                {
+                    b.Property<Guid>("TaskId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AttachmentPath")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AuditHistoryJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateOnly?>("CompletionDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Department")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateOnly?>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("OnboardingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OwnerName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Remarks")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("SLADays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TaskName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("TaskId");
+
+                    b.HasIndex("OnboardingId");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("OnboardingTasks");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.PFNominee", b =>
                 {
                     b.Property<Guid>("NomineeId")
@@ -1934,6 +3036,32 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.HasIndex("InitiatedByUserUserId");
 
                     b.ToTable("PIPs");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.PasswordHistory", b =>
+                {
+                    b.Property<Guid>("HistoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("HistoryId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PasswordHistories");
                 });
 
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.PayrollComponentValue", b =>
@@ -2231,6 +3359,142 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.ToTable("Permissions");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.ProbationReview", b =>
+                {
+                    b.Property<Guid>("ReviewId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CheckpointDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Comments")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateOnly?>("CompletedDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Rating")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateOnly>("ReviewDueDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("ReviewerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ReviewId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("ReviewerId");
+
+                    b.ToTable("ProbationReviews");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.ProfitCenter", b =>
+                {
+                    b.Property<Guid>("ProfitCenterId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ProfitCenterId");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("ProfitCenters");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.RequisitionAuditTrail", b =>
+                {
+                    b.Property<Guid>("AuditId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ActionBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ReqId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("AuditId");
+
+                    b.HasIndex("ReqId");
+
+                    b.ToTable("RequisitionAuditTrails");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.Role", b =>
                 {
                     b.Property<Guid>("RoleId")
@@ -2388,6 +3652,52 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.HasIndex("CompanyId");
 
                     b.ToTable("SalaryStructures");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.SecurityAuditLog", b =>
+                {
+                    b.Property<Guid>("LogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Username")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("LogId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("EventType");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("SecurityAuditLogs");
                 });
 
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.Separation", b =>
@@ -2662,6 +3972,47 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.HasIndex("EmployeeId");
 
                     b.ToTable("TaxDeclarations");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.Team", b =>
+                {
+                    b.Property<Guid>("TeamId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("SubDeptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("TeamId");
+
+                    b.HasIndex("SubDeptId");
+
+                    b.ToTable("Teams");
                 });
 
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.TrainingNomination", b =>
@@ -3010,6 +4361,68 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.BGVRecord", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.Candidate", "Candidate")
+                        .WithMany("BGVRecords")
+                        .HasForeignKey("CandidateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Candidate");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.BandMaster", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.BusinessUnit", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.Candidate", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.Employee", "ReferralEmployee")
+                        .WithMany()
+                        .HasForeignKey("ReferralEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ReferralEmployee");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.CandidateAnswer", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.Candidate", "Candidate")
+                        .WithMany("CandidateAnswers")
+                        .HasForeignKey("CandidateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.JobPostingQuestion", "JobPostingQuestion")
+                        .WithMany("CandidateAnswers")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Candidate");
+
+                    b.Navigation("JobPostingQuestion");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.CostCenter", b =>
                 {
                     b.HasOne("IndiaHRMS.Domain.Entities.Company", "Company")
@@ -3064,6 +4477,17 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.Division", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.BusinessUnit", "BusinessUnit")
+                        .WithMany("Divisions")
+                        .HasForeignKey("BusinessUnitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BusinessUnit");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.EmailTemplate", b =>
                 {
                     b.HasOne("IndiaHRMS.Domain.Entities.Company", "Company")
@@ -3077,6 +4501,16 @@ namespace IndiaHRMS.Infrastructure.Migrations
 
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.Employee", b =>
                 {
+                    b.HasOne("IndiaHRMS.Domain.Entities.BandMaster", "Band")
+                        .WithMany()
+                        .HasForeignKey("BandId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.BusinessUnit", "BusinessUnit")
+                        .WithMany()
+                        .HasForeignKey("BusinessUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("IndiaHRMS.Domain.Entities.Company", "Company")
                         .WithMany("Employees")
                         .HasForeignKey("CompanyId")
@@ -3086,7 +4520,7 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.HasOne("IndiaHRMS.Domain.Entities.CostCenter", "CostCenter")
                         .WithMany()
                         .HasForeignKey("CostCenterId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("IndiaHRMS.Domain.Entities.Department", "Department")
                         .WithMany("Employees")
@@ -3100,16 +4534,70 @@ namespace IndiaHRMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("IndiaHRMS.Domain.Entities.Division", "Division")
+                        .WithMany()
+                        .HasForeignKey("DivisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.Employee", "FunctionalManager")
+                        .WithMany()
+                        .HasForeignKey("FunctionalManagerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.GradeMaster", "Grade")
+                        .WithMany()
+                        .HasForeignKey("GradeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.JobFamily", "JobFamily")
+                        .WithMany()
+                        .HasForeignKey("JobFamilyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.JobFunction", "JobFunction")
+                        .WithMany()
+                        .HasForeignKey("JobFunctionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.Employee", "L2ReportingManager")
+                        .WithMany()
+                        .HasForeignKey("L2ReportingManagerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("IndiaHRMS.Domain.Entities.Location", "Location")
                         .WithMany("Employees")
                         .HasForeignKey("LocationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("IndiaHRMS.Domain.Entities.ProfitCenter", "ProfitCenter")
+                        .WithMany()
+                        .HasForeignKey("ProfitCenterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("IndiaHRMS.Domain.Entities.Employee", "ReportingManager")
                         .WithMany("DirectReports")
                         .HasForeignKey("ReportingManagerId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.ShiftMaster", "Shift")
+                        .WithMany()
+                        .HasForeignKey("ShiftId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.Department", "SubDepartment")
+                        .WithMany()
+                        .HasForeignKey("SubDeptId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Band");
+
+                    b.Navigation("BusinessUnit");
 
                     b.Navigation("Company");
 
@@ -3119,9 +4607,29 @@ namespace IndiaHRMS.Infrastructure.Migrations
 
                     b.Navigation("Designation");
 
+                    b.Navigation("Division");
+
+                    b.Navigation("FunctionalManager");
+
+                    b.Navigation("Grade");
+
+                    b.Navigation("JobFamily");
+
+                    b.Navigation("JobFunction");
+
+                    b.Navigation("L2ReportingManager");
+
                     b.Navigation("Location");
 
+                    b.Navigation("ProfitCenter");
+
                     b.Navigation("ReportingManager");
+
+                    b.Navigation("Shift");
+
+                    b.Navigation("SubDepartment");
+
+                    b.Navigation("Team");
                 });
 
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.EmployeeBankDetail", b =>
@@ -3256,6 +4764,17 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("Separation");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.GradeMaster", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.HolidayCalendar", b =>
                 {
                     b.HasOne("IndiaHRMS.Domain.Entities.Company", "Company")
@@ -3292,6 +4811,25 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("JobApplication");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.InterviewRoundPanelist", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.InterviewRound", "InterviewRound")
+                        .WithMany("Panelists")
+                        .HasForeignKey("RoundId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("InterviewRound");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobApplication", b =>
                 {
                     b.HasOne("IndiaHRMS.Domain.Entities.Candidate", "Candidate")
@@ -3311,6 +4849,72 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("Requisition");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobFamily", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobFunction", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.JobFamily", "JobFamily")
+                        .WithMany("JobFunctions")
+                        .HasForeignKey("JobFamilyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("JobFamily");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobPosting", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.JobRequisition", "JobRequisition")
+                        .WithMany("JobPostings")
+                        .HasForeignKey("ReqId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("JobRequisition");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobPostingChannel", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.JobPosting", "JobPosting")
+                        .WithMany("PublishingChannels")
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("JobPosting");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobPostingPerk", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.JobPosting", "JobPosting")
+                        .WithMany("PerksAndBenefits")
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("JobPosting");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobPostingQuestion", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.JobPosting", "JobPosting")
+                        .WithMany("JobPostingQuestions")
+                        .HasForeignKey("JobPostingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("JobPosting");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobRequisition", b =>
                 {
                     b.HasOne("IndiaHRMS.Domain.Entities.User", "ApprovedByUser")
@@ -3321,20 +4925,23 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.HasOne("IndiaHRMS.Domain.Entities.Company", "Company")
                         .WithMany()
                         .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("IndiaHRMS.Domain.Entities.Department", "Department")
                         .WithMany()
-                        .HasForeignKey("DepartmentDeptId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("DeptId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("IndiaHRMS.Domain.Entities.Designation", "Designation")
                         .WithMany()
                         .HasForeignKey("DesignationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.GradeMaster", "Grade")
+                        .WithMany()
+                        .HasForeignKey("GradeId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("IndiaHRMS.Domain.Entities.User", "RaisedByUser")
                         .WithMany()
@@ -3349,6 +4956,8 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("Department");
 
                     b.Navigation("Designation");
+
+                    b.Navigation("Grade");
 
                     b.Navigation("RaisedByUser");
                 });
@@ -3459,6 +5068,42 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("JobApplication");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.OnboardingProcess", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.Employee", "BuddyEmployee")
+                        .WithMany()
+                        .HasForeignKey("BuddyEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.Candidate", "Candidate")
+                        .WithMany("Onboardings")
+                        .HasForeignKey("CandidateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BuddyEmployee");
+
+                    b.Navigation("Candidate");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.OnboardingTask", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.OnboardingProcess", "OnboardingProcess")
+                        .WithMany("Tasks")
+                        .HasForeignKey("OnboardingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.Employee", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("OnboardingProcess");
+
+                    b.Navigation("Owner");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.PFNominee", b =>
                 {
                     b.HasOne("IndiaHRMS.Domain.Entities.Employee", "Employee")
@@ -3487,6 +5132,17 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("Employee");
 
                     b.Navigation("InitiatedByUser");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.PasswordHistory", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.User", "User")
+                        .WithMany("PasswordHistories")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.PayrollComponentValue", b =>
@@ -3580,6 +5236,46 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("Reviewer");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.ProbationReview", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("IndiaHRMS.Domain.Entities.Employee", "Reviewer")
+                        .WithMany()
+                        .HasForeignKey("ReviewerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Reviewer");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.ProfitCenter", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.RequisitionAuditTrail", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.JobRequisition", "JobRequisition")
+                        .WithMany()
+                        .HasForeignKey("ReqId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("JobRequisition");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.RolePermission", b =>
                 {
                     b.HasOne("IndiaHRMS.Domain.Entities.Permission", "Permission")
@@ -3619,6 +5315,16 @@ namespace IndiaHRMS.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.SecurityAuditLog", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.User", "User")
+                        .WithMany("SecurityAuditLogs")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.Separation", b =>
@@ -3703,6 +5409,17 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("ApprovedByUser");
 
                     b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.Team", b =>
+                {
+                    b.HasOne("IndiaHRMS.Domain.Entities.Department", "SubDepartment")
+                        .WithMany()
+                        .HasForeignKey("SubDeptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SubDepartment");
                 });
 
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.TrainingNomination", b =>
@@ -3796,9 +5513,20 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("PerformanceReviews");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.BusinessUnit", b =>
+                {
+                    b.Navigation("Divisions");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.Candidate", b =>
                 {
+                    b.Navigation("BGVRecords");
+
+                    b.Navigation("CandidateAnswers");
+
                     b.Navigation("JobApplications");
+
+                    b.Navigation("Onboardings");
                 });
 
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.Company", b =>
@@ -3853,6 +5581,11 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.InterviewRound", b =>
+                {
+                    b.Navigation("Panelists");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobApplication", b =>
                 {
                     b.Navigation("InterviewRounds");
@@ -3860,9 +5593,30 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("OfferLetters");
                 });
 
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobFamily", b =>
+                {
+                    b.Navigation("JobFunctions");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobPosting", b =>
+                {
+                    b.Navigation("JobPostingQuestions");
+
+                    b.Navigation("PerksAndBenefits");
+
+                    b.Navigation("PublishingChannels");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobPostingQuestion", b =>
+                {
+                    b.Navigation("CandidateAnswers");
+                });
+
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.JobRequisition", b =>
                 {
                     b.Navigation("JobApplications");
+
+                    b.Navigation("JobPostings");
                 });
 
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.LeaveType", b =>
@@ -3877,6 +5631,11 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("Employees");
 
                     b.Navigation("HolidayCalendars");
+                });
+
+            modelBuilder.Entity("IndiaHRMS.Domain.Entities.OnboardingProcess", b =>
+                {
+                    b.Navigation("Tasks");
                 });
 
             modelBuilder.Entity("IndiaHRMS.Domain.Entities.PayrollDetail", b =>
@@ -3940,6 +5699,10 @@ namespace IndiaHRMS.Infrastructure.Migrations
                     b.Navigation("AuditLogs");
 
                     b.Navigation("Notifications");
+
+                    b.Navigation("PasswordHistories");
+
+                    b.Navigation("SecurityAuditLogs");
 
                     b.Navigation("UserRoles");
                 });

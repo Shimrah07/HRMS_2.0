@@ -32,7 +32,7 @@ function UsersTab() {
   const { data: rolesData } = useQuery({ queryKey: ['roles'], queryFn: userService.getRoles, select: (r) => r?.data || [] })
 
   const users = data?.data || []
-  const total = data?.totalCount || 0
+  const total = data?.pagination?.totalRecords ?? data?.totalCount ?? 0
 
   const toggleActiveMutation = useMutation({
     mutationFn: userService.toggleActive,
@@ -251,9 +251,9 @@ function PermissionMatrixTab() {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <thead>
           <tr>
-            <th style={{ padding: '10px 16px', textAlign: 'left', background: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : 'rgba(16, 17, 63, 0.03)', color: 'var(--color-text-primary)', fontWeight: 700, border: 'var(--border-glass)' }}>Permission</th>
+            <th style={{ padding: '10px 16px', textAlign: 'left', background: isDarkMode ? 'rgba(140, 70, 255, 0.08)' : 'rgba(16, 17, 63, 0.03)', color: 'var(--color-text-primary)', fontWeight: 700, border: 'var(--border-glass)' }}>Permission</th>
             {roles.map((r) => (
-              <th key={r.roleId} style={{ padding: '10px 12px', textAlign: 'center', background: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : 'rgba(16, 17, 63, 0.03)', color: 'var(--color-text-primary)', fontWeight: 700, border: 'var(--border-glass)' }}>
+              <th key={r.roleId} style={{ padding: '10px 12px', textAlign: 'center', background: isDarkMode ? 'rgba(140, 70, 255, 0.08)' : 'rgba(16, 17, 63, 0.03)', color: 'var(--color-text-primary)', fontWeight: 700, border: 'var(--border-glass)' }}>
                 {r.roleCode}
               </th>
             ))}
@@ -261,7 +261,7 @@ function PermissionMatrixTab() {
         </thead>
         <tbody>
           {permissions.map((p, i) => (
-            <tr key={p.permissionId} style={{ background: i % 2 === 0 ? 'transparent' : (isDarkMode ? 'rgba(255, 255, 255, 0.02)' : 'rgba(16, 17, 63, 0.01)') }}>
+            <tr key={p.permissionId} style={{ background: i % 2 === 0 ? 'transparent' : (isDarkMode ? 'rgba(140, 70, 255, 0.04)' : 'rgba(16, 17, 63, 0.01)') }}>
               <td style={{ padding: '8px 16px', border: 'var(--border-glass)', color: 'var(--color-text-primary)' }}>
                 <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{p.permissionCode}</span>
               </td>
@@ -269,7 +269,7 @@ function PermissionMatrixTab() {
                 const has = permsMatrix[r.roleCode]?.includes(p.permissionCode)
                 return (
                   <td key={r.roleId} style={{ padding: '8px 12px', textAlign: 'center', border: 'var(--border-glass)' }}>
-                    {has ? <span style={{ color: '#22C55E', fontWeight: 700 }}>✓</span> : <span style={{ color: isDarkMode ? 'rgba(255,255,255,0.15)' : '#E5E7EB' }}>–</span>}
+                    {has ? <span style={{ color: '#22C55E', fontWeight: 700 }}>✓</span> : <span style={{ color: isDarkMode ? 'rgba(160, 90, 255, 0.3)' : '#E5E7EB' }}>–</span>}
                   </td>
                 )
               })}

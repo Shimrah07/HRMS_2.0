@@ -13,10 +13,15 @@ public enum EmploymentStatus
 public enum EmploymentType
 {
     FullTime,
-    PartTime,
+    Permanent,
+    Probationary,
     Contract,
+    FixedTerm,
+    Temporary,
+    Consultant,
+    PartTime,
     Intern,
-    Consultant
+    Apprentice
 }
 
 public enum Gender
@@ -63,6 +68,11 @@ public enum DocumentType
     EducationCertificate,
     BankStatement,
     Photo,
+    MedicalFitnessCertificate,
+    PoliceVerification,
+    CategoryCertificate,
+    NDA,
+    DrugTestReport,
     Other
 }
 
@@ -219,9 +229,16 @@ public enum ClearanceStatus
 public enum RequisitionStatus
 {
     Draft,
-    PendingApproval,
+    PendingHOD,
+    PendingHR,
+    PendingFinance,
+    PendingCOO,
     Approved,
     Rejected,
+    ReturnedForCorrection,
+    Cancelled,
+    InternalReview,
+    PendingApproval,
     Open,
     OnHold,
     Closed,
@@ -231,9 +248,11 @@ public enum RequisitionStatus
 public enum ApplicationStage
 {
     Applied,
+    Screening,
     Shortlisted,
     InterviewL1,
     InterviewL2,
+    ManagerReview,
     HRInterview,
     Offer,
     BackgroundCheck,
@@ -277,5 +296,126 @@ public enum Relationship
     Child,
     Sibling,
     Grandparent,
+    Other
+}
+
+public enum WorkMode
+{
+    Onsite,
+    Hybrid,
+    WorkFromHome,
+    Field
+}
+
+public enum WeeklyOffPattern
+{
+    Sunday,
+    SaturdaySunday,
+    AlternateSaturday,
+    Rotational
+}
+
+public enum PayrollGroup
+{
+    Monthly,
+    Weekly,
+    DailyWage
+}
+
+public enum EmployeeTitle
+{
+    Mr,
+    Mrs,
+    Ms,
+    Dr,
+    Prof,
+    Er,
+    Adv,
+    CA
+}
+
+public enum EmployeeCategory
+{
+    General,
+    OBC,
+    SC,
+    ST,
+    EWS
+}
+
+public enum PwdStatus
+{
+    No,
+    Visual,
+    Hearing,
+    Locomotor,
+    Intellectual,
+    Other
+}
+
+public enum MotherTongue
+{
+    Assamese,
+    Bengali,
+    Bodo,
+    Dogri,
+    Gujarati,
+    Hindi,
+    Kannada,
+    Kashmiri,
+    Konkani,
+    Maithili,
+    Malayalam,
+    Manipuri,
+    Marathi,
+    Nepali,
+    Odia,
+    Punjabi,
+    Sanskrit,
+    Santali,
+    Sindhi,
+    Tamil,
+    Telugu,
+    Urdu,
+    Other
+}
+
+public enum BankVerificationStatus
+{
+    Pending,
+    Verified,
+    Failed
+}
+
+public enum JobPostingStatus
+{
+    Draft,
+    Active,
+    Closed,
+    Expired
+}
+
+public enum CandidateStatus
+{
+    Active,
+    InProcess,
+    Hired,
+    Rejected,
+    Withdrawn,
+    Blacklisted,
+    Archived
+}
+
+public enum CandidateSource
+{
+    CareerPortal,
+    EmployeeReferral,
+    LinkedIn,
+    Naukri,
+    Indeed,
+    Campus,
+    Consultancy,
+    WalkIn,
+    InternalTransfer,
     Other
 }

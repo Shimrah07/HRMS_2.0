@@ -98,7 +98,9 @@ try
     builder.Services.AddScoped<IPermissionService, PermissionService>();
     builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
     builder.Services.AddScoped<INotificationService, NotificationService>();
+    builder.Services.AddScoped<IPdfGenerationService, IndiaHRMS.Infrastructure.Services.PdfGenerationService>();
     builder.Services.AddScoped<IndiaHRMS.Infrastructure.Services.IRealtimePush, IndiaHRMS.API.Extensions.SignalRRealtimePush>();
+    builder.Services.AddScoped<IndiaHRMS.Infrastructure.Services.OnboardingOrchestrator>();
 
     // ─── AutoMapper ───────────────────────────────────────────────────────────
     builder.Services.AddAutoMapper(typeof(IndiaHRMS.Application.Mappings.HRMSMappingProfile));
@@ -115,6 +117,32 @@ try
             o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
             o.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
         });
+
+    builder.Services.Configure<ApiBehaviorOptions>(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value.Errors.Count > 0)
+                .Select(e => new {
+                    Key = e.Key,
+                    Errors = e.Value.Errors.Select(x => x.ErrorMessage).ToArray()
+                }).ToList();
+            
+            Console.WriteLine("ModelState Validation Failed! Errors: " + System.Text.Json.JsonSerializer.Serialize(errors));
+            
+            return new BadRequestObjectResult(new {
+                type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+                title = "One or more validation errors occurred.",
+                status = 400,
+                errors = context.ModelState.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                ),
+                traceId = context.HttpContext.TraceIdentifier
+            });
+        };
+    });
 
     // ─── API Versioning ───────────────────────────────────────────────────────
     builder.Services.AddApiVersioning(o =>
@@ -184,9 +212,10 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var encryption = scope.ServiceProvider.GetRequiredService<IEncryptionService>();
         await db.Database.MigrateAsync();
         Log.Information("Database migrated successfully.");
-        await DatabaseSeeder.SeedAsync(db);
+        await DatabaseSeeder.SeedAsync(db, encryption);
         Log.Information("Database seeded successfully.");
     }
 
@@ -209,6 +238,17 @@ try
 
     app.UseHttpsRedirection();
     app.UseCors("HRMSCorsPolicy");
+
+    var uploadsPath = System.IO.Path.Combine(app.Environment.ContentRootPath, "uploads");
+    if (!System.IO.Directory.Exists(uploadsPath))
+    {
+        System.IO.Directory.CreateDirectory(uploadsPath);
+    }
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
+        RequestPath = "/uploads"
+    });
 
     app.UseAuthentication();
     app.UseAuthorization();

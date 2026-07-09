@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Tabs, Form, Input, Button, Card, message, Table, Tag, Upload, notification } from 'antd'
 import { VALIDATORS, NORMALIZE, FILTER_KEYPRESS } from '../../constants/validation'
-import { SaveOutlined, KeyOutlined, AuditOutlined, UploadOutlined } from '@ant-design/icons'
+import { SaveOutlined, KeyOutlined, AuditOutlined, UploadOutlined, ApartmentOutlined } from '@ant-design/icons'
 import { motion } from 'framer-motion'
 import dayjs from 'dayjs'
 import { organizationService } from '../../services/organizationService'
@@ -11,6 +11,7 @@ import PageHeader from '../../components/common/PageHeader'
 import { usePermission } from '../../hooks/usePermission'
 import { PERMISSIONS } from '../../constants/permissions'
 import useUIStore from '../../store/uiStore'
+import OrgStructureSettings from './OrgStructureSettings'
 
 function CompanyTab() {
   const queryClient = useQueryClient()
@@ -189,6 +190,7 @@ function AuditLogsTab() {
 export default function SettingsPage() {
   const tabs = [
     { key: 'company', label: 'Company Profile', icon: <SaveOutlined />, children: <CompanyTab /> },
+    { key: 'org-structure', label: 'Organization Structure', icon: <ApartmentOutlined />, children: <OrgStructureSettings /> },
     { key: 'security', label: 'Security', icon: <KeyOutlined />, children: <SecurityTab /> },
     { key: 'audit', label: 'Audit Logs', icon: <AuditOutlined />, children: <AuditLogsTab /> },
   ]

@@ -310,7 +310,7 @@ export default function AttendancePage() {
   const dividerStyle = {
     width: '100%',
     height: 1,
-    background: isDarkMode ? 'rgba(255,255,255,0.07)' : 'rgba(16,17,63,0.07)',
+    background: isDarkMode ? 'rgba(160, 90, 255, 0.18)' : 'rgba(16,17,63,0.07)',
     margin: '16px 0',
   }
 
@@ -400,7 +400,7 @@ export default function AttendancePage() {
             <div style={dividerStyle} />
 
             <Row gutter={12}>
-              <Col span={12} style={{ borderRight: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.07)' : 'rgba(16,17,63,0.07)'}` }}>
+              <Col span={12} style={{ borderRight: `1px solid ${isDarkMode ? 'rgba(160, 90, 255, 0.18)' : 'rgba(16,17,63,0.07)'}` }}>
                 <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Weekly Hours</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-text-primary)', marginTop: 4 }}>{weeklyHours}</div>
               </Col>
@@ -426,7 +426,7 @@ export default function AttendancePage() {
                   textAlign: 'center',
                   padding: '8px 4px',
                   borderRadius: 8,
-                  background: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(16,17,63,0.03)',
+                  background: isDarkMode ? 'rgba(140, 70, 255, 0.06)' : 'rgba(16,17,63,0.03)',
                 }}>
                   <div style={{ fontSize: 18, fontWeight: 800, color }}>{count}</div>
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
@@ -497,7 +497,7 @@ export default function AttendancePage() {
               justifyContent: 'center',
               fontSize: 11.5,
               color: 'var(--color-text-secondary)',
-              borderTop: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.07)' : 'rgba(16,17,63,0.07)'}`,
+              borderTop: `1px solid ${isDarkMode ? 'rgba(160, 90, 255, 0.15)' : 'rgba(16,17,63,0.07)'}`,
               paddingTop: 12,
             }}>
               {[

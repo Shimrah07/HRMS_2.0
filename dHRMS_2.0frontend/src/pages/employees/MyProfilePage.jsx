@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Card, Descriptions, Avatar, Button, Form, Input, message, Spin,
@@ -11,19 +11,23 @@ import {
   BookOutlined, PlusOutlined, DeleteOutlined, EnvironmentOutlined,
   MailOutlined, CalendarOutlined, PhoneOutlined, PlusSquareOutlined,
   CheckCircleOutlined, DownloadOutlined, EyeOutlined, UploadOutlined,
-  CreditCardOutlined, SafetyCertificateOutlined, ArrowDownOutlined, ArrowRightOutlined
+  CreditCardOutlined, SafetyCertificateOutlined, ArrowDownOutlined, ArrowRightOutlined,
+  BranchesOutlined, DollarOutlined, IdcardOutlined, CameraOutlined
 } from '@ant-design/icons'
+import { EMPLOYMENT_TYPE, WORK_MODE, WEEKLY_OFF_PATTERN, PAYROLL_GROUP } from '../../constants/enums'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import dayjs from 'dayjs'
 import { employeeService } from '../../services/employeeService'
 import useAuthStore from '../../store/authStore'
+import { usePermission } from '../../hooks/usePermission'
+import { PERMISSIONS } from '../../constants/permissions'
 import PageHeader from '../../components/common/PageHeader'
 import StatusBadge from '../../components/common/StatusBadge'
 import EmptyState from '../../components/common/EmptyState'
 import useUIStore from '../../store/uiStore'
 import { VALIDATORS, NORMALIZE, FILTER_KEYPRESS } from '../../constants/validation'
-
+import { getAvatarUrl } from '../../constants/api'
 // Mapping document types to match the backend DocumentType Enum
 const docTypeMapping = {
   Aadhar: { label: 'Aadhaar Card', enumVal: 0, strVal: 'Aadhar' },
@@ -38,8 +42,11 @@ export default function MyProfilePage() {
   const navigate = useNavigate()
   const { isDarkMode } = useUIStore()
   const queryClient = useQueryClient()
+  const { can, isSuperAdmin } = usePermission()
+  const hasPayrollView = isSuperAdmin || can(PERMISSIONS.PAYROLL.VIEW)
   const [editing, setEditing] = useState(false)
   const [form] = Form.useForm()
+  const photoRef = useRef(null)
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['my-profile'],
@@ -48,6 +55,51 @@ export default function MyProfilePage() {
   })
 
   const id = profile?.employeeId
+
+  const photoMutation = useMutation({
+    mutationFn: (file) => employeeService.uploadPhoto(id, file),
+    onSuccess: (res) => {
+      notification.success({
+        message: 'Photo Uploaded',
+        description: 'Profile photo has been updated.',
+        placement: 'topRight'
+      })
+      if (res?.success && res.data) {
+        useAuthStore.getState().updateUser({ profilePhoto: res.data })
+      }
+      queryClient.invalidateQueries({ queryKey: ['my-profile'] })
+      queryClient.invalidateQueries({ queryKey: ['employee', id] })
+    },
+    onError: () => {
+      notification.error({
+        message: 'Upload Failed',
+        description: 'Failed to upload profile photo.',
+        placement: 'topRight'
+      })
+    },
+  })
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      notification.warning({
+        message: 'Invalid Image',
+        description: 'Only JPG, PNG or WebP images are allowed.',
+        placement: 'topRight'
+      })
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) { 
+      notification.warning({
+        message: 'Image Too Large',
+        description: 'File size must be under 5 MB.',
+        placement: 'topRight'
+      })
+      return 
+    }
+    photoMutation.mutate(file)
+  }
 
   // Sub-queries for profile tabs
   const { data: docs } = useQuery({
@@ -282,7 +334,19 @@ export default function MyProfilePage() {
 
   const handleSave = async () => {
     const values = await form.validateFields()
-    updateMutation.mutate(values)
+    const parts = [
+      values.currentAddressLine1,
+      values.currentAddressLine2,
+      values.currentCity,
+      values.currentDistrict,
+      values.currentState,
+      values.currentPincode
+    ].filter(Boolean)
+    const payload = {
+      ...values,
+      currentAddress: parts.join(', ')
+    }
+    updateMutation.mutate(payload)
   }
 
   // Education & Experience Data Sources (Prefer Backend if available)
@@ -312,6 +376,8 @@ export default function MyProfilePage() {
   // Direct Reports counting and finding Manager
   const directReports = allEmployees.filter(e => e.reportingManagerId === profile.employeeId)
   const managerObj = allEmployees.find(e => e.employeeId === profile.reportingManagerId)
+  const l2ManagerObj = allEmployees.find(e => e.employeeId === profile.l2ReportingManagerId)
+  const functionalManagerObj = allEmployees.find(e => e.employeeId === profile.functionalManagerId)
 
   // Documents helper
   const findDoc = (typeKey) => {
@@ -358,12 +424,41 @@ export default function MyProfilePage() {
                       <Input maxLength={10} placeholder="e.g. 9999988888" style={{ borderRadius: 8 }} />
                     </Form.Item>
                   </Col>
-                  <Col xs={24} sm={8}>
+                  <Col xs={24} sm={12}>
+                    <Form.Item 
+                      name="whatsAppNumber" 
+                      label="WhatsApp Number" 
+                      rules={[VALIDATORS.phone]}
+                      normalize={NORMALIZE.numeric}
+                      onKeyPress={FILTER_KEYPRESS.numericOnly}
+                    >
+                      <Input maxLength={10} placeholder="e.g. 9999988888 (Optional)" style={{ borderRadius: 8 }} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={12}>
+                    <Form.Item 
+                      name="alternateMobile" 
+                      label="Alternate Mobile" 
+                      rules={[VALIDATORS.phone]}
+                      normalize={NORMALIZE.numeric}
+                      onKeyPress={FILTER_KEYPRESS.numericOnly}
+                    >
+                      <Input maxLength={10} placeholder="e.g. 9999988888 (Optional)" style={{ borderRadius: 8 }} />
+                    </Form.Item>
+                  </Col>
+                  
+                  {/* Emergency Contact */}
+                  <Col xs={24} sm={6}>
                     <Form.Item name="emergencyContactName" label="Emergency Contact Name" rules={[VALIDATORS.required('Emergency Contact Name')]}>
                       <Input placeholder="e.g. Rajesh Kumar" style={{ borderRadius: 8 }} />
                     </Form.Item>
                   </Col>
-                  <Col xs={24} sm={8}>
+                  <Col xs={24} sm={6}>
+                    <Form.Item name="emergencyContactRelation" label="Relation" rules={[VALIDATORS.required('Relation')]}>
+                      <Input placeholder="e.g. Father" style={{ borderRadius: 8 }} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={6}>
                     <Form.Item 
                       name="emergencyContactPhone" 
                       label="Emergency Contact Phone" 
@@ -374,18 +469,36 @@ export default function MyProfilePage() {
                       <Input maxLength={10} placeholder="e.g. 9876543210" style={{ borderRadius: 8 }} />
                     </Form.Item>
                   </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name="emergencyContactRelation" label="Relation" rules={[VALIDATORS.required('Relation')]}>
-                      <Input placeholder="e.g. Father" style={{ borderRadius: 8 }} />
+                  <Col xs={24} sm={6}>
+                    <Form.Item 
+                      name="alternateEmergencyContactPhone" 
+                      label="Alternate Emergency Phone" 
+                      rules={[VALIDATORS.phone]}
+                      normalize={NORMALIZE.numeric}
+                      onKeyPress={FILTER_KEYPRESS.numericOnly}
+                    >
+                      <Input maxLength={10} placeholder="e.g. 9876543211" style={{ borderRadius: 8 }} />
+                    </Form.Item>
+                  </Col>
+
+                  {/* Current Address */}
+                  <Col xs={24} sm={12}>
+                    <Form.Item name="currentAddressLine1" label="Current Address Line 1" rules={[VALIDATORS.required('Current Address Line 1')]}>
+                      <Input placeholder="Flat, House No., Building, Apartment" style={{ borderRadius: 8 }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12}>
-                    <Form.Item name="currentAddress" label="Current Address" rules={[VALIDATORS.required('Current Address')]}>
-                      <Input placeholder="e.g. Flat 302, Green Apartments" style={{ borderRadius: 8 }} />
+                    <Form.Item name="currentAddressLine2" label="Current Address Line 2">
+                      <Input placeholder="Area, Street, Sector, Village (Optional)" style={{ borderRadius: 8 }} />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={6}>
                     <Form.Item name="currentCity" label="City" rules={[VALIDATORS.required('City')]}>
+                      <Input placeholder="e.g. New Delhi" style={{ borderRadius: 8 }} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={6}>
+                    <Form.Item name="currentDistrict" label="District" rules={[VALIDATORS.required('District')]}>
                       <Input placeholder="e.g. New Delhi" style={{ borderRadius: 8 }} />
                     </Form.Item>
                   </Col>
@@ -411,31 +524,83 @@ export default function MyProfilePage() {
           ) : (
             <>
               <Card title="Personal Information" style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
-                <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
+                <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+                  <Descriptions.Item label="Title">{profile.title || '—'}</Descriptions.Item>
                   <Descriptions.Item label="Date of Birth">{profile.dateOfBirth ? dayjs(profile.dateOfBirth).format('DD MMM YYYY') : '—'}</Descriptions.Item>
                   <Descriptions.Item label="Gender">{profile.gender || '—'}</Descriptions.Item>
                   <Descriptions.Item label="Blood Group">{profile.bloodGroup || '—'}</Descriptions.Item>
                   <Descriptions.Item label="Marital Status">{profile.maritalStatus || '—'}</Descriptions.Item>
+                  {profile.maritalStatus === 'Married' && (
+                    <>
+                      <Descriptions.Item label="Spouse Name">{profile.spouseName || '—'}</Descriptions.Item>
+                      <Descriptions.Item label="Marriage Date">{profile.marriageDate ? dayjs(profile.marriageDate).format('DD MMM YYYY') : '—'}</Descriptions.Item>
+                    </>
+                  )}
+                  <Descriptions.Item label="Religion">{profile.religion || '—'}</Descriptions.Item>
+                  <Descriptions.Item label="Category">{profile.category || '—'}</Descriptions.Item>
+                  <Descriptions.Item label="Mother Tongue">{profile.motherTongue || '—'}</Descriptions.Item>
+                  <Descriptions.Item label="Father Name">{profile.fatherName || '—'}</Descriptions.Item>
+                  <Descriptions.Item label="Number of Dependents">{profile.numberOfDependents !== undefined && profile.numberOfDependents !== null ? profile.numberOfDependents : '—'}</Descriptions.Item>
+                  <Descriptions.Item label="PwD Status">{profile.pwdStatus || '—'}</Descriptions.Item>
+                  {profile.pwdStatus && profile.pwdStatus !== 'No' && (
+                    <Descriptions.Item label="PwD Certificate Number">{profile.pwdCertificateNo || '—'}</Descriptions.Item>
+                  )}
                   <Descriptions.Item label="Personal Email">{profile.personalEmail || '—'}</Descriptions.Item>
                   <Descriptions.Item label="Personal Phone">{profile.personalPhone || '—'}</Descriptions.Item>
-                  <Descriptions.Item label="Permanent Address" span={2}>{profile.permanentAddress || '—'}</Descriptions.Item>
+                  <Descriptions.Item label="Full Name As Per Aadhaar" span={2}>{profile.fullNameAadhaar || '—'}</Descriptions.Item>
+                  <Descriptions.Item label="Permanent Address" span={2}>
+                    {profile.permanentAddressLine1 ? (
+                      <div>
+                        {profile.permanentAddressLine1}
+                        {profile.permanentAddressLine2 ? `, ${profile.permanentAddressLine2}` : ''}
+                        <br />
+                        {profile.permanentCity ? `${profile.permanentCity}` : ''}
+                        {profile.permanentTaluka ? ` (Taluka: ${profile.permanentTaluka})` : ''}
+                        {profile.permanentDistrict ? `, ${profile.permanentDistrict}` : ''}
+                        {profile.permanentState ? `, ${profile.permanentState}` : ''}
+                        {profile.permanentPincode ? ` - ${profile.permanentPincode}` : ''}
+                      </div>
+                    ) : (
+                      profile.permanentAddress || '—'
+                    )}
+                  </Descriptions.Item>
                 </Descriptions>
               </Card>
               <Card title="Emergency Contacts & Current Address" style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
-                <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
+                <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+                  <Descriptions.Item label="WhatsApp Number">{profile.whatsAppNumber || '—'}</Descriptions.Item>
+                  <Descriptions.Item label="Alternate Mobile">{profile.alternateMobile || '—'}</Descriptions.Item>
                   <Descriptions.Item label="Emergency Contact">{profile.emergencyContactName || '—'}</Descriptions.Item>
                   <Descriptions.Item label="Relationship">{profile.emergencyContactRelation || '—'}</Descriptions.Item>
-                  <Descriptions.Item label="Emergency Phone" span={2}>
+                  <Descriptions.Item label="Emergency Phone">
                     {profile.emergencyContactPhone ? <a href={`tel:${profile.emergencyContactPhone}`}>{profile.emergencyContactPhone}</a> : '—'}
                   </Descriptions.Item>
-                  <Descriptions.Item label="Current Address" span={2}>{profile.currentAddress || '—'}</Descriptions.Item>
+                  <Descriptions.Item label="Alternate Emergency Phone">
+                    {profile.alternateEmergencyContactPhone ? <a href={`tel:${profile.alternateEmergencyContactPhone}`}>{profile.alternateEmergencyContactPhone}</a> : '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Current Address" span={2}>
+                    {profile.currentAddressLine1 ? (
+                      <div>
+                        {profile.currentAddressLine1}
+                        {profile.currentAddressLine2 ? `, ${profile.currentAddressLine2}` : ''}
+                        <br />
+                        {profile.currentCity ? `${profile.currentCity}` : ''}
+                        {profile.currentDistrict ? `, ${profile.currentDistrict}` : ''}
+                        {profile.currentState ? `, ${profile.currentState}` : ''}
+                        {profile.currentPincode ? ` - ${profile.currentPincode}` : ''}
+                      </div>
+                    ) : (
+                      profile.currentAddress || '—'
+                    )}
+                  </Descriptions.Item>
                   <Descriptions.Item label="City">{profile.currentCity || '—'}</Descriptions.Item>
+                  <Descriptions.Item label="District">{profile.currentDistrict || '—'}</Descriptions.Item>
                   <Descriptions.Item label="State">{profile.currentState || '—'}</Descriptions.Item>
                   <Descriptions.Item label="Pincode" span={2}>{profile.currentPincode || '—'}</Descriptions.Item>
                 </Descriptions>
               </Card>
               <Card title="Government Identifiers" style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
-                <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
+                <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
                   <Descriptions.Item label="PAN Card">{profile.maskedPAN || '—'}</Descriptions.Item>
                   <Descriptions.Item label="Aadhaar Card">{profile.maskedAadhar || '—'}</Descriptions.Item>
                   <Descriptions.Item label="UAN Number">{profile.uanNumber || '—'}</Descriptions.Item>
@@ -454,34 +619,111 @@ export default function MyProfilePage() {
       label: <span><BuildOutlined /> Employment</span>,
       children: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <Card title="Employment Details" style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
-            <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
-              <Descriptions.Item label="Joining Date">{dayjs(profile.joiningDate).format('DD MMM YYYY')}</Descriptions.Item>
-              <Descriptions.Item label="Confirmation Date">{profile.confirmationDate ? dayjs(profile.confirmationDate).format('DD MMM YYYY') : '—'}</Descriptions.Item>
+          {/* 1. Placement Hierarchy */}
+          <Card title={<span><BuildOutlined style={{ marginRight: 8 }} />Organizational Placement</span>}
+            style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+            <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+              <Descriptions.Item label="Business Unit">{profile.businessUnitName || '—'}</Descriptions.Item>
+              <Descriptions.Item label="Division">{profile.divisionName || '—'}</Descriptions.Item>
               <Descriptions.Item label="Department">{profile.departmentName || '—'}</Descriptions.Item>
-              <Descriptions.Item label="Designation">{profile.designationTitle || '—'}</Descriptions.Item>
+              <Descriptions.Item label="Sub-Department">{profile.subDeptName || '—'}</Descriptions.Item>
+              <Descriptions.Item label="Team / Section">{profile.teamName || '—'}</Descriptions.Item>
               <Descriptions.Item label="Location">{profile.locationName || '—'}</Descriptions.Item>
-              <Descriptions.Item label="Cost Center">{profile.costCenterName || '—'}</Descriptions.Item>
-              <Descriptions.Item label="Employment Type"><StatusBadge status={profile.employmentType} size="small" /></Descriptions.Item>
-              <Descriptions.Item label="Official Email">{profile.officialEmail || '—'}</Descriptions.Item>
             </Descriptions>
           </Card>
 
-          <Card title="Probation Details" style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
-            <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
-              <Descriptions.Item label="Probation End Date">{profile.probationEndDate ? dayjs(profile.probationEndDate).format('DD MMM YYYY') : '—'}</Descriptions.Item>
-              <Descriptions.Item label="Probation Status">
-                {profile.confirmationDate ? (
-                  <Tag color="success">Completed</Tag>
-                ) : (
-                  <Tag color="processing">In Progress</Tag>
-                )}
+          {/* 2. Job Architecture */}
+          <Card title={<span><IdcardOutlined style={{ marginRight: 8 }} />Job Architecture & Classification</span>}
+            style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+            <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+              <Descriptions.Item label="Grade">{profile.gradeName || '—'} {profile.gradeCode ? `(${profile.gradeCode})` : ''}</Descriptions.Item>
+              <Descriptions.Item label="Band / Level">{profile.bandName || '—'}</Descriptions.Item>
+              <Descriptions.Item label="Job Family">{profile.jobFamilyName || '—'}</Descriptions.Item>
+              <Descriptions.Item label="Job Function">{profile.jobFunctionName || '—'}</Descriptions.Item>
+              <Descriptions.Item label="Designation">{profile.designationTitle || '—'}</Descriptions.Item>
+            </Descriptions>
+          </Card>
+
+          {/* 3. Cost Accounting */}
+          <Card title={<span><DollarOutlined style={{ marginRight: 8 }} />Cost & Profit Centers</span>}
+            style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+            <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+              <Descriptions.Item label="Cost Center">{profile.costCenterName || '—'}</Descriptions.Item>
+              <Descriptions.Item label="Profit Center">{profile.profitCenterName || '—'}</Descriptions.Item>
+            </Descriptions>
+          </Card>
+
+          {/* 4. Shift & Work Settings */}
+          <Card title={<span><CalendarOutlined style={{ marginRight: 8 }} />Work Mode & Shifts</span>}
+            style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+            <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+              <Descriptions.Item label="Work Mode">
+                {profile.workMode ? <Tag color="green">{WORK_MODE.find(w => w.value === profile.workMode)?.label || profile.workMode}</Tag> : '—'}
               </Descriptions.Item>
-              <Descriptions.Item label="Status Note" span={2}>
-                {profile.confirmationDate 
-                  ? 'Employment confirmed in standard services.' 
-                  : `Probation in progress. End date configured as ${profile.probationEndDate ? dayjs(profile.probationEndDate).format('DD MMM YYYY') : '—'}.`
-                }
+              <Descriptions.Item label="Shift">
+                {profile.shiftName ? <Tag color="magenta">{profile.shiftName}</Tag> : '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Weekly Off Pattern">
+                {profile.weeklyOffPattern ? <Tag color="blue">{WEEKLY_OFF_PATTERN.find(w => w.value === profile.weeklyOffPattern)?.label || profile.weeklyOffPattern}</Tag> : '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Notice Period">{profile.noticePeriodDays !== undefined ? `${profile.noticePeriodDays} Days` : '—'}</Descriptions.Item>
+            </Descriptions>
+          </Card>
+
+          {/* 5. Classification & Status */}
+          <Card title={<span><SafetyCertificateOutlined style={{ marginRight: 8 }} />Employment Status & Payroll</span>}
+            style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+            <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+              <Descriptions.Item label="Joining Date">{dayjs(profile.joiningDate).format('DD MMM YYYY')}</Descriptions.Item>
+              <Descriptions.Item label="Confirmation Date">{profile.confirmationDate ? dayjs(profile.confirmationDate).format('DD MMM YYYY') : '—'}</Descriptions.Item>
+              <Descriptions.Item label="Employment Type">
+                {profile.employmentType ? <Tag color="orange">{EMPLOYMENT_TYPE.find(e => e.value === profile.employmentType)?.label || profile.employmentType}</Tag> : '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Employment Status"><StatusBadge status={profile.employmentStatus} /></Descriptions.Item>
+              <Descriptions.Item label="Payroll Group">
+                {profile.payrollGroup ? <Tag color="purple">{PAYROLL_GROUP.find(p => p.value === profile.payrollGroup)?.label || profile.payrollGroup}</Tag> : '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Reporting Manager">
+                {managerObj ? (
+                  <span style={{ cursor: 'pointer', textDecoration: 'underline', color: isDarkMode ? '#FAA71A' : '#10113F', fontWeight: 600 }}
+                    onClick={() => navigate(`/employees/${managerObj.employeeId}`)}>
+                    {managerObj.firstName} {managerObj.lastName}
+                  </span>
+                ) : '—'}
+              </Descriptions.Item>
+              {profile.employmentType === 'Contract' && (
+                <Descriptions.Item label="Contract End Date" span={2}>
+                  <span style={{ color: '#ff4d4f', fontWeight: 600 }}>
+                    {profile.contractEndDate ? dayjs(profile.contractEndDate).format('DD MMM YYYY') : 'Not Set'}
+                  </span>
+                </Descriptions.Item>
+              )}
+              {profile.employmentType === 'Intern' && (
+                <Descriptions.Item label="Internship Duration" span={2}>
+                  {profile.internshipDurationMonths ? `${profile.internshipDurationMonths} Months` : 'Not Set'}
+                </Descriptions.Item>
+              )}
+              {profile.employmentType === 'Consultant' && (
+                <Descriptions.Item label="Vendor Name" span={2}>
+                  {profile.vendorName || 'Not Specified'}
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+          </Card>
+
+          <Card title={<span><CalendarOutlined style={{ marginRight: 8 }} />Probation & Confirmation</span>}
+            style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+            <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
+              <Descriptions.Item label="Probation End Date">{profile.probationEndDate ? dayjs(profile.probationEndDate).format('DD MMM YYYY') : '—'}</Descriptions.Item>
+              <Descriptions.Item label="Status">
+                {profile.confirmationDate
+                  ? <Tag color="success" icon={<CheckCircleOutlined />}>Confirmed</Tag>
+                  : <Tag color="processing">On Probation</Tag>}
+              </Descriptions.Item>
+              <Descriptions.Item label="Note" span={2}>
+                {profile.confirmationDate
+                  ? `Confirmed on ${dayjs(profile.confirmationDate).format('DD MMM YYYY')}.`
+                  : `Probation in progress. End date: ${profile.probationEndDate ? dayjs(profile.probationEndDate).format('DD MMM YYYY') : 'N/A'}.`}
               </Descriptions.Item>
             </Descriptions>
           </Card>
@@ -492,131 +734,171 @@ export default function MyProfilePage() {
       key: 'reporting',
       label: <span><ApartmentOutlined /> Reporting Structure</span>,
       children: (
-        <Card title="Reporting Hierarchy" style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)', padding: '20px 0' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            
-            {/* Manager Box */}
-            <div style={{ textAlign: 'center', marginBottom: 8, width: 280 }}>
-              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700, letterSpacing: '0.04em' }}>
-                Reporting Manager
-              </div>
-              {managerObj ? (
-                <motion.div
-                  whileHover={{ y: -3, scale: 1.01 }}
-                  onClick={() => navigate(`/employees/${managerObj.employeeId}`)}
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 12, 
-                    padding: '12px 20px', 
-                    background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', 
-                    borderRadius: 14, 
-                    border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', 
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.02)',
-                    cursor: 'pointer',
-                    textAlign: 'left'
-                  }}
-                >
-                  <Avatar src={managerObj.profilePhoto} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
-                    {managerObj.firstName?.[0]}{managerObj.lastName?.[0]}
-                  </Avatar>
-                  <div style={{ overflow: 'hidden' }}>
-                    <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{managerObj.firstName} {managerObj.lastName}</div>
-                    <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{managerObj.designationTitle}</div>
-                  </div>
-                </motion.div>
-              ) : (
-                <div style={{ padding: '12px 20px', background: isDarkMode ? 'rgba(255,255,255,0.02)' : '#f1f5f9', borderRadius: 14, border: isDarkMode ? '1.5px dashed rgba(255,255,255,0.15)' : '1.5px dashed #cbd5e1', color: 'var(--color-text-muted)', fontSize: 13, fontWeight: 600 }}>
-                  Board of Directors (No Manager)
-                </div>
-              )}
-            </div>
-
-            {/* Link line */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 40 }}>
-              <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
-              <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 14, marginTop: -6 }} />
-            </div>
-
-            {/* Current Active Employee (Self) */}
-            <div style={{ textAlign: 'center', width: 310, margin: '8px 0' }}>
-              <div style={{ fontSize: 11, color: 'rgba(16,17,63,0.5)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700, letterSpacing: '0.04em' }}>
-                Current Position (You)
-              </div>
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 14, 
-                  padding: '16px 24px', 
-                  background: 'rgba(250, 167, 26, 0.08)', 
-                  borderRadius: 16, 
-                  border: '2px solid #FAA71A', 
-                  boxShadow: '0 8px 16px rgba(250, 167, 26, 0.1)',
-                  textAlign: 'left'
-                }}
-              >
-                <Avatar size={48} src={profile.profilePhoto} style={{ background: 'linear-gradient(135deg, #10113F 0%, #2d2f82 100%)', fontWeight: 700 }}>
-                  {profile.firstName?.[0]}{profile.lastName?.[0]}
-                </Avatar>
-                <div style={{ overflow: 'hidden' }}>
-                  <div style={{ fontWeight: 800, fontSize: 15, color: '#10113F', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{fullName}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(16,17,63,0.7)', marginTop: 2, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{profile.designationTitle}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(16,17,63,0.5)', fontFamily: 'monospace' }}>{profile.employeeCode}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Link line */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 40 }}>
-              <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
-              <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 14, marginTop: -6 }} />
-            </div>
-
-            {/* Direct Reports */}
-            <div style={{ textAlign: 'center', width: '100%', padding: '0 24px' }}>
-              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 12, fontWeight: 700, letterSpacing: '0.04em' }}>
-                Direct Reports ({directReports.length})
-              </div>
-              {directReports.length > 0 ? (
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  {directReports.map((dr) => (
-                    <motion.div
-                      key={dr.employeeId}
-                      whileHover={{ y: -3, scale: 1.01 }}
-                      onClick={() => navigate(`/employees/${dr.employeeId}`)}
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 10, 
-                        padding: '10px 16px', 
-                        background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', 
-                        borderRadius: 12, 
-                        border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', 
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.02)',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        width: 220
-                      }}
-                    >
-                      <Avatar src={dr.profilePhoto} style={{ background: isDarkMode ? 'var(--color-card-bg)' : '#FAA71A', color: isDarkMode ? '#FAA71A' : '#10113F', fontWeight: 600 }}>
-                        {dr.firstName?.[0]}{dr.lastName?.[0]}
+        <Card title={<span><BranchesOutlined style={{ marginRight: 8 }} />Reporting Hierarchy</span>}
+          style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)', padding: '16px 0' }}>
+          <Row gutter={[24, 24]}>
+            {/* Line Hierarchy Column */}
+            <Col xs={24} md={16} style={{ borderRight: isDarkMode ? '1px solid rgba(160, 90, 255, 0.18)' : '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                
+                {/* Skip-Level Manager (L2) */}
+                {l2ManagerObj ? (
+                  <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Skip-Level Manager (L2)</div>
+                    <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${l2ManagerObj.employeeId}`)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
+                      <Avatar src={getAvatarUrl(l2ManagerObj.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
+                        {l2ManagerObj.firstName?.[0]}{l2ManagerObj.lastName?.[0]}
                       </Avatar>
-                      <div style={{ overflow: 'hidden' }}>
-                        <div style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{dr.firstName} {dr.lastName}</div>
-                        <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{dr.designationTitle}</div>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{l2ManagerObj.firstName} {l2ManagerObj.lastName}</div>
+                        <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{l2ManagerObj.designationTitle}</div>
+                        <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{l2ManagerObj.employeeCode}</div>
                       </div>
                     </motion.div>
-                  ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Skip-Level Manager (L2)</div>
+                    <div style={{ padding: '12px 20px', background: isDarkMode ? 'rgba(140, 70, 255, 0.06)' : '#f1f5f9', borderRadius: 14, border: isDarkMode ? '1.5px dashed rgba(160, 90, 255, 0.3)' : '1.5px dashed #cbd5e1', color: 'var(--color-text-muted)', fontSize: 12, fontWeight: 600 }}>
+                      No Skip-Level Manager Assigned
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
+                  <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
+                  <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
                 </div>
-              ) : (
-                <div style={{ display: 'inline-block', padding: '12px 24px', background: isDarkMode ? 'rgba(255,255,255,0.02)' : '#f8fafc', borderRadius: 12, border: isDarkMode ? '1.5px dashed rgba(255,255,255,0.15)' : '1.5px dashed #e2e8f0', color: 'var(--color-text-muted)', fontSize: 13, fontWeight: 500 }}>
-                  No direct reports assigned
+
+                {/* Reporting Manager (L1) */}
+                <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Reporting Manager (L1)</div>
+                  {managerObj ? (
+                    <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${managerObj.employeeId}`)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
+                      <Avatar src={getAvatarUrl(managerObj.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
+                        {managerObj.firstName?.[0]}{managerObj.lastName?.[0]}
+                      </Avatar>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{managerObj.firstName} {managerObj.lastName}</div>
+                        <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{managerObj.designationTitle}</div>
+                        <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{managerObj.employeeCode}</div>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <div style={{ padding: '12px 20px', background: isDarkMode ? 'rgba(140, 70, 255, 0.06)' : '#f1f5f9', borderRadius: 14, border: isDarkMode ? '1.5px dashed rgba(160, 90, 255, 0.3)' : '1.5px dashed #cbd5e1', color: 'var(--color-text-muted)', fontSize: 12, fontWeight: 600 }}>
+                      Board of Directors (No Manager)
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            
-          </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
+                  <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
+                  <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
+                </div>
+
+                {/* Current employee (Self) */}
+                <div style={{ textAlign: 'center', width: 320, margin: '8px 0' }}>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Current Position</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 24px', background: isDarkMode ? 'rgba(250, 167, 26, 0.15)' : 'rgba(250, 167, 26, 0.08)', borderRadius: 16, border: '2px solid #FAA71A', boxShadow: '0 8px 16px rgba(250, 167, 26, 0.1)' }}>
+                    <Avatar size={48} src={getAvatarUrl(profile.profilePhoto)} style={{ background: 'linear-gradient(135deg, #10113F 0%, #2d2f82 100%)', fontWeight: 700 }}>
+                      {profile.firstName?.[0]}{profile.lastName?.[0]}
+                    </Avatar>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--color-text-primary)' }}>{fullName}</div>
+                      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{profile.designationTitle}</div>
+                      <div style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{profile.employeeCode}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
+                  <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
+                  <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
+                </div>
+
+                {/* Direct reports */}
+                <div style={{ textAlign: 'center', width: '100%' }}>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 12, fontWeight: 700 }}>
+                    Direct Reports ({directReports.length})
+                  </div>
+                  {directReports.length > 0 ? (
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+                      {directReports.map((dr) => (
+                        <motion.div key={dr.employeeId} whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${dr.employeeId}`)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 12, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer', width: 240 }}>
+                          <Avatar src={getAvatarUrl(dr.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', fontWeight: 600 }}>
+                            {dr.firstName?.[0]}{dr.lastName?.[0]}
+                          </Avatar>
+                          <div style={{ overflow: 'hidden', textAlign: 'left' }}>
+                            <div style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{dr.firstName} {dr.lastName}</div>
+                            <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{dr.designationTitle}</div>
+                            <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{dr.employeeCode}</div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'inline-block', padding: '12px 24px', background: isDarkMode ? 'rgba(140, 70, 255, 0.06)' : '#f8fafc', borderRadius: 12, border: isDarkMode ? '1.5px dashed rgba(160, 90, 255, 0.3)' : '1.5px dashed #e2e8f0', color: 'var(--color-text-muted)', fontSize: 12 }}>
+                      No direct reports assigned
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </Col>
+
+            {/* Functional Hierarchy Column */}
+            <Col xs={24} md={8}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Functional Hierarchy</div>
+                {functionalManagerObj ? (
+                  <div style={{ textAlign: 'center', marginBottom: 8, width: '100%' }}>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 8 }}>Functional Manager</div>
+                    <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${functionalManagerObj.employeeId}`)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
+                      <Avatar src={getAvatarUrl(functionalManagerObj.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
+                        {functionalManagerObj.firstName?.[0]}{functionalManagerObj.lastName?.[0]}
+                      </Avatar>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{functionalManagerObj.firstName} {functionalManagerObj.lastName}</div>
+                        <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{functionalManagerObj.designationTitle}</div>
+                        <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{functionalManagerObj.employeeCode}</div>
+                      </div>
+                    </motion.div>
+                  </div>
+                ) : (
+                  <div style={{ padding: '16px 20px', background: isDarkMode ? 'rgba(140, 70, 255, 0.06)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? '1.5px dashed rgba(160, 90, 255, 0.3)' : '1.5px dashed #cbd5e1', color: 'var(--color-text-muted)', fontSize: 12, textAlign: 'center', width: '100%' }}>
+                    No Functional Manager Assigned
+                  </div>
+                )}
+                
+                {functionalManagerObj && (
+                  <>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
+                      <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
+                      <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
+                    </div>
+                    
+                    {/* Current Employee Target */}
+                    <div style={{ textAlign: 'center', width: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', opacity: 0.8 }}>
+                        <Avatar src={getAvatarUrl(profile.profilePhoto)} style={{ background: 'linear-gradient(135deg, #10113F 0%, #2d2f82 100%)' }}>
+                          {profile.firstName?.[0]}{profile.lastName?.[0]}
+                        </Avatar>
+                        <div style={{ textAlign: 'left' }}>
+                          <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{fullName}</div>
+                          <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{profile.designationTitle}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+              </div>
+            </Col>
+          </Row>
         </Card>
       ),
     },
@@ -655,7 +937,7 @@ export default function MyProfilePage() {
                           <Tag color="warning" style={{ margin: 0 }}>Pending Verification</Tag>
                         )
                       ) : (
-                        <Tag style={{ margin: 0, background: isDarkMode ? '#1a2155' : '#e2e8f0', color: isDarkMode ? '#aaa' : '#64748b' }}>Missing</Tag>
+                        <Tag style={{ margin: 0, background: isDarkMode ? 'rgba(140, 70, 255, 0.15)' : '#e2e8f0', color: isDarkMode ? 'rgba(200,160,255,0.8)' : '#64748b' }}>Missing</Tag>
                       )}
                     </div>
                     <div style={{ marginTop: 12 }}>
@@ -731,40 +1013,37 @@ export default function MyProfilePage() {
           {banks && banks.length > 0 ? (
             <Row gutter={[16, 16]}>
               {banks.map((b) => (
-                <Col xs={24} md={12} key={b.bankDetailId}>
+                <Col xs={24} md={16} lg={14} key={b.bankDetailId}>
                   <Card
+                    className="premium-bank-card"
                     style={{
                       borderRadius: 16,
-                      background: 'linear-gradient(135deg, #10113F 0%, #1c1d5b 100%)',
-                      color: '#fff',
-                      border: 'none',
-                      boxShadow: '0 8px 20px rgba(16, 17, 63, 0.2)',
                       position: 'relative',
                       overflow: 'hidden',
-                      height: 180
+                      height: 185
                     }}
                   >
-                    <div style={{ position: 'absolute', right: -20, bottom: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(250, 167, 26, 0.15)', filter: 'blur(30px)' }} />
+                    <div style={{ position: 'absolute', right: -20, bottom: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(250, 167, 26, 0.15)', filter: 'blur(30px)', pointerEvents: 'none' }} />
                     
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 1 }}>
                       <div>
                         <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Corporate Bank</div>
-                        <div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>{b.bankName}</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2, color: '#ffffff' }}>{b.bankName}</div>
                       </div>
-                      <span style={{ fontSize: 24, color: '#FAA71A' }}><CreditCardOutlined /></span>
+                      <span style={{ fontSize: 22, color: '#FAA71A' }}><CreditCardOutlined /></span>
                     </div>
 
-                    <div style={{ marginTop: 24 }}>
+                    <div style={{ zIndex: 1 }}>
                       <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>Primary Account Number</div>
-                      <div style={{ fontSize: 18, fontWeight: 600, fontFamily: 'monospace', letterSpacing: '0.1em', marginTop: 4 }}>{b.maskedAccountNumber}</div>
+                      <div style={{ fontSize: 16, fontWeight: 600, fontFamily: 'monospace', letterSpacing: '0.08em', marginTop: 2, color: '#ffffff' }}>{b.maskedAccountNumber}</div>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 }}>
-                      <div>
-                        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.5)' }}>IFSC: </span>
-                        <span style={{ fontSize: 11, fontWeight: 600, fontFamily: 'monospace' }}>{b.ifscCode}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 1 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 100 }}>
+                        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>IFSC Code</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, fontFamily: 'monospace', color: '#ffffff', marginTop: 2 }}>{b.ifscCode}</span>
                       </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap' }}>
                         <Tag style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 9, border: 'none', margin: 0 }}>{b.accountType}</Tag>
                         {b.isPrimary && <Tag style={{ background: '#FAA71A', color: '#10113F', fontWeight: 700, border: 'none', fontSize: 9, margin: 0 }}>PRIMARY</Tag>}
                       </div>
@@ -926,7 +1205,7 @@ export default function MyProfilePage() {
                       Salary Revision {sal.isActive ? <Tag color="success" style={{ marginLeft: 8 }}>Active</Tag> : null}
                     </h4>
                     <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                      Revised Gross CTC: <strong>₹{Number(sal.grossCTC).toLocaleString('en-IN')}</strong>. Reason: {sal.revisionReason || 'Annual Revision'}.
+                      Revised Gross CTC: <strong>{hasPayrollView ? `₹${Number(sal.grossCTC).toLocaleString('en-IN')}` : '₹ ****'}</strong>. {hasPayrollView ? `Reason: ${sal.revisionReason || 'Annual Revision'}.` : ''}
                     </p>
                   </div>
                 ),
@@ -977,19 +1256,29 @@ export default function MyProfilePage() {
               <div style={{ height: 75, background: 'linear-gradient(135deg, #10113F 0%, #4D1B3B 100%)', position: 'absolute', top: 0, left: 0, right: 0, zIndex: 0 }} />
               
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-                <Avatar
-                  size={96}
-                  src={profile.profilePhoto}
-                  style={{
-                    border: isDarkMode ? '4px solid var(--color-surface)' : '4px solid #fff',
-                    background: 'linear-gradient(135deg, #10113F 0%, #2d2f82 100%)',
-                    fontSize: 32,
-                    fontWeight: 800,
-                    boxShadow: 'var(--shadow-medium)',
-                  }}
-                >
-                  {profile.firstName?.[0]}{profile.lastName?.[0]}
-                </Avatar>
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <Avatar
+                    size={96}
+                    src={getAvatarUrl(profile.profilePhoto)}
+                    style={{
+                      border: isDarkMode ? '4px solid var(--color-surface)' : '4px solid #fff',
+                      background: 'linear-gradient(135deg, #10113F 0%, #2d2f82 100%)',
+                      fontSize: 32,
+                      fontWeight: 800,
+                      boxShadow: 'var(--shadow-medium)',
+                    }}
+                  >
+                    {profile.firstName?.[0]}{profile.lastName?.[0]}
+                  </Avatar>
+                  <Tooltip title="Upload profile photo">
+                    <button
+                      onClick={() => photoRef.current?.click()}
+                      style={{ position: 'absolute', bottom: 0, right: 0, width: 28, height: 28, borderRadius: '50%', background: '#FAA71A', border: isDarkMode ? '2px solid var(--color-surface)' : '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
+                      {photoMutation.isPending ? <Spin size="small" /> : <CameraOutlined style={{ color: '#10113F', fontSize: 13 }} />}
+                    </button>
+                  </Tooltip>
+                  <input ref={photoRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={handlePhotoUpload} />
+                </div>
 
                 <h2 style={{ margin: '16px 0 4px', fontSize: 20, fontWeight: 800, color: 'var(--color-text-primary)', textAlign: 'center' }}>
                   {fullName}
@@ -999,13 +1288,25 @@ export default function MyProfilePage() {
                   <StatusBadge status={profile.employmentStatus} size="small" />
                 </div>
 
+                {/* Premium Metadata Chips */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 8px', justifyContent: 'center', width: '100%', margin: '14px 0 6px' }}>
+                  {profile.gradeName && <Tag color="blue" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>Grade: {profile.gradeName}</Tag>}
+                  {profile.bandName && <Tag color="purple" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>{profile.bandName}</Tag>}
+                  {profile.jobFamilyName && <Tag color="cyan" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>{profile.jobFamilyName}</Tag>}
+                  {profile.employmentType && <Tag color="gold" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>{EMPLOYMENT_TYPE.find(t => t.value === profile.employmentType)?.label || profile.employmentType}</Tag>}
+                  {profile.workMode && <Tag color="green" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>{WORK_MODE.find(w => w.value === profile.workMode)?.label || profile.workMode}</Tag>}
+                  {profile.shiftName && <Tag color="magenta" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>Shift: {profile.shiftName}</Tag>}
+                  {profile.payrollGroup && <Tag color="orange" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>{PAYROLL_GROUP.find(p => p.value === profile.payrollGroup)?.label || profile.payrollGroup}</Tag>}
+                  {profile.costCenterName && <Tag color="geekblue" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>CC: {profile.costCenterName}</Tag>}
+                </div>
+
                 {/* Profile Completion Indicator */}
                 <div style={{ width: '100%', marginTop: 20, background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', padding: 12, borderRadius: 12, border: isDarkMode ? 'var(--border-glass)' : '1px solid #f1f5f9' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Profile Completion</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-primary)' }}>{completionPercentage}%</span>
                   </div>
-                  <Progress percent={completionPercentage} showInfo={false} strokeColor="#FAA71A" trailColor={isDarkMode ? 'rgba(255,255,255,0.08)' : '#e2e8f0'} size="small" />
+                  <Progress percent={completionPercentage} showInfo={false} strokeColor="#FAA71A" trailColor={isDarkMode ? 'rgba(160, 90, 255, 0.2)' : '#e2e8f0'} size="small" />
                   
                   <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {completionChecks.map((c) => (

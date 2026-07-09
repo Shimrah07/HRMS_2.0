@@ -37,6 +37,33 @@ public class User : BaseEntity
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+    public ICollection<PasswordHistory> PasswordHistories { get; set; } = new List<PasswordHistory>();
+    public ICollection<SecurityAuditLog> SecurityAuditLogs { get; set; } = new List<SecurityAuditLog>();
+}
+
+public class PasswordHistory
+{
+    public Guid HistoryId { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public string PasswordHash { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public User User { get; set; } = null!;
+}
+
+public class SecurityAuditLog
+{
+    public Guid LogId { get; set; } = Guid.NewGuid();
+    public string EventType { get; set; } = string.Empty; // LOGIN_SUCCESS, LOGIN_FAILURE, ACCOUNT_LOCKED, PASSWORD_CHANGE, PASSWORD_RESET, ACCOUNT_UNLOCKED, ACCESS_DENIED, LOGOUT
+    public Guid? UserId { get; set; }
+    public string? Username { get; set; }
+    public string? IpAddress { get; set; }
+    public string? UserAgent { get; set; }
+    public string? Details { get; set; }
+    public bool IsSuccess { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public User? User { get; set; }
 }
 
 public class Role : BaseEntity
@@ -195,6 +222,99 @@ public class CostCenter : BaseEntity
     public Employee? ManagerEmployee { get; set; }
 }
 
+public class BusinessUnit : BaseEntity
+{
+    public Guid BusinessUnitId { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+
+    public Company Company { get; set; } = null!;
+    public ICollection<Division> Divisions { get; set; } = new List<Division>();
+}
+
+public class Division : BaseEntity
+{
+    public Guid DivisionId { get; set; } = Guid.NewGuid();
+    public Guid BusinessUnitId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+
+    public BusinessUnit BusinessUnit { get; set; } = null!;
+}
+
+
+public class Team : BaseEntity
+{
+    public Guid TeamId { get; set; } = Guid.NewGuid();
+    public Guid SubDeptId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+
+    public Department SubDepartment { get; set; } = null!;
+}
+
+public class GradeMaster : BaseEntity
+{
+    public Guid GradeId { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public int NoticePeriodDays { get; set; }
+    public bool IsActive { get; set; } = true;
+
+    public Company Company { get; set; } = null!;
+}
+
+public class BandMaster : BaseEntity
+{
+    public Guid BandId { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+
+    public Company Company { get; set; } = null!;
+}
+
+public class JobFamily : BaseEntity
+{
+    public Guid JobFamilyId { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+
+    public Company Company { get; set; } = null!;
+    public ICollection<JobFunction> JobFunctions { get; set; } = new List<JobFunction>();
+}
+
+public class JobFunction : BaseEntity
+{
+    public Guid JobFunctionId { get; set; } = Guid.NewGuid();
+    public Guid JobFamilyId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+
+    public JobFamily JobFamily { get; set; } = null!;
+}
+
+public class ProfitCenter : BaseEntity
+{
+    public Guid ProfitCenterId { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+
+    public Company Company { get; set; } = null!;
+}
+
+
 // ─── Employee ─────────────────────────────────────────────────────────────────
 
 public class Employee : BaseEntity
@@ -202,36 +322,68 @@ public class Employee : BaseEntity
     public Guid EmployeeId { get; set; } = Guid.NewGuid();
     public Guid CompanyId { get; set; }
     public string EmployeeCode { get; set; } = string.Empty;
+    public string? EmployeeCategory { get; set; }
+    // ── Personal Information ─────────────────────────────────────────────
+    public EmployeeTitle? Title { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string? MiddleName { get; set; }
     public string LastName { get; set; } = string.Empty;
+    public string? FullNameAadhaar { get; set; }
     public DateOnly? DateOfBirth { get; set; }
     public Gender? Gender { get; set; }
     public BloodGroup? BloodGroup { get; set; }
     public MaritalStatus? MaritalStatus { get; set; }
+    public DateOnly? MarriageDate { get; set; }
+    public string? SpouseName { get; set; }
+    public string? FatherName { get; set; }
+    public EmployeeCategory? Category { get; set; }
+    public PwdStatus? PwdStatus { get; set; }
+    public string? PwdCertificateNo { get; set; }
+    public MotherTongue? MotherTongue { get; set; }
+    public int? NumberOfDependents { get; set; }
+    public string? Nationality { get; set; }
+    public string? Religion { get; set; }
+    // ── Contact Information ──────────────────────────────────────────────
     public string? PersonalEmail { get; set; }
     public string? OfficialEmail { get; set; }
     public string? PersonalPhone { get; set; }
+    public string? OfficialMobile { get; set; }
+    public string? AlternateMobile { get; set; }
+    public string? WhatsAppNumber { get; set; }
+    public string? ExtensionNumber { get; set; }
     public string? EmergencyContactName { get; set; }
     public string? EmergencyContactPhone { get; set; }
     public string? EmergencyContactRelation { get; set; }
-    public string? PermanentAddress { get; set; }
+    public string? AlternateEmergencyContactPhone { get; set; }
+    // ── Address ─────────────────────────────────────────────────────────
+    public string? PermanentAddress { get; set; }  // legacy free-text (backward compat)
+    public string? PermanentAddressLine1 { get; set; }
+    public string? PermanentAddressLine2 { get; set; }
     public string? PermanentCity { get; set; }
+    public string? PermanentDistrict { get; set; }
+    public string? PermanentTaluka { get; set; }
     public string? PermanentState { get; set; }
     public string? PermanentPincode { get; set; }
-    public string? CurrentAddress { get; set; }
+    public bool SameAddressFlag { get; set; }
+    public string? CurrentAddress { get; set; }    // legacy free-text (backward compat)
+    public string? CurrentAddressLine1 { get; set; }
+    public string? CurrentAddressLine2 { get; set; }
     public string? CurrentCity { get; set; }
+    public string? CurrentDistrict { get; set; }
     public string? CurrentState { get; set; }
     public string? CurrentPincode { get; set; }
-    public string? Nationality { get; set; }
-    public string? Religion { get; set; }
-    // AES-256 encrypted fields
+    public string? DomicileState { get; set; }
+    // ── Identity Documents (AES-256 encrypted) ───────────────────────────
     public string? AadharNumber { get; set; }
     public string? PANNumber { get; set; }
+    public string? AadharHash { get; set; }
+    public string? PANHash { get; set; }
     public string? UANNumber { get; set; }
     public string? ESINumber { get; set; }
     public string? PassportNumber { get; set; }
     public DateOnly? PassportExpiry { get; set; }
+    public string? NPSPRANNumber { get; set; }
+    public string? PreviousEmployerPFNumber { get; set; }
     public DateOnly JoiningDate { get; set; }
     public DateOnly? ConfirmationDate { get; set; }
     public DateOnly? ProbationEndDate { get; set; }
@@ -240,6 +392,25 @@ public class Employee : BaseEntity
     public Guid LocationId { get; set; }
     public Guid? CostCenterId { get; set; }
     public Guid? ReportingManagerId { get; set; }
+    public Guid? L2ReportingManagerId { get; set; }
+    public Guid? FunctionalManagerId { get; set; }
+    public Guid? BusinessUnitId { get; set; }
+    public Guid? DivisionId { get; set; }
+    public Guid? SubDeptId { get; set; }
+    public Guid? TeamId { get; set; }
+    public Guid? GradeId { get; set; }
+    public Guid? BandId { get; set; }
+    public Guid? JobFamilyId { get; set; }
+    public Guid? JobFunctionId { get; set; }
+    public Guid? ProfitCenterId { get; set; }
+    public Guid? ShiftId { get; set; }
+    public WeeklyOffPattern? WeeklyOffPattern { get; set; }
+    public PayrollGroup? PayrollGroup { get; set; }
+    public WorkMode? WorkMode { get; set; }
+    public int NoticePeriodDays { get; set; }
+    public DateOnly? ContractEndDate { get; set; }
+    public int? InternshipDurationMonths { get; set; }
+    public string? VendorName { get; set; }
     public EmploymentType EmploymentType { get; set; } = EmploymentType.FullTime;
     public EmploymentStatus EmploymentStatus { get; set; } = EmploymentStatus.Active;
     public string? ProfilePhoto { get; set; }
@@ -250,7 +421,19 @@ public class Employee : BaseEntity
     public Designation Designation { get; set; } = null!;
     public Location Location { get; set; } = null!;
     public CostCenter? CostCenter { get; set; }
+    public ProfitCenter? ProfitCenter { get; set; }
+    public BusinessUnit? BusinessUnit { get; set; }
+    public Division? Division { get; set; }
+    public Department? SubDepartment { get; set; }
+    public Team? Team { get; set; }
+    public GradeMaster? Grade { get; set; }
+    public BandMaster? Band { get; set; }
+    public JobFamily? JobFamily { get; set; }
+    public JobFunction? JobFunction { get; set; }
     public Employee? ReportingManager { get; set; }
+    public Employee? L2ReportingManager { get; set; }
+    public Employee? FunctionalManager { get; set; }
+    public ShiftMaster? Shift { get; set; }
     public ICollection<Employee> DirectReports { get; set; } = new List<Employee>();
     public ICollection<EmployeeDocument> Documents { get; set; } = new List<EmployeeDocument>();
     public ICollection<EmployeeBankDetail> BankDetails { get; set; } = new List<EmployeeBankDetail>();
@@ -277,6 +460,9 @@ public class EmployeeDocument : BaseEntity
     public Guid? VerifiedBy { get; set; }
     public DateTime? VerifiedAt { get; set; }
     public bool IsVerified { get; set; }
+    public string? DocumentNumber { get; set; }
+    public DateOnly? ExpiryDate { get; set; }
+    public string? Remarks { get; set; }
 
     public Employee Employee { get; set; } = null!;
     public User? VerifiedByUser { get; set; }
@@ -293,6 +479,9 @@ public class EmployeeBankDetail : BaseEntity
     public AccountType AccountType { get; set; }
     public bool IsPrimary { get; set; }
     public bool IsActive { get; set; } = true;
+    public BankVerificationStatus VerificationStatus { get; set; } = BankVerificationStatus.Pending;
+    public DateTime? VerifiedAt { get; set; }
+    public Guid? VerifiedBy { get; set; }
 
     public Employee Employee { get; set; } = null!;
 }
@@ -634,8 +823,9 @@ public class JobRequisition : BaseEntity
 {
     public Guid ReqId { get; set; } = Guid.NewGuid();
     public Guid CompanyId { get; set; }
-    public Guid DeptId { get; set; }
-    public Guid DesignationId { get; set; }
+    public Guid? DeptId { get; set; }
+    public Guid? DesignationId { get; set; }
+    public Guid? GradeId { get; set; }
     public int NoOfPositions { get; set; }
     public string JobTitle { get; set; } = string.Empty;
     public string? JobDescription { get; set; }
@@ -650,12 +840,85 @@ public class JobRequisition : BaseEntity
     public Guid RaisedBy { get; set; }
     public Guid? ApprovedBy { get; set; }
 
+    public GradeMaster? Grade { get; set; }
+
+    // Enterprise Enhancements
+    public string MrfNumber { get; set; } = string.Empty;
+    public Guid? SubDeptId { get; set; }
+    public Guid? HiringManagerId { get; set; }
+    public string Priority { get; set; } = "Normal";
+    public string VacancyType { get; set; } = "New";
+    public Guid? ReplacingEmployeeId { get; set; }
+    public string Justification { get; set; } = string.Empty;
+    public string SourcingPreference { get; set; } = "All";
+    public string? InternalHiringJustification { get; set; }
+    public string? InternalHiringRemarks { get; set; }
+    public Guid? CurrentApproverId { get; set; }
+    public int CurrentApprovalLevel { get; set; } = 0;
+
     public Company Company { get; set; } = null!;
-    public Department Department { get; set; } = null!;
-    public Designation Designation { get; set; } = null!;
+    public Department? Department { get; set; }
+    public Designation? Designation { get; set; }
     public User RaisedByUser { get; set; } = null!;
     public User? ApprovedByUser { get; set; }
     public ICollection<JobApplication> JobApplications { get; set; } = new List<JobApplication>();
+    public ICollection<JobPosting> JobPostings { get; set; } = new List<JobPosting>();
+}
+
+public class ApprovalWorkflowConfig : BaseEntity
+{
+    public Guid ConfigId { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    public Guid? DeptId { get; set; }
+    public string? EmploymentType { get; set; }
+    public decimal? BudgetThreshold { get; set; }
+    public string ApproverRolesJson { get; set; } = string.Empty;
+}
+
+public class RequisitionAuditTrail : BaseEntity
+{
+    public Guid AuditId { get; set; } = Guid.NewGuid();
+    public Guid ReqId { get; set; }
+    public string Action { get; set; } = string.Empty;
+    public Guid ActionBy { get; set; }
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public string? Remarks { get; set; }
+
+    public JobRequisition JobRequisition { get; set; } = null!;
+}
+
+public class JobPosting : BaseEntity
+{
+    public Guid JobId { get; set; } = Guid.NewGuid();
+    public Guid ReqId { get; set; }
+    public string JobTitle { get; set; } = string.Empty;
+    public string? JobDescription { get; set; }
+    public string? PublishChannels { get; set; } // Deprecated string channel column for backward compatibility
+    public DateTime PostedAt { get; set; } = DateTime.UtcNow;
+    public DateOnly? ExpiryDate { get; set; }
+    public bool ShowSalary { get; set; } = false; // Deprecated flag
+    public JobPostingStatus Status { get; set; } = JobPostingStatus.Draft;
+
+    // Enterprise ATS Sourcing Schema
+    public string? JobCategory { get; set; }
+    public string? Industry { get; set; }
+    public string? EmploymentType { get; set; }
+    public decimal? ExperienceMin { get; set; }
+    public decimal? ExperienceMax { get; set; }
+    public bool ShowSalaryRange { get; set; } = false;
+    public bool ShowCompanyName { get; set; } = true;
+    public bool AutoUnpublish { get; set; } = false;
+    public bool ScreeningEnabled { get; set; } = false;
+
+    public string? RolesAndResponsibilities { get; set; }
+    public string? Requirements { get; set; }
+    public string? SkillsRequired { get; set; }
+    public string? Benefits { get; set; }
+
+    public JobRequisition JobRequisition { get; set; } = null!;
+    public ICollection<JobPostingQuestion> JobPostingQuestions { get; set; } = new List<JobPostingQuestion>();
+    public ICollection<JobPostingChannel> PublishingChannels { get; set; } = new List<JobPostingChannel>();
+    public ICollection<JobPostingPerk> PerksAndBenefits { get; set; } = new List<JobPostingPerk>();
 }
 
 public class Candidate : BaseEntity
@@ -665,16 +928,38 @@ public class Candidate : BaseEntity
     public string? LastName { get; set; }
     public string Email { get; set; } = string.Empty;
     public string? Phone { get; set; }
+    public Gender? Gender { get; set; }
     public string? CurrentDesignation { get; set; }
     public string? CurrentCompany { get; set; }
-    public int? TotalExperience { get; set; }
+    public decimal? TotalExperience { get; set; }
     public decimal? CurrentCTC { get; set; }
     public decimal? ExpectedCTC { get; set; }
     public int? NoticePeriodDays { get; set; }
     public string? ResumeFilePath { get; set; }
-    public string? Source { get; set; }
+    public CandidateSource? Source { get; set; }
 
+    // Enterprise ATS Sourcing Schema
+    public decimal? RelevantExperience { get; set; }
+    public string? HighestQualification { get; set; }
+    public string? PreferredLocation { get; set; }
+    public string? CurrentLocation { get; set; }
+    public string? WillingToRelocate { get; set; }
+    public Guid? ReferralEmployeeId { get; set; }
+    public string? CandidateTags { get; set; }
+    public CandidateStatus CandidateStatus { get; set; } = CandidateStatus.Active;
+    public DateTime? LastApplicationDate { get; set; }
+
+    public DateOnly? DateOfBirth { get; set; }
+    public string? LinkedIn { get; set; }
+    public string? Portfolio { get; set; }
+    public string? Skills { get; set; }
+    public string? Languages { get; set; }
+
+    public Employee? ReferralEmployee { get; set; }
     public ICollection<JobApplication> JobApplications { get; set; } = new List<JobApplication>();
+    public ICollection<BGVRecord> BGVRecords { get; set; } = new List<BGVRecord>();
+    public ICollection<OnboardingProcess> Onboardings { get; set; } = new List<OnboardingProcess>();
+    public ICollection<CandidateAnswer> CandidateAnswers { get; set; } = new List<CandidateAnswer>();
 }
 
 public class JobApplication : BaseEntity
@@ -685,11 +970,60 @@ public class JobApplication : BaseEntity
     public DateTime ApplicationDate { get; set; } = DateTime.UtcNow;
     public ApplicationStage CurrentStage { get; set; } = ApplicationStage.Applied;
     public string? RejectionReason { get; set; }
+    public decimal? AiMatchScore { get; set; }
 
     public JobRequisition Requisition { get; set; } = null!;
     public Candidate Candidate { get; set; } = null!;
     public ICollection<InterviewRound> InterviewRounds { get; set; } = new List<InterviewRound>();
     public ICollection<OfferLetter> OfferLetters { get; set; } = new List<OfferLetter>();
+}
+
+public class JobPostingQuestion : BaseEntity
+{
+    public Guid QuestionId { get; set; } = Guid.NewGuid();
+    public Guid JobPostingId { get; set; }
+    public string Question { get; set; } = string.Empty;
+    public string QuestionType { get; set; } = "YesNo"; // YesNo, Number, Text
+    public bool Required { get; set; } = false;
+    public bool DealBreaker { get; set; } = false;
+    public string? ExpectedAnswer { get; set; }
+    public int Sequence { get; set; }
+    public int Weightage { get; set; } = 10;
+
+    public JobPosting JobPosting { get; set; } = null!;
+    public ICollection<CandidateAnswer> CandidateAnswers { get; set; } = new List<CandidateAnswer>();
+}
+
+public class JobPostingChannel : BaseEntity
+{
+    public Guid ChannelId { get; set; } = Guid.NewGuid();
+    public Guid JobId { get; set; }
+    public string ChannelName { get; set; } = string.Empty;
+
+    public JobPosting JobPosting { get; set; } = null!;
+}
+
+public class JobPostingPerk : BaseEntity
+{
+    public Guid PerkId { get; set; } = Guid.NewGuid();
+    public Guid JobId { get; set; }
+    public string PerkName { get; set; } = string.Empty;
+
+    public JobPosting JobPosting { get; set; } = null!;
+}
+
+public class CandidateAnswer : BaseEntity
+{
+    public Guid AnswerId { get; set; } = Guid.NewGuid();
+    public Guid CandidateId { get; set; }
+    public Guid QuestionId { get; set; }
+    public string Answer { get; set; } = string.Empty;
+    public bool Passed { get; set; } = true;
+    public DateTime AnsweredOn { get; set; } = DateTime.UtcNow;
+    public Guid? AnsweredBy { get; set; }
+
+    public Candidate Candidate { get; set; } = null!;
+    public JobPostingQuestion JobPostingQuestion { get; set; } = null!;
 }
 
 public class InterviewRound : BaseEntity
@@ -709,6 +1043,84 @@ public class InterviewRound : BaseEntity
 
     public JobApplication JobApplication { get; set; } = null!;
     public Employee Interviewer { get; set; } = null!;
+    public ICollection<InterviewRoundPanelist> Panelists { get; set; } = new List<InterviewRoundPanelist>();
+}
+
+public class InterviewRoundPanelist : BaseEntity
+{
+    public Guid PanelistId { get; set; } = Guid.NewGuid();
+    public Guid RoundId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public string Status { get; set; } = "Pending";
+    public decimal? Rating { get; set; }
+    public string? Feedback { get; set; }
+    public DateTime? SubmittedAt { get; set; }
+
+    public InterviewRound InterviewRound { get; set; } = null!;
+    public Employee Employee { get; set; } = null!;
+}
+
+public class BGVRecord : BaseEntity
+{
+    public Guid BGVId { get; set; } = Guid.NewGuid();
+    public Guid CandidateId { get; set; }
+    public string AgencyName { get; set; } = string.Empty;
+    public string BGVType { get; set; } = "Standard";
+    public string Status { get; set; } = "Pending";
+    public string? DiscrepancyNotes { get; set; }
+    public DateTime? InitiatedAt { get; set; }
+    public string IdentityStatus { get; set; } = "Pending";
+    public string EmploymentStatus { get; set; } = "Pending";
+    public string EducationStatus { get; set; } = "Pending";
+    public string CriminalStatus { get; set; } = "Pending";
+    public string ReferenceStatus { get; set; } = "Pending";
+    public string CreditStatus { get; set; } = "Pending";
+
+    public Candidate Candidate { get; set; } = null!;
+}
+
+public class OnboardingProcess : BaseEntity
+{
+    public Guid OnboardingId { get; set; } = Guid.NewGuid();
+    public Guid CandidateId { get; set; }
+    public string AccessToken { get; set; } = string.Empty;
+    public DateTime TokenExpiresAt { get; set; }
+    public string Status { get; set; } = "PreJoining";
+    public bool PersonalInfoCompleted { get; set; }
+    public bool DocumentsUploaded { get; set; }
+    public string HRChecklistJson { get; set; } = "[]";
+    public string ITChecklistJson { get; set; } = "[]";
+    public string AdminChecklistJson { get; set; } = "[]";
+    public string? AssetAllocation { get; set; }
+    public Guid? BuddyEmployeeId { get; set; }
+    public string? InductionSchedule { get; set; }
+    public string TransitionHistoryJson { get; set; } = "[]";
+
+    public Candidate Candidate { get; set; } = null!;
+    public Employee? BuddyEmployee { get; set; }
+    public ICollection<OnboardingTask> Tasks { get; set; } = new List<OnboardingTask>();
+}
+
+public class OnboardingTask : BaseEntity
+{
+    public Guid TaskId { get; set; } = Guid.NewGuid();
+    public Guid OnboardingId { get; set; }
+    public string TaskName { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Department { get; set; } = string.Empty; // HR, IT, Admin, Manager, Employee
+    public Guid? OwnerId { get; set; } // EmployeeId of task owner
+    public string OwnerName { get; set; } = string.Empty;
+    public string Priority { get; set; } = "Medium"; // Low, Medium, High, Critical
+    public DateOnly? DueDate { get; set; }
+    public DateOnly? CompletionDate { get; set; }
+    public string Status { get; set; } = "Pending"; // Pending, InProgress, Completed, Overdue, Blocked
+    public int? SLADays { get; set; }
+    public string Remarks { get; set; } = string.Empty;
+    public string? AttachmentPath { get; set; }
+    public string AuditHistoryJson { get; set; } = "[]"; // Log edits to this task
+
+    public OnboardingProcess OnboardingProcess { get; set; } = null!;
+    public Employee? Owner { get; set; }
 }
 
 public class OfferLetter : BaseEntity
@@ -784,6 +1196,22 @@ public class PerformanceReview : BaseEntity
     public AppraisalCycle Cycle { get; set; } = null!;
     public Employee Employee { get; set; } = null!;
     public Employee Reviewer { get; set; } = null!;
+}
+
+public class ProbationReview : BaseEntity
+{
+    public Guid ReviewId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public int CheckpointDays { get; set; } // 30, 60, 90
+    public DateOnly ReviewDueDate { get; set; }
+    public DateOnly? CompletedDate { get; set; }
+    public string Rating { get; set; } = string.Empty; // Meets Expectations, Needs Improvement, Unsatisfactory
+    public string Comments { get; set; } = string.Empty;
+    public string Status { get; set; } = "Pending"; // Pending, Completed
+    public Guid? ReviewerId { get; set; }
+
+    public Employee Employee { get; set; } = null!;
+    public Employee? Reviewer { get; set; }
 }
 
 public class PIP : BaseEntity

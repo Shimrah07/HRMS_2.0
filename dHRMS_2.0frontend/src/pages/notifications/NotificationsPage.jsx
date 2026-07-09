@@ -106,13 +106,13 @@ export default function NotificationsPage() {
                 key={notif.notificationId}
                 style={{
                   padding: '16px 20px',
-                  background: notif.isRead ? 'transparent' : (isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(16,17,63,0.02)'),
+                  background: notif.isRead ? 'transparent' : (isDarkMode ? 'rgba(140, 70, 255, 0.08)' : 'rgba(16,17,63,0.02)'),
                   borderLeft: notif.isRead ? '3px solid transparent' : (isDarkMode ? '3px solid #FAA71A' : '3px solid #10113F'),
                   cursor: 'pointer',
                   transition: 'background 0.15s',
                 }}
-                onMouseEnter={(e) => { if (notif.isRead) e.currentTarget.style.background = isDarkMode ? 'rgba(255, 255, 255, 0.02)' : '#FAFAFA' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = notif.isRead ? 'transparent' : (isDarkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(16,17,63,0.02)') }}
+                onMouseEnter={(e) => { if (notif.isRead) e.currentTarget.style.background = isDarkMode ? 'rgba(140, 70, 255, 0.05)' : '#FAFAFA' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = notif.isRead ? 'transparent' : (isDarkMode ? 'rgba(140, 70, 255, 0.08)' : 'rgba(16,17,63,0.02)') }}
                 onClick={() => { if (!notif.isRead) markReadMutation.mutate(notif.notificationId) }}
                 actions={[
                   <Popconfirm key="delete" title="Delete this notification?" onConfirm={(e) => { e.stopPropagation(); deleteMutation.mutate(notif.notificationId) }}>
@@ -122,7 +122,7 @@ export default function NotificationsPage() {
               >
                 <List.Item.Meta
                   avatar={
-                    <div style={{ width: 40, height: 40, borderRadius: 10, background: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(16,17,63,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: isDarkMode ? 'rgba(160, 90, 255, 0.12)' : 'rgba(16,17,63,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
                       {NOTIF_ICONS[notif.notificationType] || '🔔'}
                     </div>
                   }

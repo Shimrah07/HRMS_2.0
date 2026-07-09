@@ -1,7 +1,6 @@
 import { Form, Input, Button, Checkbox, notification } from 'antd'
-import { 
-  UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone, SunOutlined, MoonOutlined,
-  LaptopOutlined, TeamOutlined, CheckCircleOutlined, ClockCircleOutlined, FireOutlined
+import {
+  UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone, SunOutlined, MoonOutlined
 } from '@ant-design/icons'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
@@ -10,6 +9,7 @@ import useAuthStore from '../../store/authStore'
 import { authService } from '../../services/authService'
 import useUIStore from '../../store/uiStore'
 import { useEffect, useState } from 'react'
+import teamIllustration from '../../assets/illustrations/undraw_creative-team_wfty.svg'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -18,7 +18,6 @@ export default function LoginPage() {
   const [form] = Form.useForm()
 
   const [focusedField, setFocusedField] = useState(null)
-  const [selectedQuickRole, setSelectedQuickRole] = useState(null)
 
   const passwordValue = Form.useWatch('password', form) || ''
 
@@ -39,6 +38,13 @@ export default function LoginPage() {
   }
   const strength = getPasswordStrength(passwordValue)
 
+  // Lock body scroll while on the login page so no page-level scrollbar appears
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
+
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard', { replace: true })
@@ -51,12 +57,19 @@ export default function LoginPage() {
     onSuccess: (response) => {
       if (response.success && response.data) {
         setAuth(response.data)
+        const mustChange = response.data?.user?.mustChangePassword
         notification.success({
-          message: 'Access Granted',
-          description: 'Welcome to MPOSethu. Session established.',
+          message: mustChange ? 'Password Change Required' : 'Access Granted',
+          description: mustChange
+            ? 'Please set a new password before continuing.'
+            : 'Welcome to IndiaHRMS. Session established.',
           placement: 'topRight',
         })
-        navigate('/dashboard', { replace: true })
+        if (mustChange) {
+          navigate('/change-password', { replace: true })
+        } else {
+          navigate('/dashboard', { replace: true })
+        }
       } else {
         const errorText = response.message || response.errors?.[0] || 'Invalid credentials. Please try again.'
         notification.error({
@@ -85,24 +98,20 @@ export default function LoginPage() {
     })
   }
 
-  const handleQuickAccess = (username) => {
-    form.setFieldsValue({
-      username,
-      password: 'Hrms@123456',
-      rememberMe: true,
-    })
-  }
-
   if (isAuthenticated) {
     return null
   }
 
   return (
     <div
-      className="min-h-screen h-auto md:h-screen md:overflow-hidden overflow-y-auto"
+      className="login-page-root"
       style={{
         display: 'flex',
-        background: 'var(--color-surface)',
+        height: '100dvh',
+        overflow: 'hidden',
+        background: isDarkMode
+          ? 'linear-gradient(135deg, #0A0420 0%, #130830 50%, #1C0E45 100%)'
+          : 'var(--color-surface)',
         position: 'relative',
         transition: 'background-color 0.25s ease',
       }}
@@ -136,9 +145,25 @@ export default function LoginPage() {
           width: '50vw',
           height: '50vw',
           background: isDarkMode
-            ? 'radial-gradient(circle, rgba(250,167,26,0.04) 0%, rgba(250,167,26,0) 70%)'
+            ? 'radial-gradient(circle, rgba(250,167,26,0.18) 0%, rgba(250,167,26,0) 70%)'
             : 'radial-gradient(circle, rgba(250,167,26,0.07) 0%, rgba(250,167,26,0) 70%)',
           filter: 'blur(100px)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+      {/* Extra violet blob — top left */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '-10%',
+          left: '-5%',
+          width: '35vw',
+          height: '35vw',
+          background: isDarkMode
+            ? 'radial-gradient(circle, rgba(130,60,220,0.22) 0%, rgba(130,60,220,0) 70%)'
+            : 'transparent',
+          filter: 'blur(90px)',
           pointerEvents: 'none',
           zIndex: 0,
         }}
@@ -151,7 +176,7 @@ export default function LoginPage() {
           width: '40vw',
           height: '40vw',
           background: isDarkMode
-            ? 'radial-gradient(circle, rgba(77,27,59,0.08) 0%, rgba(77,27,59,0) 70%)'
+            ? 'radial-gradient(circle, rgba(155,50,200,0.3) 0%, rgba(155,50,200,0) 70%)'
             : 'radial-gradient(circle, rgba(77,27,59,0.05) 0%, rgba(77,27,59,0) 70%)',
           filter: 'blur(80px)',
           pointerEvents: 'none',
@@ -166,6 +191,7 @@ export default function LoginPage() {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         style={{
           flex: '0 0 45%',
+          minWidth: '420px',
           background: 'linear-gradient(135deg, #10113F 0%, #20133A 35%, #4D1B3B 70%, #861630 100%)',
           display: 'flex',
           flexDirection: 'column',
@@ -231,93 +257,67 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Floating Mini-Dashboard Cards Mockup */}
-        <div style={{ position: 'relative', height: 320, width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2, margin: '20px 0' }}>
-          {/* Card 1: Payroll Stats */}
+        {/* Team Page Illustration */}
+        <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2, margin: '20px 0', flex: 1, minHeight: 0 }}>
+          {/* Pulsing backdrop glow orb */}
           <motion.div
-            initial={{ y: 20, rotate: -6 }}
-            animate={{ y: 0, rotate: -4 }}
-            whileHover={{ scale: 1.05, rotate: -2, zIndex: 10 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            animate={{
+              scale: [1, 1.12, 1],
+              opacity: [0.65, 0.95, 0.65]
+            }}
+            transition={{
+              repeat: Infinity,
+              duration: 5,
+              ease: 'easeInOut'
+            }}
             style={{
               position: 'absolute',
-              top: 10,
-              left: 10,
-              width: 220,
-              background: 'rgba(255, 255, 255, 0.05)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: 16,
-              padding: 16,
-              boxShadow: '0 12px 36px rgba(0, 0, 0, 0.25)'
+              width: 'min(240px, 60%)',
+              height: 'min(240px, 60%)',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(250, 167, 26, 0.22) 0%, transparent 70%)',
+              filter: 'blur(30px)',
+              pointerEvents: 'none',
+              zIndex: 0,
             }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>PAYROLL STATUS</div>
-              <CheckCircleOutlined style={{ color: '#FAA71A', fontSize: 14 }} />
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>₹8.45 Lakhs</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>June 2026 Processed</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
-              <span style={{ fontSize: 10, color: '#10B981', fontWeight: 600 }}>100% Compliant (PF & ESI)</span>
-            </div>
-          </motion.div>
+          />
 
-          {/* Card 2: Attendance Tracking */}
-          <motion.div
-            initial={{ y: 40, rotate: 6 }}
-            animate={{ y: 0, rotate: 4 }}
-            whileHover={{ scale: 1.05, rotate: 2, zIndex: 10 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            style={{
-              position: 'absolute',
-              bottom: 20,
-              right: 10,
-              width: 220,
-              background: 'rgba(255, 255, 255, 0.05)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: 16,
-              padding: 16,
-              boxShadow: '0 12px 36px rgba(0, 0, 0, 0.25)'
+          <motion.img
+            src={teamIllustration}
+            alt="Team Collaboration"
+            initial={{ opacity: 0, scale: 0.95, y: 0 }}
+            animate={{
+              opacity: 1,
+              scale: 1,
+              y: [0, -10, 0]
             }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ATTENDANCE PUNCH</div>
-              <ClockCircleOutlined style={{ color: '#FAA71A', fontSize: 14 }} />
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>Geo-punch Active</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>98.4% Present Today</div>
-            <div style={{ display: 'flex', gap: 4, marginTop: 12 }}>
-              {[1, 2, 3, 4, 5].map((item) => (
-                <div key={item} style={{ flex: 1, height: 4, borderRadius: 2, background: item < 5 ? '#10B981' : 'rgba(255,255,255,0.15)' }} />
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Card 3: Employee Stats */}
-          <motion.div
-            initial={{ scale: 0.9, y: 10 }}
-            animate={{ scale: 1, y: 0 }}
-            whileHover={{ scale: 1.05, zIndex: 10 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            style={{
-              position: 'absolute',
-              width: 160,
-              background: 'linear-gradient(135deg, rgba(250,167,26,0.18) 0%, rgba(250,167,26,0.03) 100%)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(250,167,26,0.3)',
-              borderRadius: 16,
-              padding: 14,
-              boxShadow: '0 12px 36px rgba(0, 0, 0, 0.3)',
-              zIndex: 3
+            transition={{
+              opacity: { duration: 0.6 },
+              scale: { duration: 0.6 },
+              y: {
+                repeat: Infinity,
+                duration: 4.2,
+                ease: 'easeInOut'
+              }
             }}
-          >
-            <div style={{ fontSize: 9, fontWeight: 700, color: '#FAA71A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>EMPLOYEES</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', lineHeight: 1 }}>142 Active</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>+12 Joined this month</div>
-          </motion.div>
+            whileHover={{
+              scale: 1.05,
+              filter: isDarkMode
+                ? 'drop-shadow(0 16px 32px rgba(250, 167, 26, 0.35))'
+                : 'drop-shadow(0 16px 32px rgba(16, 17, 63, 0.22))'
+            }}
+            style={{
+              width: '100%',
+              maxHeight: 'min(38vh, 300px)',
+              objectFit: 'contain',
+              zIndex: 1,
+              filter: isDarkMode
+                ? 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.35))'
+                : 'drop-shadow(0 10px 20px rgba(16, 17, 63, 0.08))',
+              transition: 'filter 0.3s ease',
+              cursor: 'pointer'
+            }}
+          />
         </div>
 
         {/* Center content in Glass Card */}
@@ -347,9 +347,9 @@ export default function LoginPage() {
               letterSpacing: '-0.02em',
             }}
           >
-            The operating system for
+            Connecting teams,
             <br />
-            <span style={{ color: '#FAA71A' }}>modern workforces.</span>
+            empowering <span style={{ color: '#FAA71A' }}>workforces.</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -357,14 +357,13 @@ export default function LoginPage() {
             transition={{ delay: 0.5, duration: 0.5 }}
             style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.5, margin: 0, maxWidth: 380 }}
           >
-            MPOSethu manages employee compliance, lifecycle tracking, payroll, attendance, and human resources utilities under a unified, high-performance platform.
+            MPOSethu brings your entire organization together under a unified, high-performance employee experience platform.
           </motion.p>
         </div>
-
         {/* Footer */}
         <div style={{ position: 'relative', zIndex: 2, color: 'rgba(255,255,255,0.3)', fontSize: 11, lineHeight: 1.4 }}>
           © MP Online Limited · MPOSethu
-          <br />
+          {/* <br /> */}
           All rights reserved.
         </div>
       </motion.div>
@@ -379,6 +378,7 @@ export default function LoginPage() {
           padding: 'min(4vh, 48px) min(4vw, 40px)',
           position: 'relative',
           zIndex: 1,
+          overflowY: 'auto',
         }}
       >
         <motion.div
@@ -387,30 +387,34 @@ export default function LoginPage() {
           transition={{ duration: 0.5, delay: 0.1 }}
           style={{
             width: '100%',
-            maxWidth: 460,
-            background: 'var(--color-card-bg)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
+            maxWidth: 450,
+            background: isDarkMode
+              ? 'rgba(14, 7, 38, 0.9)'
+              : 'var(--color-card-bg)',
+            backdropFilter: 'blur(32px)',
+            WebkitBackdropFilter: 'blur(32px)',
             borderRadius: 24,
-            border: 'var(--border-glass)',
+            border: isDarkMode
+              ? '1px solid rgba(160, 90, 255, 0.22)'
+              : 'var(--border-glass)',
             boxShadow: isDarkMode
-              ? '0 20px 45px -12px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.05)'
+              ? '0 24px 70px -12px rgba(10, 2, 30, 0.9), 0 0 0 1px rgba(150,70,255,0.1), inset 0 1px 0 rgba(200,160,255,0.08)'
               : '0 20px 45px -12px rgba(16, 17, 63, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.6)',
-            padding: '32px 36px',
+            padding: '22px 28px',
             transition: 'background-color 0.25s ease, border 0.25s ease, box-shadow 0.25s ease',
           }}
         >
           {/* Mobile logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }} className="flex md:hidden">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }} className="flex md:hidden">
             <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #10113F 0%, #2d2f82 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FAA71A', fontWeight: 900, fontSize: 14 }}>MP</div>
             <span style={{ fontWeight: 800, fontSize: 18, color: isDarkMode ? '#ffffff' : '#10113F', letterSpacing: '-0.01em', transition: 'color 0.25s' }}>MPOSethu</span>
           </div>
 
-          <div style={{ marginBottom: 24 }}>
-            <h2 style={{ fontSize: 26, fontWeight: 800, color: isDarkMode ? '#ffffff' : '#10113F', margin: '0 0 6px', letterSpacing: '-0.02em', transition: 'color 0.25s', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ marginBottom: 16 }}>
+            <h2 style={{ fontSize: 23, fontWeight: 800, color: isDarkMode ? '#ffffff' : '#10113F', margin: '0 0 4px', letterSpacing: '-0.02em', transition: 'color 0.25s', display: 'flex', alignItems: 'center', gap: 8 }}>
               Welcome back <span className="wave-emoji">👋</span>
             </h2>
-            <p style={{ color: isDarkMode ? 'rgba(240, 244, 255, 0.6)' : 'rgba(16,17,63,0.55)', margin: 0, fontSize: 13.5, fontWeight: 500, transition: 'color 0.25s' }}>
+            <p style={{ color: isDarkMode ? 'rgba(240, 244, 255, 0.6)' : 'rgba(16,17,63,0.55)', margin: 0, fontSize: 13, fontWeight: 500, transition: 'color 0.25s' }}>
               Sign in to access your workspace
             </p>
           </div>
@@ -435,26 +439,26 @@ export default function LoginPage() {
                 {i === 0 ? (
                   <Form.Item
                     label={
-                      <span style={{ 
-                        fontWeight: 600, 
-                        color: focusedField === 'username' 
-                          ? '#FAA71A' 
-                          : (isDarkMode ? 'rgba(240,244,255,0.85)' : '#10113F'), 
-                        fontSize: 12.5, 
-                        transition: 'color 0.2s' 
+                      <span style={{
+                        fontWeight: 600,
+                        color: focusedField === 'username'
+                          ? '#FAA71A'
+                          : (isDarkMode ? 'rgba(240,244,255,0.85)' : '#10113F'),
+                        fontSize: 12,
+                        transition: 'color 0.2s'
                       }}>
                         Email Address / Username
                       </span>
                     }
                     name="username"
-                    style={{ marginBottom: 20 }}
+                    style={{ marginBottom: 14 }}
                     rules={[
                       { required: true, message: 'Please enter your email address or username.' },
                       {
                         validator: (_, value) => {
                           if (!value) return Promise.resolve()
                           const trimmed = value.trim()
-                          if (trimmed.includes('@') || !['super_admin', 'hr_manager', 'employee', 'admin', 'it_admin', 'hr_admin', 'payroll_admin', 'dept_manager'].includes(trimmed)) {
+                          if (trimmed.includes('@')) {
                             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
                             if (!emailRegex.test(trimmed)) {
                               return Promise.reject(new Error('Enter a valid work email address (example: john@company.com).'))
@@ -471,14 +475,16 @@ export default function LoginPage() {
                       disabled={loginMutation.isPending}
                       onFocus={() => setFocusedField('username')}
                       onBlur={() => setFocusedField(null)}
-                      style={{ 
-                        borderRadius: 12, 
+                      style={{
+                        borderRadius: 12,
                         height: 48,
-                        background: isDarkMode ? 'rgba(10,12,35,0.45)' : '#fff',
-                        border: focusedField === 'username' 
-                          ? '2px solid #FAA71A' 
-                          : (isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(16,17,63,0.12)'),
-                        boxShadow: focusedField === 'username' ? '0 0 10px rgba(250,167,26,0.15)' : 'none',
+                        background: isDarkMode ? 'rgba(10, 4, 28, 0.8)' : '#fff',
+                        border: focusedField === 'username'
+                          ? '2px solid #FAA71A'
+                          : (isDarkMode ? '1px solid rgba(160,90,255,0.28)' : '1px solid rgba(16,17,63,0.12)'),
+                        boxShadow: focusedField === 'username'
+                          ? '0 0 0 3px rgba(250,167,26,0.22), 0 0 20px rgba(250,167,26,0.14)'
+                          : (isDarkMode ? '0 0 0 1px rgba(140,70,255,0.06)' : 'none'),
                         transition: 'all 0.2s ease'
                       }}
                     />
@@ -487,19 +493,19 @@ export default function LoginPage() {
                   <>
                     <Form.Item
                       label={
-                        <span style={{ 
-                          fontWeight: 600, 
-                          color: focusedField === 'password' 
-                            ? '#FAA71A' 
-                            : (isDarkMode ? 'rgba(240,244,255,0.85)' : '#10113F'), 
-                          fontSize: 12.5, 
-                          transition: 'color 0.2s' 
+                        <span style={{
+                          fontWeight: 600,
+                          color: focusedField === 'password'
+                            ? '#FAA71A'
+                            : (isDarkMode ? 'rgba(240,244,255,0.85)' : '#10113F'),
+                          fontSize: 12,
+                          transition: 'color 0.2s'
                         }}>
                           Password
                         </span>
                       }
                       name="password"
-                      style={{ marginBottom: passwordValue && passwordValue.trim().length > 0 ? 8 : 20 }}
+                      style={{ marginBottom: passwordValue && passwordValue.trim().length > 0 ? 6 : 14 }}
                       rules={[{ required: true, message: 'Please enter your password.' }]}
                     >
                       <Input.Password
@@ -508,14 +514,16 @@ export default function LoginPage() {
                         disabled={loginMutation.isPending}
                         onFocus={() => setFocusedField('password')}
                         onBlur={() => setFocusedField(null)}
-                        style={{ 
-                          borderRadius: 12, 
+                        style={{
+                          borderRadius: 12,
                           height: 48,
-                          background: isDarkMode ? 'rgba(10,12,35,0.45)' : '#fff',
-                          border: focusedField === 'password' 
-                            ? '2px solid #FAA71A' 
-                            : (isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(16,17,63,0.12)'),
-                          boxShadow: focusedField === 'password' ? '0 0 10px rgba(250,167,26,0.15)' : 'none',
+                          background: isDarkMode ? 'rgba(10, 4, 28, 0.8)' : '#fff',
+                          border: focusedField === 'password'
+                            ? '2px solid #FAA71A'
+                            : (isDarkMode ? '1px solid rgba(160,90,255,0.28)' : '1px solid rgba(16,17,63,0.12)'),
+                          boxShadow: focusedField === 'password'
+                            ? '0 0 0 3px rgba(250,167,26,0.22), 0 0 20px rgba(250,167,26,0.14)'
+                            : (isDarkMode ? '0 0 0 1px rgba(140,70,255,0.06)' : 'none'),
                           transition: 'all 0.2s ease'
                         }}
                         iconRender={(visible) => visible ? <EyeTwoTone twoToneColor="#FAA71A" /> : <EyeInvisibleOutlined />}
@@ -523,7 +531,7 @@ export default function LoginPage() {
                     </Form.Item>
                     {/* Password strength bar */}
                     {passwordValue && passwordValue.trim().length > 0 && (
-                      <div style={{ marginTop: -12, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ marginTop: -8, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ flex: 1, height: 6, borderRadius: 3, background: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(16,17,63,0.08)', overflow: 'hidden' }}>
                           <motion.div
                             initial={{ width: 0 }}
@@ -540,7 +548,7 @@ export default function LoginPage() {
               </motion.div>
             ))}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <Form.Item name="rememberMe" valuePropName="checked" noStyle>
                 <Checkbox style={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(16,17,63,0.6)', fontSize: 13, fontWeight: 500, transition: 'color 0.25s' }} disabled={loginMutation.isPending}>Remember me</Checkbox>
               </Form.Item>
@@ -552,7 +560,7 @@ export default function LoginPage() {
               </a>
             </div>
 
-            <Form.Item style={{ marginBottom: 16 }}>
+            <Form.Item style={{ marginBottom: 12 }}>
               <Button
                 type="primary"
                 htmlType="submit"
@@ -564,12 +572,13 @@ export default function LoginPage() {
                   borderRadius: 12,
                   fontSize: 15,
                   fontWeight: 700,
-                  background: isDarkMode 
-                    ? 'linear-gradient(135deg, #FAA71A 0%, #f57c00 100%)' 
+                  background: isDarkMode
+                    ? 'linear-gradient(135deg, #FAA71A 0%, #f59e0b 100%)'
                     : 'linear-gradient(135deg, #10113F 0%, #4D1B3B 100%)',
                   border: 'none',
-                  boxShadow: isDarkMode 
-                    ? '0 4px 14px rgba(250, 167, 26, 0.25)' 
+                  color: isDarkMode ? '#0A0420' : '#ffffff',
+                  boxShadow: isDarkMode
+                    ? '0 4px 24px rgba(250, 167, 26, 0.5), 0 0 60px rgba(160,70,255,0.12)'
                     : '0 4px 14px rgba(16, 17, 63, 0.2)',
                   transition: 'all 0.2s ease'
                 }}
@@ -579,104 +588,8 @@ export default function LoginPage() {
             </Form.Item>
           </Form>
 
-          {/* Quick Access Demo Panel */}
-          <div style={{
-            marginTop: 16,
-            padding: '14px 16px',
-            borderRadius: 16,
-            background: isDarkMode ? 'rgba(255,255,255,0.02)' : 'rgba(16,17,63,0.015)',
-            border: isDarkMode ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(16,17,63,0.06)',
-          }}>
-            <div style={{
-              fontSize: 10.5,
-              fontWeight: 800,
-              color: isDarkMode ? 'rgba(255,255,255,0.65)' : '#10113F',
-              marginBottom: 12,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-            }}>
-              <FireOutlined style={{ color: '#FAA71A' }} />
-              Quick Sandbox Logins
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
-              {[
-                { label: 'Admin', username: 'super_admin', icon: <LaptopOutlined /> },
-                { label: 'Manager', username: 'hr_manager', icon: <TeamOutlined /> },
-                { label: 'Employee', username: 'employee', icon: <UserOutlined /> },
-              ].map((role) => {
-                const isSelected = selectedQuickRole === role.username;
-                return (
-                  <div
-                    key={role.username}
-                    onClick={() => {
-                      setSelectedQuickRole(role.username);
-                      handleQuickAccess(role.username);
-                    }}
-                    style={{
-                      cursor: 'pointer',
-                      padding: '10px 8px',
-                      borderRadius: 12,
-                      textAlign: 'center',
-                      background: isSelected 
-                        ? (isDarkMode ? 'rgba(250,167,26,0.12)' : 'rgba(250,167,26,0.06)') 
-                        : (isDarkMode ? 'rgba(255,255,255,0.02)' : '#fff'),
-                      border: isSelected 
-                        ? '1.5px solid #FAA71A' 
-                        : (isDarkMode ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(16,17,63,0.1)'),
-                      boxShadow: isSelected 
-                        ? '0 4px 12px rgba(250,167,26,0.12)' 
-                        : '0 2px 4px rgba(0,0,0,0.01)',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 6
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.border = isDarkMode ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(16,17,63,0.2)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.border = isDarkMode ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(16,17,63,0.1)';
-                      }
-                    }}
-                  >
-                    <div style={{ 
-                      width: 32, 
-                      height: 32, 
-                      borderRadius: '50%', 
-                      background: isSelected ? '#FAA71A' : (isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(16,17,63,0.04)'), 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      color: isSelected ? '#10113F' : (isDarkMode ? 'rgba(255,255,255,0.75)' : '#10113F'),
-                      fontSize: 14,
-                      transition: 'all 0.2s ease'
-                    }}>
-                      {role.icon}
-                    </div>
-                    <div style={{ 
-                      fontSize: 11, 
-                      fontWeight: 700, 
-                      color: isSelected ? '#FAA71A' : (isDarkMode ? 'rgba(240,244,255,0.8)' : 'rgba(16,17,63,0.85)') 
-                    }}>{role.label}</div>
-                  </div>
-                );
-              })}
-            </div>
-            
-            <div style={{ fontSize: 10.5, color: isDarkMode ? 'rgba(255,255,255,0.35)' : 'rgba(16,17,63,0.45)', marginTop: 6, fontWeight: 500, lineHeight: 1.4 }}>
-              💡 Selecting a role auto-fills sandbox credentials. Fallback verification works on <code style={{ color: isDarkMode ? '#FAA71A' : '#861630', fontWeight: 600 }}>Hrms@123456</code>.
-            </div>
-          </div>
 
-          <p style={{ textAlign: 'center', color: isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(16,17,63,0.4)', fontSize: 12, marginTop: 16, fontWeight: 500, transition: 'color 0.25s' }}>
+          <p style={{ textAlign: 'center', color: isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(16,17,63,0.4)', fontSize: 11.5, marginTop: 10, fontWeight: 500, transition: 'color 0.25s' }}>
             Secure enterprise login · Protected by JWT
           </p>
         </motion.div>

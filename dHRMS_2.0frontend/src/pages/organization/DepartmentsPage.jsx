@@ -29,7 +29,7 @@ function DeptTree({ depts, onEdit, onDelete }) {
           marginBottom: 4,
           background: level === 0 ? (isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(16,17,63,0.03)') : 'transparent',
           border: level === 0 ? (isDarkMode ? 'var(--border-glass)' : '1px solid rgba(16,17,63,0.08)') : 'none',
-          borderLeft: level > 0 ? (isDarkMode ? '2px solid rgba(255,255,255,0.2)' : '2px solid rgba(16,17,63,0.12)') : undefined,
+          borderLeft: level > 0 ? (isDarkMode ? '2px solid rgba(160, 90, 255, 0.3)' : '2px solid rgba(16,17,63,0.12)') : undefined,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

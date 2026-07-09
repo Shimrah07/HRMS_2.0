@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import React from 'react'
 import { Layout, Tooltip } from 'antd'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -37,11 +39,19 @@ const NAV_GROUPS = [
     ],
   },
   {
+    key: 'self-service',
+    label: 'MY WORKSPACE',
+    // Only visible for all authenticated users — self-service
+    items: [
+      { key: '/employees/my-profile', icon: <UserOutlined />, label: 'My Profile', permission: null, selfOnly: true },
+    ],
+  },
+  {
     key: 'people',
     label: 'PEOPLE',
     items: [
-      { key: '/employees', icon: <TeamOutlined />,      label: 'Employees', permission: PERMISSIONS.EMPLOYEE.VIEW },
-      { key: '/org-chart', icon: <ApartmentOutlined />, label: 'Org Chart', permission: PERMISSIONS.EMPLOYEE.VIEW },
+      { key: '/employees', icon: <TeamOutlined />,      label: 'Employees',      permission: PERMISSIONS.EMPLOYEE.VIEW, hideForEmployee: true },
+      { key: '/org-chart', icon: <ApartmentOutlined />, label: 'Org Chart',      permission: PERMISSIONS.EMPLOYEE.VIEW, hideForEmployee: true },
     ],
   },
   {
@@ -66,8 +76,24 @@ const NAV_GROUPS = [
     key: 'growth',
     label: 'GROWTH',
     items: [
-      { key: '/performance',  icon: <RocketOutlined />, label: 'Performance',  permission: PERMISSIONS.PERFORMANCE.VIEW,  badge: 'Soon' },
-      { key: '/recruitment',  icon: <BookOutlined />,   label: 'Recruitment',  permission: PERMISSIONS.RECRUITMENT.VIEW,  badge: 'Soon' },
+      { key: '/performance',  icon: <RocketOutlined />, label: 'Performance',  permission: PERMISSIONS.PERFORMANCE.VIEW },
+      {
+        key: '/recruitment',
+        icon: <BookOutlined />,
+        label: 'Recruitment',
+        permission: PERMISSIONS.RECRUITMENT.VIEW,
+        children: [
+          { key: '/recruitment', label: 'Manpower Requisition' },
+          { key: '/recruitment/jobs', label: 'Job Openings' },
+          { key: '/recruitment/candidates', label: 'Candidate Database' },
+          { key: '/recruitment/pipeline', label: 'ATS Pipeline' },
+          { key: '/recruitment/interviews', label: 'Interviews' },
+          { key: '/recruitment/offers', label: 'CTC & Offers' },
+          { key: '/recruitment/onboarding', label: 'Onboarding Tasks' },
+          { key: '/recruitment/probation', label: 'Probation Tracking' },
+          { key: '/recruitment/confirmation', label: 'Confirmations' }
+        ]
+      },
     ],
   },
   {
@@ -86,14 +112,40 @@ export default function Sidebar() {
   const location   = useLocation()
   const { sidebarCollapsed, toggleSidebar } = useUIStore()
   const { can, isSuperAdmin } = usePermission()
+  const { roles } = useAuthStore()
+  const [recruitmentOpen, setRecruitmentOpen] = useState(true)
 
-  const isActive = (key) => location.pathname.startsWith(key)
+  const isEmployee = roles.includes('EMPLOYEE') && !roles.some(r =>
+    ['SUPER_ADMIN', 'HR_ADMIN', 'HR_MANAGER', 'HR_EXEC', 'PAYROLL_ADMIN', 'IT_ADMIN',
+     'REPORTING_MGR', 'DEPT_MANAGER', 'COMPLIANCE_OFFICER', 'AUDITOR', 'FINANCE_VIEWER'].includes(r)
+  )
+
+  const isActive = (key) => location.pathname === key || location.pathname.startsWith(key + '/')
 
   const filteredGroups = NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter(
-      (item) => item.permission === null || isSuperAdmin || can(item.permission)
-    ),
+    items: group.items
+      .filter((item) => {
+        // Hide employee-specific items for non-employees (they already have employee list access)
+        if (item.selfOnly && !isEmployee) return false
+        // Hide HR-only items from pure employees
+        if (item.hideForEmployee && isEmployee) return false
+        // Check permission
+        if (item.permission === null) return true
+        return isSuperAdmin || can(item.permission)
+      })
+      .map((item) => {
+        if (item.children) {
+          const isHRRole = roles.some(r => ['SUPER_ADMIN', 'HR_ADMIN', 'HR_MANAGER', 'RECRUITMENT_MANAGER'].includes(r));
+          return {
+            ...item,
+            children: isHRRole 
+              ? item.children 
+              : item.children.filter(child => child.key === '/recruitment')
+          };
+        }
+        return item;
+      })
   })).filter((group) => group.items.length > 0)
 
   return (
@@ -111,9 +163,9 @@ export default function Sidebar() {
         zIndex: 200,
         overflowY: 'auto',
         overflowX: 'hidden',
-        background: 'linear-gradient(180deg, #10113F 0%, #0a0c2e 55%, #07091f 100%)',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
-        boxShadow: '4px 0 32px rgba(0, 0, 0, 0.2)',
+        background: 'linear-gradient(180deg, #130830 0%, #0E0522 55%, #0A0420 100%)',
+        borderRight: '1px solid rgba(160, 90, 255, 0.15)',
+        boxShadow: '4px 0 32px rgba(5, 2, 20, 0.4)',
         transition: 'width 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
@@ -206,16 +258,29 @@ export default function Sidebar() {
             {/* Items */}
             {group.items.map((item) => {
               const active = isActive(item.key)
+              const hasChildren = item.children && item.children.length > 0
+              const isMenuOpen = item.key === '/recruitment' ? recruitmentOpen : false
 
               const navItem = (
                 <div
-                  key={item.key}
-                  role="menuitem"
+                  role="button"
                   tabIndex={0}
                   aria-label={item.label}
                   aria-current={active ? 'page' : undefined}
-                  onClick={() => navigate(item.key)}
-                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate(item.key)}
+                  onClick={() => {
+                    if (hasChildren) {
+                      setRecruitmentOpen(!recruitmentOpen)
+                    }
+                    navigate(item.key)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      if (hasChildren) {
+                        setRecruitmentOpen(!recruitmentOpen)
+                      }
+                      navigate(item.key)
+                    }
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -227,12 +292,10 @@ export default function Sidebar() {
                     cursor: 'pointer',
                     position: 'relative',
                     userSelect: 'none',
-                    // Active state
                     background: active
                       ? 'linear-gradient(90deg, rgba(250,167,26,0.18) 0%, rgba(250,167,26,0.04) 100%)'
                       : 'transparent',
                     borderLeft: active ? '3px solid #FAA71A' : '3px solid transparent',
-                    // Active glow (key upgrade)
                     boxShadow: active
                       ? '0 2px 16px rgba(250,167,26,0.15), inset 0 0 0 1px rgba(250,167,26,0.08)'
                       : 'none',
@@ -251,7 +314,6 @@ export default function Sidebar() {
                     }
                   }}
                 >
-                  {/* Icon */}
                   <span
                     style={{
                       fontSize: 16,
@@ -265,7 +327,6 @@ export default function Sidebar() {
                     {item.icon}
                   </span>
 
-                  {/* Label */}
                   <AnimatePresence>
                     {!sidebarCollapsed && (
                       <motion.span
@@ -289,7 +350,6 @@ export default function Sidebar() {
                     )}
                   </AnimatePresence>
 
-                  {/* Badge (e.g. "Soon") */}
                   {!sidebarCollapsed && item.badge && (
                     <span
                       style={{
@@ -309,12 +369,63 @@ export default function Sidebar() {
                 </div>
               )
 
-              return sidebarCollapsed ? (
-                <Tooltip key={item.key} title={item.label} placement="right">
-                  {navItem}
-                </Tooltip>
-              ) : (
-                <div key={item.key}>{navItem}</div>
+              return (
+                <React.Fragment key={item.key}>
+                  {sidebarCollapsed ? (
+                    <Tooltip title={item.label} placement="right">
+                      {navItem}
+                    </Tooltip>
+                  ) : (
+                    <div>
+                      {navItem}
+                      {hasChildren && isMenuOpen && (
+                        <div style={{ paddingLeft: 24, display: 'flex', flexDirection: 'column', gap: 2, margin: '2px 0' }}>
+                          {item.children.map(child => {
+                            const childActive = location.pathname === child.key;
+                            return (
+                              <div
+                                key={child.key}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => navigate(child.key)}
+                                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate(child.key)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  height: 34,
+                                  padding: '0 12px',
+                                  margin: '1px 8px',
+                                  borderRadius: 8,
+                                  cursor: 'pointer',
+                                  fontSize: 12.5,
+                                  fontWeight: childActive ? 600 : 400,
+                                  color: childActive ? '#FAA71A' : 'rgba(255,255,255,0.6)',
+                                  background: childActive ? 'rgba(250,167,26,0.1)' : 'transparent',
+                                  borderLeft: childActive ? '2px solid #FAA71A' : '2px solid transparent',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={e => {
+                                  if (!childActive) {
+                                    e.currentTarget.style.color = '#FAA71A';
+                                    e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                                  }
+                                }}
+                                onMouseLeave={e => {
+                                  if (!childActive) {
+                                    e.currentTarget.style.color = 'rgba(255,255,255,0.6)';
+                                    e.currentTarget.style.background = 'transparent';
+                                  }
+                                }}
+                              >
+                                {child.label}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </React.Fragment>
               )
             })}
           </div>

@@ -61,7 +61,7 @@ export default function PayrollPage() {
                 <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Annual Gross CTC</div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-text-primary)', marginTop: 4 }}>₹9,60,000</div>
               </div>
-              <Avatar size={42} icon={<AccountBookOutlined />} style={{ background: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(16,17,63,0.05)', color: isDarkMode ? '#FAA71A' : '#10113F' }} />
+              <Avatar size={42} icon={<AccountBookOutlined />} style={{ background: isDarkMode ? 'rgba(160, 90, 255, 0.12)' : 'rgba(16,17,63,0.05)', color: isDarkMode ? '#FAA71A' : '#10113F' }} />
             </Space>
           </Card>
         </Col>
@@ -134,7 +134,7 @@ export default function PayrollPage() {
               </div>
             </div>
 
-            <Divider style={{ margin: '16px 0', borderColor: isDarkMode ? 'rgba(255,255,255,0.12)' : '#ddd' }} />
+            <Divider style={{ margin: '16px 0', borderColor: isDarkMode ? 'rgba(160, 90, 255, 0.2)' : '#ddd' }} />
 
             {/* Employee info */}
             <Row gutter={[16, 12]} style={{ fontSize: 12, marginBottom: 20 }}>
@@ -156,19 +156,19 @@ export default function PayrollPage() {
                 <div className="earnings-header" style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', padding: '6px 10px', fontWeight: 700, fontSize: 12 }}>EARNINGS</div>
                 <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', marginTop: 8 }}>
                   <tbody>
-                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid #eee' }}>
+                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(160, 90, 255, 0.18)' : '1px solid #eee' }}>
                       <td style={{ padding: '8px 4px' }}>Basic Salary</td>
                       <td style={{ padding: '8px 4px', textAlign: 'right' }}>₹{selectedPayslip.basic.toLocaleString('en-IN')}</td>
                     </tr>
-                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid #eee' }}>
+                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(160, 90, 255, 0.18)' : '1px solid #eee' }}>
                       <td style={{ padding: '8px 4px' }}>HRA (House Rent Allowance)</td>
                       <td style={{ padding: '8px 4px', textAlign: 'right' }}>₹{selectedPayslip.hra.toLocaleString('en-IN')}</td>
                     </tr>
-                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid #eee' }}>
+                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(160, 90, 255, 0.18)' : '1px solid #eee' }}>
                       <td style={{ padding: '8px 4px' }}>Special Allowance</td>
                       <td style={{ padding: '8px 4px', textAlign: 'right' }}>₹{selectedPayslip.special.toLocaleString('en-IN')}</td>
                     </tr>
-                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid #eee' }}>
+                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(160, 90, 255, 0.18)' : '1px solid #eee' }}>
                       <td style={{ padding: '8px 4px' }}>LTA (Leave Travel Allowance)</td>
                       <td style={{ padding: '8px 4px', textAlign: 'right' }}>₹{selectedPayslip.lta.toLocaleString('en-IN')}</td>
                     </tr>
@@ -184,19 +184,19 @@ export default function PayrollPage() {
                 <div className="deductions-header" style={{ background: '#861630', color: '#fff', padding: '6px 10px', fontWeight: 700, fontSize: 12 }}>DEDUCTIONS</div>
                 <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', marginTop: 8 }}>
                   <tbody>
-                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid #eee' }}>
+                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(160, 90, 255, 0.18)' : '1px solid #eee' }}>
                       <td style={{ padding: '8px 4px' }}>Provident Fund (PF)</td>
                       <td style={{ padding: '8px 4px', textAlign: 'right' }}>₹{selectedPayslip.pf.toLocaleString('en-IN')}</td>
                     </tr>
-                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid #eee' }}>
+                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(160, 90, 255, 0.18)' : '1px solid #eee' }}>
                       <td style={{ padding: '8px 4px' }}>Professional Tax (PT)</td>
                       <td style={{ padding: '8px 4px', textAlign: 'right' }}>₹{selectedPayslip.pt.toLocaleString('en-IN')}</td>
                     </tr>
-                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid #eee' }}>
+                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(160, 90, 255, 0.18)' : '1px solid #eee' }}>
                       <td style={{ padding: '8px 4px' }}>Income Tax (TDS)</td>
                       <td style={{ padding: '8px 4px', textAlign: 'right' }}>₹{selectedPayslip.tds.toLocaleString('en-IN')}</td>
                     </tr>
-                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid #eee', height: 33 }}><td/><td/></tr>
+                    <tr style={{ borderBottom: isDarkMode ? '1px solid rgba(160, 90, 255, 0.18)' : '1px solid #eee', height: 33 }}><td/><td/></tr>
                     <tr style={{ fontWeight: 700 }}>
                       <td style={{ padding: '8px 4px' }}>Total Deductions</td>
                       <td style={{ padding: '8px 4px', textAlign: 'right' }}>₹{(selectedPayslip.pf + selectedPayslip.pt + selectedPayslip.tds).toLocaleString('en-IN')}</td>
@@ -206,10 +206,10 @@ export default function PayrollPage() {
               </Col>
             </Row>
 
-            <Divider style={{ margin: '16px 0', borderColor: isDarkMode ? 'rgba(255,255,255,0.12)' : '#ddd' }} />
+            <Divider style={{ margin: '16px 0', borderColor: isDarkMode ? 'rgba(16, 90, 255, 0.2)' : '#ddd' }} />
 
             {/* Net Pay summary */}
-            <div className="summary-box" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isDarkMode ? 'rgba(255,255,255,0.03)' : '#f9f9f9', padding: '12px 16px', borderRadius: 8 }}>
+            <div className="summary-box" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isDarkMode ? 'rgba(140, 70, 255, 0.08)' : '#f9f9f9', padding: '12px 16px', borderRadius: 8 }}>
               <div>
                 <span style={{ fontSize: 11, textTransform: 'uppercase', color: isDarkMode ? 'var(--color-text-muted)' : '#666' }}>Net Pay Amount (In Words)</span>
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: isDarkMode ? 'var(--color-text-primary)' : '#333', marginTop: 4 }}>Rupees Seventy-Two Thousand Five Hundred Only</div>

@@ -697,7 +697,7 @@ export default function PerformancePage() {
                             <Progress
                               percent={progress}
                               strokeColor="var(--color-accent)"
-                              trailColor="rgba(16, 17, 63, 0.08)"
+                              trailColor={isDarkMode ? 'rgba(160, 90, 255, 0.2)' : 'rgba(16, 17, 63, 0.08)'}
                               size="small"
                               className="mt-1"
                             />

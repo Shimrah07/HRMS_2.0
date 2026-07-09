@@ -4,7 +4,20 @@ import { API } from '../constants/api'
 export const employeeService = {
   // ─── Employee Core ────────────────────────────────────────────────────────
   getEmployees: async (params = {}) => {
-    const { data } = await apiClient.get(API.EMPLOYEES.LIST, { params })
+    const searchParams = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return
+      if (Array.isArray(value)) {
+        value.forEach(val => {
+          if (val !== undefined && val !== null && val !== '') {
+            searchParams.append(key, val)
+          }
+        })
+      } else {
+        searchParams.append(key, value)
+      }
+    })
+    const { data } = await apiClient.get(API.EMPLOYEES.LIST, { params: searchParams })
     return data
   },
 
@@ -53,10 +66,13 @@ export const employeeService = {
     return data
   },
 
-  uploadDocument: async (id, file, docType) => {
+  uploadDocument: async (id, file, docType, documentNumber = null, expiryDate = null, remarks = null) => {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('docType', docType)
+    if (documentNumber) formData.append('documentNumber', documentNumber)
+    if (expiryDate) formData.append('expiryDate', expiryDate)
+    if (remarks) formData.append('remarks', remarks)
     const { data } = await apiClient.post(API.EMPLOYEES.DOCUMENTS(id), formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })

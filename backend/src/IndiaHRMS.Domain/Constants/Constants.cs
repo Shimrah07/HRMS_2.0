@@ -121,6 +121,14 @@ public static class PermissionCodes
         public const string View = "AUDIT.VIEW";
         public const string Export = "AUDIT.EXPORT";
     }
+
+    public static class Security
+    {
+        public const string UnlockAccount = "SECURITY.UNLOCK_ACCOUNT";
+        public const string ForceResetPassword = "SECURITY.FORCE_RESET_PASSWORD";
+        public const string ViewSecurityLogs = "SECURITY.VIEW_LOGS";
+        public const string ViewSensitiveData = "SECURITY.VIEW_SENSITIVE"; // Salary, Bank, PAN, Aadhaar
+    }
 }
 
 public static class RoleCodes
@@ -128,13 +136,19 @@ public static class RoleCodes
     public const string SuperAdmin = "SUPER_ADMIN";
     public const string HRAdmin = "HR_ADMIN";
     public const string HRManager = "HR_MANAGER";
+    public const string HRExecutive = "HR_EXEC";          // R03 — New
     public const string PayrollAdmin = "PAYROLL_ADMIN";
     public const string RecruitmentManager = "RECRUITMENT_MGR";
+    public const string ReportingManager = "REPORTING_MGR"; // R05 — New
     public const string DeptManager = "DEPT_MANAGER";
     public const string Employee = "EMPLOYEE";
     public const string Auditor = "AUDITOR";
+    public const string ComplianceOfficer = "COMPLIANCE_OFFICER"; // R08 — New
     public const string ITAdmin = "IT_ADMIN";
     public const string FinanceViewer = "FINANCE_VIEWER";
+    public const string CEO = "CEO";
+    public const string COO = "COO";
+    public const string FinanceHead = "FINANCE_HEAD";
 }
 
 public static class SystemSettingKeys
