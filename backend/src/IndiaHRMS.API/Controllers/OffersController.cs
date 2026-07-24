@@ -31,6 +31,7 @@ public class OffersController : ControllerBase
     private readonly IFileService _fileService;
     private readonly INotificationService _notificationService;
     private readonly OnboardingOrchestrator _orchestrator;
+    private readonly ICurrentUserService _currentUser;
 
     public OffersController(
         AppDbContext context,
@@ -38,7 +39,8 @@ public class OffersController : ControllerBase
         IPdfGenerationService pdfService,
         IFileService fileService,
         INotificationService notificationService,
-        OnboardingOrchestrator orchestrator)
+        OnboardingOrchestrator orchestrator,
+        ICurrentUserService currentUser)
     {
         _context = context;
         _mapper = mapper;
@@ -46,6 +48,7 @@ public class OffersController : ControllerBase
         _fileService = fileService;
         _notificationService = notificationService;
         _orchestrator = orchestrator;
+        _currentUser = currentUser;
     }
 
     [HttpGet]
@@ -107,6 +110,34 @@ public class OffersController : ControllerBase
             return BadRequest(ApiResponse<OfferLetterDto>.Fail("An offer letter is already generated or pending for this job application."));
         }
 
+        // Offer validations:
+        if (request.OfferedCTC < app.Requisition.MinSalary)
+        {
+            return BadRequest(ApiResponse<OfferLetterDto>.Fail($"Offered CTC (₹ {request.OfferedCTC:N0}) cannot be less than the MRF minimum salary budget (₹ {app.Requisition.MinSalary:N0})."));
+        }
+
+        if (request.ExpiryDays > 30)
+        {
+            return BadRequest(ApiResponse<OfferLetterDto>.Fail("Offer validity cannot exceed 30 days."));
+        }
+
+        if (request.JoiningDate.DayOfWeek == DayOfWeek.Sunday)
+        {
+            return BadRequest(ApiResponse<OfferLetterDto>.Fail("Expected DOJ cannot be a Sunday."));
+        }
+
+        var maxDoj = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(60));
+        if (request.JoiningDate > maxDoj)
+        {
+            return BadRequest(ApiResponse<OfferLetterDto>.Fail("Expected DOJ must be within 60 days."));
+        }
+
+        var isHoliday = await _context.HolidayCalendars.AnyAsync(h => h.HolidayDate == request.JoiningDate && h.IsActive, ct);
+        if (isHoliday)
+        {
+            return BadRequest(ApiResponse<OfferLetterDto>.Fail("Expected DOJ cannot be a public holiday."));
+        }
+
         var offer = new OfferLetter
         {
             OfferId = Guid.NewGuid(),
@@ -117,6 +148,8 @@ public class OffersController : ControllerBase
             ExpiryDate = DateTime.UtcNow.AddDays(request.ExpiryDays),
             Status = OfferStatus.Draft
         };
+
+        TimelineHelper.AddTimelineEvent(app, "Offer Drafted", $"Offer drafted for ₹ {request.OfferedCTC:N0} with DOJ: {request.JoiningDate:dd MMM yyyy}.");
 
         _context.OfferLetters.Add(offer);
         await _context.SaveChangesAsync(ct);
@@ -152,6 +185,37 @@ public class OffersController : ControllerBase
             return BadRequest(ApiResponse<OfferLetterDto>.Fail("Only draft offers can be approved or rejected."));
         }
 
+        // Offer Approval budget escalation rules:
+        var exceedsMax = offer.OfferedCTC > offer.JobApplication.Requisition.MaxSalary;
+        
+        var desig = await _context.Designations.FirstOrDefaultAsync(d => d.DesignationId == offer.JobApplication.Requisition.DesignationId, ct);
+        var exceedsBand = false;
+        if (desig != null && desig.MaxBasic > 0)
+        {
+            var bandLimit = desig.MaxBasic * 12 * 2.5m;
+            if (offer.OfferedCTC > bandLimit)
+            {
+                exceedsBand = true;
+            }
+        }
+
+        if (exceedsBand)
+        {
+            var isCOOorCEO = _currentUser.HasAnyRole(RoleCodes.COO, RoleCodes.CEO);
+            if (!isCOOorCEO)
+            {
+                return StatusCode(403, ApiResponse<OfferLetterDto>.Fail("This offer exceeds the Designation Grade Band ceiling. It must be approved by the COO."));
+            }
+        }
+        else if (exceedsMax)
+        {
+            var isFinanceOrCOO = _currentUser.HasAnyRole(RoleCodes.FinanceHead, RoleCodes.COO, RoleCodes.CEO);
+            if (!isFinanceOrCOO)
+            {
+                return StatusCode(403, ApiResponse<OfferLetterDto>.Fail("This offer exceeds the MRF maximum salary budget. It must be approved by the Finance Head."));
+            }
+        }
+
         if (request.Approved)
         {
             offer.Status = OfferStatus.Sent;
@@ -168,6 +232,8 @@ public class OffersController : ControllerBase
             
             offer.LetterFilePath = savedPath;
 
+            TimelineHelper.AddTimelineEvent(offer.JobApplication, "Offer Released", $"Offer released to candidate (CTC: ₹ {offer.OfferedCTC:N0})");
+
             // Notify candidate / recruitment manager
             await _notificationService.SendToRoleAsync(
                 RoleCodes.HRAdmin, 
@@ -181,6 +247,8 @@ public class OffersController : ControllerBase
             offer.Status = OfferStatus.Rejected;
             offer.JobApplication.CurrentStage = ApplicationStage.Rejected;
             offer.JobApplication.RejectionReason = $"Offer rejected by approver. Comments: {request.Comment}";
+
+            TimelineHelper.AddTimelineEvent(offer.JobApplication, "Offer Rejected by Approver", $"Comments: {request.Comment}");
         }
 
         await _context.SaveChangesAsync(ct);
@@ -263,6 +331,10 @@ public class OffersController : ControllerBase
 
             // Generate Default Checklist Tasks using Orchestrator
             await _orchestrator.GenerateDefaultTasksAsync(onboarding.OnboardingId, _context, ct);
+
+            TimelineHelper.AddTimelineEvent(offer.JobApplication, "Offer Accepted", $"Remarks: {request.Remarks}");
+            TimelineHelper.AddTimelineEvent(offer.JobApplication, "BGV Initiated");
+            TimelineHelper.AddTimelineEvent(offer.JobApplication, "Onboarding Started");
 
             // Initialize BGV Record
             var bgv = new BGVRecord

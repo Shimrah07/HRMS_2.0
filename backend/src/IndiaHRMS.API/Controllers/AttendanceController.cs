@@ -1,5 +1,6 @@
 using AutoMapper;
 using IndiaHRMS.Application.Interfaces;
+using IndiaHRMS.Domain.Constants;
 using IndiaHRMS.Domain.Entities;
 using IndiaHRMS.Domain.Enums;
 using IndiaHRMS.Infrastructure.Data;
@@ -141,9 +142,10 @@ public class AttendanceController : ControllerBase
                 CheckOut = null,
                 WorkingHours = 0,
                 OvertimeHours = 0,
-                Status = AttendanceStatus.Present,
+                Status = AttendanceStatus.MissingPunch,
                 Source = AttendanceSource.WebApp,
                 IsRegularized = false,
+                IsFrozen = false,
                 CreatedAt = nowUtc
             };
 
@@ -243,6 +245,20 @@ public class AttendanceController : ControllerBase
         }));
     }
 
+    [HttpPost("process-daily")]
+    [Filters.RequirePermission(PermissionCodes.CompanySetup.Edit)] // Assuming HR/Admin can run it
+    public async Task<ActionResult<ApiResponse<object>>> ProcessDailyAttendance([FromQuery] string date, [FromServices] IAttendanceProcessingService processingService, CancellationToken ct)
+    {
+        DateOnly targetDate;
+        if (!DateOnly.TryParse(date, out targetDate))
+        {
+            return BadRequest(ApiResponse<object>.Fail("Invalid date format. Use yyyy-MM-dd."));
+        }
+
+        await processingService.ProcessDailyAttendanceAsync(targetDate, ct);
+        return Ok(ApiResponse<object>.Ok(null, $"Processed attendance for {targetDate:yyyy-MM-dd} successfully."));
+    }
+
     public class RegularizationRequest
     {
         public DateOnly Date { get; set; }
@@ -309,5 +325,215 @@ public class AttendanceController : ControllerBase
         }).ToList();
 
         return Ok(ApiResponse<object>.Ok(result));
+    }
+
+    // --- New Sub-Tab Endpoints ---
+
+    [HttpGet("team")]
+    [Filters.RequirePermission(PermissionCodes.Attendance.View)] // Handled by Role logic
+    public async Task<ActionResult<ApiResponse<object>>> GetTeamAttendance(CancellationToken ct)
+    {
+        if (!_currentUser.EmployeeId.HasValue) return BadRequest(ApiResponse<object>.Fail("No employee linked."));
+        
+        var isHR = _currentUser.HasRole(RoleCodes.HRAdmin) || _currentUser.HasRole(RoleCodes.SuperAdmin);
+        var isManager = _currentUser.HasRole(RoleCodes.ReportingManager) || _currentUser.HasRole(RoleCodes.DeptManager);
+
+        if (!isHR && !isManager)
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Unauthorized access to team data."));
+
+        // Scoping logic placeholder
+        var empId = _currentUser.EmployeeId.Value;
+        var query = _context.AttendanceRecords.AsQueryable();
+
+        if (!isHR)
+        {
+            query = query.Where(r => r.Employee.ReportingManagerId == empId);
+        }
+
+        // Return empty for now as requested
+        return Ok(ApiResponse<object>.Ok(new List<object>(), "Team attendance stub."));
+    }
+
+    [HttpGet("regularizations/queue")]
+    [Filters.RequirePermission(PermissionCodes.Attendance.Approve)]
+    public async Task<ActionResult<ApiResponse<object>>> GetRegularizationQueue(CancellationToken ct)
+    {
+        if (!_currentUser.EmployeeId.HasValue) return BadRequest(ApiResponse<object>.Fail("No employee linked."));
+
+        var isHR = _currentUser.HasRole(RoleCodes.HRAdmin) || _currentUser.HasRole(RoleCodes.SuperAdmin);
+        var isManager = _currentUser.HasRole(RoleCodes.ReportingManager) || _currentUser.HasRole(RoleCodes.DeptManager);
+
+        if (!isHR && !isManager)
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Unauthorized access to regularization queue."));
+
+        var empId = _currentUser.EmployeeId.Value;
+        var query = _context.AttendanceRegularizations
+            .Include(r => r.Employee)
+            .Where(r => r.Status == "Pending");
+
+        if (!isHR)
+        {
+            query = query.Where(r => r.Employee.ReportingManagerId == empId);
+        }
+
+        var list = await query.OrderBy(r => r.AttendanceDate).ToListAsync(ct);
+
+        var result = list.Select(r => new
+        {
+            key = r.RegId.ToString(),
+            employeeName = $"{r.Employee.FirstName} {r.Employee.LastName}",
+            employeeCode = r.Employee.EmployeeCode,
+            date = r.AttendanceDate.ToString("dd MMM yyyy"),
+            reason = r.Reason,
+            requestedCheckIn = r.RequestedCheckIn.HasValue ? TimeZoneInfo.ConvertTimeFromUtc(r.RequestedCheckIn.Value, GetIstTimeZone()).ToString("hh:mm tt") : "—",
+            requestedCheckOut = r.RequestedCheckOut.HasValue ? TimeZoneInfo.ConvertTimeFromUtc(r.RequestedCheckOut.Value, GetIstTimeZone()).ToString("hh:mm tt") : "—",
+        }).ToList();
+
+        return Ok(ApiResponse<object>.Ok(result));
+    }
+
+    public class RejectionDto
+    {
+        public string Reason { get; set; } = string.Empty;
+    }
+
+    [HttpPost("regularizations/{id}/approve")]
+    [Filters.RequirePermission(PermissionCodes.Attendance.Approve)]
+    public async Task<ActionResult<ApiResponse<object>>> ApproveRegularization(Guid id, CancellationToken ct)
+    {
+        if (!_currentUser.UserId.HasValue) return BadRequest(ApiResponse<object>.Fail("No user context."));
+
+        var reg = await _context.AttendanceRegularizations
+            .Include(r => r.Employee)
+            .ThenInclude(e => e.Shift)
+            .FirstOrDefaultAsync(r => r.RegId == id, ct);
+
+        if (reg == null) return NotFound(ApiResponse<object>.Fail("Regularization not found."));
+        if (reg.Status != "Pending") return BadRequest(ApiResponse<object>.Fail("Only pending requests can be approved."));
+
+        // Scope check for manager
+        var isHR = _currentUser.HasRole(RoleCodes.HRAdmin) || _currentUser.HasRole(RoleCodes.SuperAdmin);
+        if (!isHR && reg.Employee.ReportingManagerId != _currentUser.EmployeeId)
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Unauthorized."));
+
+        // Update Regularization status
+        reg.Status = "Approved";
+        reg.ApprovedBy = _currentUser.UserId.Value;
+        reg.ApprovedAt = DateTime.UtcNow;
+
+        // Upsert Attendance Record
+        var record = await _context.AttendanceRecords
+            .FirstOrDefaultAsync(r => r.EmployeeId == reg.EmployeeId && r.AttendanceDate == reg.AttendanceDate, ct);
+
+        if (record == null)
+        {
+            record = new AttendanceRecord
+            {
+                EmployeeId = reg.EmployeeId,
+                AttendanceDate = reg.AttendanceDate,
+                Source = AttendanceSource.Manual,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.AttendanceRecords.Add(record);
+        }
+
+        record.CheckIn = reg.RequestedCheckIn ?? record.CheckIn;
+        record.CheckOut = reg.RequestedCheckOut ?? record.CheckOut;
+        record.IsRegularized = true;
+        record.UpdatedAt = DateTime.UtcNow;
+        record.Remarks = $"Regularized: {reg.Reason}";
+
+        // Calculate hours and status
+        if (record.CheckIn.HasValue && record.CheckOut.HasValue)
+        {
+            record.WorkingHours = (decimal)(record.CheckOut.Value - record.CheckIn.Value).TotalHours;
+
+            var shift = reg.Employee.Shift;
+            if (shift != null && shift.IsActive)
+            {
+                var checkInIst = TimeZoneInfo.ConvertTimeFromUtc(record.CheckIn.Value, GetIstTimeZone());
+                var targetDate = record.AttendanceDate;
+                var shiftStartTime = new DateTime(targetDate.Year, targetDate.Month, targetDate.Day, shift.StartTime.Hour, shift.StartTime.Minute, 0);
+
+                var lateMins = (checkInIst - shiftStartTime).TotalMinutes;
+                
+                if (record.WorkingHours < shift.HalfDayThresholdHrs)
+                    record.Status = AttendanceStatus.HalfDay;
+                else if (lateMins > shift.GracePeriodMins)
+                    record.Status = AttendanceStatus.LatePresent;
+                else
+                    record.Status = AttendanceStatus.Present;
+            }
+            else
+            {
+                // Fallback if no shift is assigned
+                record.Status = record.WorkingHours >= 8 ? AttendanceStatus.Present : (record.WorkingHours >= 4 ? AttendanceStatus.HalfDay : AttendanceStatus.Absent);
+            }
+        }
+        else if (record.CheckIn.HasValue || record.CheckOut.HasValue)
+        {
+            record.Status = AttendanceStatus.MissingPunch;
+        }
+
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<object>.Ok(null, "Regularization approved successfully."));
+    }
+
+    [HttpPost("regularizations/{id}/reject")]
+    [Filters.RequirePermission(PermissionCodes.Attendance.Approve)]
+    public async Task<ActionResult<ApiResponse<object>>> RejectRegularization(Guid id, [FromBody] RejectionDto dto, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest(ApiResponse<object>.Fail("Rejection reason is required."));
+        if (!_currentUser.UserId.HasValue) return BadRequest(ApiResponse<object>.Fail("No user context."));
+
+        var reg = await _context.AttendanceRegularizations
+            .Include(r => r.Employee)
+            .FirstOrDefaultAsync(r => r.RegId == id, ct);
+
+        if (reg == null) return NotFound(ApiResponse<object>.Fail("Regularization not found."));
+        if (reg.Status != "Pending") return BadRequest(ApiResponse<object>.Fail("Only pending requests can be rejected."));
+
+        var isHR = _currentUser.HasRole(RoleCodes.HRAdmin) || _currentUser.HasRole(RoleCodes.SuperAdmin);
+        if (!isHR && reg.Employee.ReportingManagerId != _currentUser.EmployeeId)
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Unauthorized."));
+
+        reg.Status = "Rejected";
+        reg.RejectionReason = dto.Reason;
+        reg.ApprovedBy = _currentUser.UserId.Value;
+        reg.ApprovedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<object>.Ok(null, "Regularization rejected."));
+    }
+
+    [HttpGet("overtime")]
+    public async Task<ActionResult<ApiResponse<object>>> GetOvertime(CancellationToken ct)
+    {
+        // Own overtime data for employees, team for managers
+        return Ok(ApiResponse<object>.Ok(new List<object>(), "Overtime stub."));
+    }
+
+    [HttpPost("freeze")]
+    [Filters.RequirePermission(PermissionCodes.CompanySetup.Edit)] // Only HR Admin typically
+    public async Task<ActionResult<ApiResponse<object>>> FreezeAttendance(CancellationToken ct)
+    {
+        if (!_currentUser.HasRole(RoleCodes.HRAdmin) && !_currentUser.HasRole(RoleCodes.SuperAdmin))
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Only HR Admin can freeze attendance."));
+
+        return Ok(ApiResponse<object>.Ok(null, "Attendance freeze stub."));
+    }
+
+    [HttpGet("reports")]
+    public async Task<ActionResult<ApiResponse<object>>> GetReports(CancellationToken ct)
+    {
+        // Payroll and Compliance can access this
+        var isAuthorized = _currentUser.HasRole(RoleCodes.HRAdmin) || _currentUser.HasRole(RoleCodes.SuperAdmin) ||
+                           _currentUser.HasRole(RoleCodes.ReportingManager) || _currentUser.HasRole(RoleCodes.DeptManager) ||
+                           _currentUser.HasRole(RoleCodes.PayrollAdmin) || _currentUser.HasRole(RoleCodes.ComplianceOfficer);
+
+        if (!isAuthorized)
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Unauthorized access to reports."));
+
+        return Ok(ApiResponse<object>.Ok(new List<object>(), "Reports stub."));
     }
 }

@@ -51,6 +51,9 @@ public class JobRequisitionDto
     public string DesignationName { get; set; } = string.Empty;
     public string GradeName { get; set; } = string.Empty;
     public string RaisedByName { get; set; } = string.Empty;
+    public Guid? CancelledBy { get; set; }
+    public DateTime? CancelledOn { get; set; }
+    public string? CancelReason { get; set; }
 }
 
 public class CreateJobRequisitionRequest
@@ -150,6 +153,22 @@ public class JobPostingDto
     public List<string> PublishingChannels { get; set; } = new();
     public List<string> PerksAndBenefitsList { get; set; } = new();
     public List<JobPostingQuestionDto> JobPostingQuestions { get; set; } = new();
+
+    // Publisher tracking
+    public Guid? PublishedById { get; set; }
+    public string? PublishedByName { get; set; }
+
+    // Extensibility fields
+    public string? WorkMode { get; set; }
+    public string? LocationName { get; set; }
+    public string? ExternalLink { get; set; }
+    public string? MetadataJson { get; set; }
+
+    // Additional fields needed for Job Openings Dashboard
+    public string? HiringManagerName { get; set; }
+    public int? NoOfPositions { get; set; }
+    public string? MrfNumber { get; set; }
+    public int ApplicantCount { get; set; }
 }
 
 public class CreateJobPostingRequest
@@ -180,6 +199,12 @@ public class CreateJobPostingRequest
     public List<string> PublishingChannels { get; set; } = new();
     public List<string> PerksAndBenefits { get; set; } = new();
     public List<CreateJobPostingQuestionRequest> JobPostingQuestions { get; set; } = new();
+
+    // Extensibility fields
+    public string? WorkMode { get; set; }
+    public string? LocationName { get; set; }
+    public string? ExternalLink { get; set; }
+    public string? MetadataJson { get; set; }
 }
 
 public class UpdateJobPostingRequest
@@ -210,6 +235,12 @@ public class UpdateJobPostingRequest
     public List<string> PublishingChannels { get; set; } = new();
     public List<string> PerksAndBenefits { get; set; } = new();
     public List<CreateJobPostingQuestionRequest> JobPostingQuestions { get; set; } = new();
+
+    // Extensibility fields
+    public string? WorkMode { get; set; }
+    public string? LocationName { get; set; }
+    public string? ExternalLink { get; set; }
+    public string? MetadataJson { get; set; }
 }
 
 // ─── Phase 2: Candidate Database & ATS Pipeline ──────────────────────────────
@@ -248,6 +279,14 @@ public class CandidateDto
     public string? Portfolio { get; set; }
     public string? Skills { get; set; }
     public string? Languages { get; set; }
+
+    // Latest application enrichment (populated by GetCandidates)
+    public string? LatestJobTitle { get; set; }
+    public string? LatestDepartmentName { get; set; }
+    public DateTime? LatestApplicationDate { get; set; }
+    public string? LatestStage { get; set; }
+    public string? AssignedRecruiterName { get; set; }
+    public int ApplicationsCount { get; set; }
 }
 
 public class CreateCandidateRequest
@@ -360,7 +399,9 @@ public class JobApplicationDto
 {
     public Guid AppId { get; set; }
     public Guid ReqId { get; set; }
+    public Guid? JobId { get; set; }
     public string JobTitle { get; set; } = string.Empty;
+    public string? DepartmentName { get; set; }
     public Guid CandidateId { get; set; }
     public string CandidateName { get; set; } = string.Empty;
     public string CandidateEmail { get; set; } = string.Empty;
@@ -368,6 +409,32 @@ public class JobApplicationDto
     public ApplicationStage CurrentStage { get; set; }
     public string? RejectionReason { get; set; }
     public decimal? AiMatchScore { get; set; }
+    public string TimelineEventsJson { get; set; } = "[]";
+    public string NotesJson { get; set; } = "[]";
+    public Guid? AssignedRecruiterId { get; set; }
+    public string? AssignedRecruiterName { get; set; }
+    public DateTime? InterviewDate { get; set; }
+
+    public bool? TechnicalApproved { get; set; }
+    public bool? HrApproved { get; set; }
+    public bool? ManagerApproved { get; set; }
+    public string StageDataJson { get; set; } = "{}";
+    public string Status { get; set; } = "Active";
+    public Guid? EmployeeId { get; set; }
+    public string? Source { get; set; }
+    public CandidateDto? Candidate { get; set; }
+}
+
+public class AddApplicationNoteRequest
+{
+    public string Note { get; set; } = string.Empty;
+}
+
+public class ApplicationNote
+{
+    public string Author { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public string Content { get; set; } = string.Empty;
 }
 
 public class CreateJobApplicationRequest
@@ -380,6 +447,80 @@ public class UpdateApplicationStageRequest
 {
     public ApplicationStage Stage { get; set; }
     public string? RejectionReason { get; set; }
+    public string? Remarks { get; set; }
+    public string? ActionType { get; set; } // e.g. "SendOffer", "StartBGV", "DocsReceived", etc.
+    public bool? TechnicalApproved { get; set; }
+    public bool? HrApproved { get; set; }
+    public bool? ManagerApproved { get; set; }
+    public string? StageDataJson { get; set; }
+}
+
+public class ConvertCandidateRequest
+{
+    public Guid DeptId { get; set; }
+    public Guid DesignationId { get; set; }
+    public DateOnly JoiningDate { get; set; }
+    public Guid? ReportingManagerId { get; set; }
+    public EmploymentType EmploymentType { get; set; } = EmploymentType.FullTime;
+    public Guid? ShiftId { get; set; }
+    public Guid? GradeId { get; set; }
+    public Guid? CostCenterId { get; set; }
+    public PayrollGroup? PayrollGroup { get; set; }
+}
+
+// ─── ATS Apply-to-Job (unified entry for Manual HR + Future Careers Portal) ────
+
+public class ApplyToJobRequest
+{
+    // Job targeting — only JobId, ReqId is resolved internally
+    public Guid JobId { get; set; }
+
+    // Candidate identity (locked when existing candidate selected)
+    public Guid? ExistingCandidateId { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+
+    // Professional details (always editable, even for existing candidates)
+    public string? CurrentCompany { get; set; }
+    public string? CurrentDesignation { get; set; }
+    public decimal? CurrentCTC { get; set; }
+    public decimal? ExpectedCTC { get; set; }
+    public int? NoticePeriodDays { get; set; }
+    public decimal? TotalExperience { get; set; }
+    public string? Source { get; set; }
+    public string? ResumeFilePath { get; set; }
+    public Guid? ReferralEmployeeId { get; set; }
+
+    // Audit & recruiter auto-assignment (set by controller from ICurrentUserService)
+    public Guid? AddedByUserId { get; set; }
+}
+
+public class ApplyToJobResult
+{
+    public Guid CandidateId { get; set; }
+    public Guid AppId { get; set; }
+    public string JobTitle { get; set; } = string.Empty;
+    public string Stage { get; set; } = "Applied";
+    public bool IsNewCandidate { get; set; }
+    public string? AssignedRecruiterName { get; set; }
+}
+
+public class CandidateLookupDto
+{
+    public Guid CandidateId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    public string? CurrentCompany { get; set; }
+    public string? CurrentDesignation { get; set; }
+    public decimal? CurrentCTC { get; set; }
+    public decimal? ExpectedCTC { get; set; }
+    public int? NoticePeriodDays { get; set; }
+    public decimal? TotalExperience { get; set; }
+    public string? Source { get; set; }
+    public string? ResumeFilePath { get; set; }
 }
 
 // ─── Phase 3: Interview Management ───────────────────────────────────────────
@@ -398,10 +539,11 @@ public class InterviewRoundPanelistDto
 public class InterviewRoundDto
 {
     public Guid RoundId { get; set; }
-    public Guid AppId { get; set; }
+    public Guid? AppId { get; set; }
     public string RoundName { get; set; } = string.Empty;
     public string? RoundType { get; set; }
     public DateTime ScheduledAt { get; set; }
+    public int? DurationMinutes { get; set; }
     public Guid InterviewerId { get; set; }
     public string InterviewerName { get; set; } = string.Empty;
     public string? Venue { get; set; }
@@ -410,18 +552,61 @@ public class InterviewRoundDto
     public decimal? Rating { get; set; }
     public string? Feedback { get; set; }
     public DateTime? CompletedAt { get; set; }
+
+    // General Interview & Extra DTO Fields
+    public bool IsGeneralInterview { get; set; }
+    public string? Category { get; set; }
+    public string? CandidateName { get; set; }
+    public string? CandidateEmail { get; set; }
+    public string? CandidatePhone { get; set; }
+    public string? Company { get; set; }
+    public string? Department { get; set; }
+    public string? Notes { get; set; }
+    public string? AttachmentsJson { get; set; }
+    public string? ChecklistJson { get; set; }
+
+    // Navigation info
+    public Guid? CandidateId { get; set; }
+    public string? JobTitle { get; set; }
+
     public List<InterviewRoundPanelistDto> Panelists { get; set; } = new();
 }
 
 public class ScheduleInterviewRequest
 {
-    public Guid AppId { get; set; }
+    public Guid? AppId { get; set; }
     public string RoundName { get; set; } = string.Empty;
     public string? RoundType { get; set; }
     public DateTime ScheduledAt { get; set; }
+    public int? DurationMinutes { get; set; }
     public string? Venue { get; set; }
     public string? MeetingLink { get; set; }
     public List<Guid> InterviewerIds { get; set; } = new();
+    public bool AllowConflict { get; set; } = false;
+
+    // General interview fields
+    public bool IsGeneralInterview { get; set; }
+    public string? Category { get; set; }
+    public string? CandidateName { get; set; }
+    public string? CandidateEmail { get; set; }
+    public string? CandidatePhone { get; set; }
+    public string? Company { get; set; }
+    public string? Department { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class UpdateInterviewRequest
+{
+    public DateTime? ScheduledAt { get; set; }
+    public int? DurationMinutes { get; set; }
+    public string? RoundName { get; set; }
+    public string? RoundType { get; set; }
+    public string? Venue { get; set; }
+    public string? MeetingLink { get; set; }
+    public string? Status { get; set; }
+    public string? Notes { get; set; }
+    public List<Guid>? InterviewerIds { get; set; }
+    public bool AllowConflict { get; set; } = false;
 }
 
 public class SubmitInterviewerFeedbackRequest
@@ -623,9 +808,79 @@ public class RecruitmentDashboardDto
     public decimal AverageAiMatch { get; set; }
     public int Offers { get; set; }
     public int Joined { get; set; }
+    public int EmployeesHired { get; set; }
 
     public double AverageTimeToHire { get; set; }
     public int OpenPositions { get; set; }
     public double CandidateConversionRate { get; set; }
     public double OfferAcceptanceRate { get; set; }
+
+    public int AppliedCount { get; set; }
+    public int ScreeningCount { get; set; }
+    public int InterviewCount { get; set; }
+    public int OfferCount { get; set; }
+    public int RejectedCount { get; set; }
+    public int JoinedCount { get; set; }
+
+    public List<ApplicationSourceCountDto> SourceCounts { get; set; } = new();
+}
+
+public class ApplicationSourceCountDto
+{
+    public string Source { get; set; } = string.Empty;
+    public int Count { get; set; }
+}
+
+public class PendingApplicationDto
+{
+    public Guid PendingAppId { get; set; }
+    public Guid JobId { get; set; }
+    public string JobTitle { get; set; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;
+    public string? LastName { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    public string? CurrentCompany { get; set; }
+    public string? CurrentDesignation { get; set; }
+    public decimal? CurrentCTC { get; set; }
+    public decimal? ExpectedCTC { get; set; }
+    public int? NoticePeriodDays { get; set; }
+    public decimal? TotalExperience { get; set; }
+    public string? Source { get; set; }
+    public string? ResumeFilePath { get; set; }
+    public Guid? ReferralEmployeeId { get; set; }
+    public string? ReferralEmployeeName { get; set; }
+    public string Status { get; set; } = "Pending";
+    public DateTime AppliedDate { get; set; }
+    public string? RejectionReason { get; set; }
+}
+
+public class CandidatesImportRow
+{
+    public string FirstName { get; set; } = string.Empty;
+    public string? LastName { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    public string? CurrentCompany { get; set; }
+    public string? CurrentDesignation { get; set; }
+    public decimal? TotalExperience { get; set; }
+    public decimal? CurrentCTC { get; set; }
+    public decimal? ExpectedCTC { get; set; }
+    public string? Source { get; set; }
+    public int? NoticePeriodDays { get; set; }
+}
+
+public class ConfirmCandidatesImportRequest
+{
+    public Guid? JobId { get; set; }
+    public List<CandidatesImportRow> Candidates { get; set; } = new();
+}
+
+public class CandidatesImportResult
+{
+    public int TotalRows { get; set; }
+    public int ImportedCount { get; set; }
+    public int SkippedCount { get; set; }
+    public int FailedCount { get; set; }
+    public List<string> Errors { get; set; } = new();
 }

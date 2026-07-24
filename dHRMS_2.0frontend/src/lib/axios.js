@@ -88,6 +88,7 @@ function clearAuthAndRedirect() {
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
   localStorage.removeItem('user')
+  localStorage.removeItem('hrms-auth')
   window.location.href = '/login'
 }
 

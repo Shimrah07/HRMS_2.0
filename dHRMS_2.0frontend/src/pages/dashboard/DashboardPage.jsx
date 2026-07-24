@@ -53,6 +53,7 @@ const ATTENDANCE_COLORS = {
 
 function HRDashboard() {
   const { isDarkMode } = useUIStore()
+  const navigate = useNavigate()
   const { data: hrData, isLoading: hrLoading } = useQuery({
     queryKey: ['dashboard', 'hr'],
     queryFn: dashboardService.getHRDashboard,
@@ -194,6 +195,93 @@ function HRDashboard() {
             </Card>
           </Col>
         </Row>
+      </div>
+
+      {/* Applications Stage Breakdown */}
+      <div style={{ marginBottom: 24 }}>
+        <div className="hrms-section-label" style={{ marginBottom: 12 }}>
+          Applications Stage Breakdown
+        </div>
+        <Row gutter={[16, 16]} style={{ display: 'flex', flexWrap: 'wrap' }}>
+          {[
+            { title: 'Applied', value: recData?.appliedCount ?? 0, color: '#3B82F6', stage: 'Applied' },
+            { title: 'Screening', value: recData?.screeningCount ?? 0, color: '#EAB308', stage: 'Screening' },
+            { title: 'Interview', value: recData?.interviewCount ?? 0, color: '#06B6D4', stage: 'InterviewL1' },
+            { title: 'Offer', value: recData?.offerCount ?? 0, color: '#F97316', stage: 'Offer' },
+            { title: 'Rejected', value: recData?.rejectedCount ?? 0, color: '#EF4444', stage: 'Rejected' },
+            { title: 'Joined', value: recData?.joinedCount ?? 0, color: '#22C55E', stage: 'Joined' }
+          ].map((s) => (
+            <Col xs={12} sm={8} lg={4} key={s.title} style={{ display: 'flex', flexDirection: 'column' }}>
+              <Card 
+                hoverable 
+                onClick={() => navigate(`/recruitment/applications?stage=${s.stage}`)}
+                bordered={false} 
+                style={{ 
+                  background: 'var(--color-bg-container)', 
+                  border: 'var(--border-glass)', 
+                  borderRadius: 12,
+                  cursor: 'pointer'
+                }}
+                bodyStyle={{ padding: 16 }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color }} />
+                  <span style={{ fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 500 }}>{s.title}</span>
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                  {recLoading ? '...' : s.value}
+                </div>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </div>
+
+      {/* Application Sources Widget */}
+      <div style={{ marginBottom: 24 }}>
+        <div className="hrms-section-label" style={{ marginBottom: 12 }}>
+          Application Sources & Intake
+        </div>
+        <Card
+          bordered={false}
+          style={{ background: 'var(--color-bg-container)', border: 'var(--border-glass)', borderRadius: 12 }}
+        >
+          <Row gutter={[16, 16]}>
+            {recData?.sourceCounts && recData.sourceCounts.length > 0 ? (
+              recData.sourceCounts.map((sc) => {
+                const totalCandidates = recData.totalCandidates || 1
+                const percentage = Math.round((sc.count / totalCandidates) * 100)
+                return (
+                  <Col xs={24} sm={12} md={8} lg={6} key={sc.source}>
+                    <Card
+                      hoverable
+                      onClick={() => navigate(`/recruitment/candidates?source=${sc.source}`)}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        borderRadius: 10,
+                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                        cursor: 'pointer'
+                      }}
+                      bodyStyle={{ padding: 16 }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--color-text-primary)' }}>{sc.source}</span>
+                        <Tag color="blue">{sc.count} Candidates</Tag>
+                      </div>
+                      <Progress percent={percentage} size="small" strokeColor="#FAA71A" trailColor="rgba(255, 255, 255, 0.08)" />
+                    </Card>
+                  </Col>
+                )
+              })
+            ) : (
+              <Col span={24}>
+                <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                  No candidate application source data available.
+                </div>
+              </Col>
+            )}
+          </Row>
+        </Card>
       </div>
 
       {/* Workforce Insights Section */}

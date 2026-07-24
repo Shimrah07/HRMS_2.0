@@ -27,5 +27,20 @@ export const attendanceService = {
   getRegularizations: async () => {
     const { data } = await apiClient.get(API.ATTENDANCE.REGULARIZATIONS)
     return data
+  },
+
+  getRegularizationQueue: async () => {
+    const { data } = await apiClient.get(API.ATTENDANCE.REGULARIZATIONS_QUEUE)
+    return data
+  },
+
+  approveRegularization: async (id) => {
+    const { data } = await apiClient.post(API.ATTENDANCE.REGULARIZATION_APPROVE(id))
+    return data
+  },
+
+  rejectRegularization: async (id, reason) => {
+    const { data } = await apiClient.post(API.ATTENDANCE.REGULARIZATION_REJECT(id), { reason })
+    return data
   }
 }

@@ -1224,10 +1224,6 @@ export default function EmployeeListPage() {
                           <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Sub-Department</div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{fullEmpDetails?.subDeptName || '—'}</div>
                         </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Team</div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{fullEmpDetails?.teamName || '—'}</div>
-                        </div>
                       </div>
                     </Card>
 

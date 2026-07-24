@@ -789,25 +789,6 @@ public class OrganizationController : ControllerBase
         return Ok(ApiResponse<object>.Ok(null, "Profit center deactivated."));
     }
 
-    // ─── Shifts ───────────────────────────────────────────────────────────────
-
-    [HttpGet("shifts")]
-    public async Task<ActionResult<ApiResponse<List<object>>>> GetShifts(CancellationToken ct)
-    {
-        var companyId = _currentUser.CompanyId;
-        var shifts = await _context.ShiftMasters
-            .Where(s => (!companyId.HasValue || s.CompanyId == companyId) && s.IsActive)
-            .Select(s => new {
-                s.ShiftId,
-                s.ShiftName,
-                s.ShiftCode,
-                StartTime = s.StartTime.ToString(),
-                EndTime = s.EndTime.ToString()
-            })
-            .ToListAsync(ct);
-
-        return Ok(ApiResponse<List<object>>.Ok(shifts.Cast<object>().ToList()));
-    }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 

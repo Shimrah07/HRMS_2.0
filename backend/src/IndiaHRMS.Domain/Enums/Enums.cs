@@ -105,7 +105,8 @@ public enum AttendanceStatus
     WFH,
     HalfDay,
     LatePresent,
-    OnDuty
+    OnDuty,
+    MissingPunch
 }
 
 public enum AttendanceSource
@@ -115,6 +116,13 @@ public enum AttendanceSource
     Manual,
     WebApp,
     SystemGenerated
+}
+
+public enum CompOffStatus
+{
+    Available,
+    Utilized,
+    Expired
 }
 
 public enum SeparationType
@@ -256,6 +264,7 @@ public enum ApplicationStage
     HRInterview,
     Offer,
     BackgroundCheck,
+    Onboarding,
     Joined,
     Rejected,
     Withdrawn
@@ -377,7 +386,8 @@ public enum MotherTongue
     Tamil,
     Telugu,
     Urdu,
-    Other
+    Other,
+    English
 }
 
 public enum BankVerificationStatus
@@ -390,9 +400,10 @@ public enum BankVerificationStatus
 public enum JobPostingStatus
 {
     Draft,
-    Active,
+    Published,
+    Paused,
     Closed,
-    Expired
+    Archived
 }
 
 public enum CandidateStatus
@@ -409,6 +420,7 @@ public enum CandidateStatus
 public enum CandidateSource
 {
     CareerPortal,
+    CareersPortal,
     EmployeeReferral,
     LinkedIn,
     Naukri,
@@ -417,5 +429,9 @@ public enum CandidateSource
     Consultancy,
     WalkIn,
     InternalTransfer,
+    CSVImport,
+    ManualHREntry,
+    ManualHR,
+    ResumeParser,
     Other
 }

@@ -49,7 +49,7 @@ export default function CreateEmployeePage() {
   const { data: buRes } = useQuery({ queryKey: ['business-units'], queryFn: organizationService.getBusinessUnits, select: (r) => r?.data || [] })
   const { data: divRes } = useQuery({ queryKey: ['divisions'], queryFn: () => organizationService.getDivisions(), select: (r) => r?.data || [] })
   const { data: subDeptRes } = useQuery({ queryKey: ['sub-departments'], queryFn: () => organizationService.getSubDepartments(), select: (r) => r?.data || [] })
-  const { data: teamRes } = useQuery({ queryKey: ['teams'], queryFn: () => organizationService.getTeams(), select: (r) => r?.data || [] })
+
   
   const { data: gradeRes } = useQuery({ queryKey: ['grades'], queryFn: organizationService.getGrades, select: (r) => r?.data || [] })
   const { data: bandRes } = useQuery({ queryKey: ['bands'], queryFn: organizationService.getBands, select: (r) => r?.data || [] })
@@ -225,8 +225,8 @@ export default function CreateEmployeePage() {
           ]
         : [
             'deptId', 'designationId', 'locationId', 'employmentType', 'joiningDate', 'probationPeriodMonths',
-            'businessUnitId', 'divisionId', 'subDeptId', 'teamId', 'gradeId', 'bandId', 'jobFamilyId', 'jobFunctionId',
-            'costCenterId', 'profitCenterId', 'reportingManagerId', 'l2ReportingManagerId', 'functionalManagerId',
+            'businessUnitId', 'divisionId', 'subDeptId', 'gradeId', 'bandId', 'jobFamilyId', 'jobFunctionId',
+            'costCenterId', 'profitCenterId', 'reportingManagerId', 'l2ReportingManagerId', 'l3ReportingManagerId', 'l4ReportingManagerId',
             'workMode', 'shiftId', 'weeklyOffPattern', 'payrollGroup', 'noticePeriodDays',
             'contractEndDate', 'internshipDurationMonths', 'vendorName',
             'officialMobile', 'alternateMobile', 'whatsAppNumber', 'extensionNumber', 'alternateEmergencyContactPhone',
@@ -243,7 +243,21 @@ export default function CreateEmployeePage() {
 
   const handleSubmit = async () => {
     try {
-      const values = await form.validateFields()
+      const stepFields = isEdit
+        ? [
+            'deptId', 'designationId', 'locationId', 'employmentType', 'joiningDate', 'probationPeriodMonths',
+            'businessUnitId', 'divisionId', 'subDeptId', 'gradeId', 'bandId', 'jobFamilyId', 'jobFunctionId',
+            'costCenterId', 'profitCenterId', 'reportingManagerId', 'l2ReportingManagerId', 'l3ReportingManagerId', 'l4ReportingManagerId',
+            'workMode', 'shiftId', 'weeklyOffPattern', 'payrollGroup', 'noticePeriodDays',
+            'contractEndDate', 'internshipDurationMonths', 'vendorName',
+            'officialMobile', 'alternateMobile', 'whatsAppNumber', 'extensionNumber', 'alternateEmergencyContactPhone',
+            'domicileState', 'permanentAddressLine1', 'permanentAddressLine2', 'permanentCity', 'permanentTaluka', 'permanentDistrict', 'permanentState', 'permanentPincode', 'permanentCountry',
+            'sameAddressFlag', 'currentAddressLine1', 'currentAddressLine2', 'currentCity', 'currentDistrict', 'currentState', 'currentPincode', 'currentCountry'
+          ]
+        : [
+            'createUserAccount', 'initialPassword'
+          ]
+      const values = await form.validateFields(stepFields)
       const finalFormData = { ...formData, ...values }
       
       const cleaned = {}
@@ -300,7 +314,10 @@ export default function CreateEmployeePage() {
         }
         createMutation.mutate(payload)
       }
-    } catch (_) {}
+    } catch (errInfo) {
+      console.error('Validation failed:', errInfo)
+      message.error('Please check all required fields and try again.')
+    }
   }
 
   const fetchPincodeData = async (pincode, prefix) => {
@@ -399,7 +416,7 @@ export default function CreateEmployeePage() {
     .filter(s => s.deptId === selectedDept)
     .slice()
     .sort((a, b) => a.name.localeCompare(b.name))
-  const filteredTeams = (teamRes || []).filter(t => t.subDeptId === selectedSubDept)
+
   const filteredJobFunctions = (jobFuncRes || []).filter(j => j.jobFamilyId === selectedJobFamily)
 
   const stepForms = [
@@ -474,7 +491,7 @@ export default function CreateEmployeePage() {
                 <Form.Item
                   name="employeeCode"
                   label="Employee ID"
-                  initialValue={isTcs ? '' : (isEdit ? undefined : 'Auto-generated')}
+                  initialValue={isEdit ? undefined : (isTcs ? '' : 'Auto-generated')}
                   rules={isTcs ? [VALIDATORS.required('Employee ID')] : []}
                 >
                   <Input
@@ -650,6 +667,7 @@ export default function CreateEmployeePage() {
               VALIDATORS.required("Father's Name"),
               { pattern: /^[A-Za-z\s]{3,100}$/, message: "Father's name must be 3-100 characters and contain only alphabets." }
             ]}
+            normalize={capitalizeName}
           >
             <Input placeholder="Enter father's name" style={{ borderRadius: 8 }} />
           </Form.Item>
@@ -757,6 +775,7 @@ export default function CreateEmployeePage() {
               VALIDATORS.required('Emergency Contact Name'),
               { pattern: /^[A-Za-z\s]{3,100}$/, message: 'Only alphabets allowed, 3-100 characters' }
             ]}
+            normalize={capitalizeName}
           >
             <Input placeholder="Full name" style={{ borderRadius: 8 }} />
           </Form.Item>
@@ -880,18 +899,18 @@ export default function CreateEmployeePage() {
             />
           </Form.Item>
         </Col>
-        <Col xs={24} md={8}>
+        <Col xs={24} md={12}>
           <Form.Item name="deptId" label="Department" rules={[VALIDATORS.requiredSelect('Department')]}>
             <Select 
               placeholder="Select department" 
               allowClear
-              onChange={(v) => { setSelectedDept(v); form.setFieldsValue({ subDeptId: undefined, teamId: undefined }) }}
+              onChange={(v) => { setSelectedDept(v); form.setFieldsValue({ subDeptId: undefined }) }}
               options={rootDepts.map((d) => ({ value: d.deptId, label: d.deptName }))} 
               style={{ borderRadius: 8 }}
             />
           </Form.Item>
         </Col>
-        <Col xs={24} md={8}>
+        <Col xs={24} md={12}>
           <Form.Item 
             name="subDeptId" 
             label="Sub-Department"
@@ -912,19 +931,8 @@ export default function CreateEmployeePage() {
               style={{ borderRadius: 8 }}
               allowClear
               disabled={!selectedDept || filteredSubDepts.length === 0}
-              onChange={(v) => { setSelectedSubDept(v); form.setFieldsValue({ teamId: undefined }) }}
+              onChange={(v) => { setSelectedSubDept(v); }}
               options={filteredSubDepts.map(s => ({ value: s.subDeptId, label: s.name }))}
-            />
-          </Form.Item>
-        </Col>
-        <Col xs={24} md={8}>
-          <Form.Item name="teamId" label="Team / Section">
-            <Select 
-              placeholder="Select Team" 
-              style={{ borderRadius: 8 }}
-              allowClear
-              disabled={!selectedSubDept}
-              options={filteredTeams.map(t => ({ value: t.teamId, label: t.name }))}
             />
           </Form.Item>
         </Col>
@@ -1161,15 +1169,15 @@ export default function CreateEmployeePage() {
             Reporting Hierarchy
           </div>
         </Col>
-        <Col xs={24} md={8}>
+        <Col xs={24} md={12}>
           <Form.Item 
             name="reportingManagerId" 
-            label="L1 Reporting Manager" 
-            rules={[VALIDATORS.requiredSelect('L1 Reporting Manager')]}
+            label="Immediate Manager (L1)" 
+            rules={[VALIDATORS.requiredSelect('Immediate Manager (L1)')]}
           >
             <Select
               showSearch
-              placeholder="Search & select L1 Manager"
+              placeholder="Search & select Immediate Manager (L1)"
               optionFilterProp="label"
               allowClear
               options={managerOptions}
@@ -1177,11 +1185,11 @@ export default function CreateEmployeePage() {
             />
           </Form.Item>
         </Col>
-        <Col xs={24} md={8}>
-          <Form.Item name="l2ReportingManagerId" label="L2 Reporting Manager">
+        <Col xs={24} md={12}>
+          <Form.Item name="l2ReportingManagerId" label="Senior Manager (L2)">
             <Select
               showSearch
-              placeholder="Search & select L2 Manager"
+              placeholder="Search & select Senior Manager (L2)"
               optionFilterProp="label"
               allowClear
               options={managerOptions}
@@ -1189,11 +1197,23 @@ export default function CreateEmployeePage() {
             />
           </Form.Item>
         </Col>
-        <Col xs={24} md={8}>
-          <Form.Item name="functionalManagerId" label="Functional Manager">
+        <Col xs={24} md={12}>
+          <Form.Item name="l3ReportingManagerId" label="Department Head (L3)">
             <Select
               showSearch
-              placeholder="Search & select Functional Manager"
+              placeholder="Search & select Department Head (L3)"
+              optionFilterProp="label"
+              allowClear
+              options={managerOptions}
+              style={{ borderRadius: 8 }}
+            />
+          </Form.Item>
+        </Col>
+        <Col xs={24} md={12}>
+          <Form.Item name="l4ReportingManagerId" label="Business Unit Head (L4)">
+            <Select
+              showSearch
+              placeholder="Search & select Business Unit Head (L4)"
               optionFilterProp="label"
               allowClear
               options={managerOptions}
@@ -1492,13 +1512,22 @@ export default function CreateEmployeePage() {
         <Form 
           form={form} 
           layout="vertical" 
-          requiredMark="optional" 
+          requiredMark={true} 
           preserve={true}
           validateTrigger={['onBlur', 'onChange']}
           scrollToFirstError={{ focusFirstInput: true }}
           onValuesChange={(changedValues, allValues) => {
             const nameFields = ['title', 'firstName', 'middleName', 'lastName'];
             const changedKey = Object.keys(changedValues)[0];
+
+            if (changedKey === 'employeeCategory') {
+              if (changedValues.employeeCategory === 'TCS Employee') {
+                form.setFieldsValue({ employeeCode: '' });
+              } else {
+                form.setFieldsValue({ employeeCode: 'Auto-generated' });
+              }
+            }
+
             if (nameFields.includes(changedKey)) {
               const titleVal = allValues.title ? (EMPLOYEE_TITLE.find(t => t.value === allValues.title)?.label || allValues.title) : '';
               const parts = [titleVal, allValues.firstName, allValues.middleName, allValues.lastName].filter(Boolean);

@@ -397,15 +397,27 @@ export default function DirectoryPage() {
                       </h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         <div>
-                          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 500 }}>Direct Manager</div>
+                          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 500 }}>Immediate Manager (L1)</div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>
                             {previewEmp.reportingManagerName || 'Board of Directors (CEO)'}
                           </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 500 }}>Skip-Level Manager</div>
+                          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 500 }}>Senior Manager (L2)</div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>
                             {fullEmpDetails?.l2ReportingManagerName || '—'}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 500 }}>Department Head (L3)</div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                            {fullEmpDetails?.l3ReportingManagerName || '—'}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 500 }}>Business Unit Head (L4)</div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                            {fullEmpDetails?.l4ReportingManagerName || '—'}
                           </div>
                         </div>
                         <div>

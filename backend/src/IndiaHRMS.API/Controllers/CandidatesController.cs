@@ -38,6 +38,45 @@ public class CandidatesController : ControllerBase
         _fileService = fileService;
     }
 
+    // ─── Lookup: search by Name, Email, or Mobile (for smart Add Candidate modal) ─
+    [HttpGet("lookup")]
+    [Filters.RequirePermission(PermissionCodes.Recruitment.View)]
+    public async Task<ActionResult<ApiResponse<List<CandidateLookupDto>>>> LookupCandidates(
+        [FromQuery] string q,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
+            return Ok(ApiResponse<List<CandidateLookupDto>>.Ok(new List<CandidateLookupDto>()));
+
+        var search = q.Trim().ToLower();
+
+        var matches = await _context.Candidates
+            .Where(c =>
+                (c.FirstName + " " + (c.LastName ?? "")).ToLower().Contains(search) ||
+                c.Email.ToLower().Contains(search) ||
+                (c.Phone != null && c.Phone.Contains(search)))
+            .OrderBy(c => c.FirstName)
+            .Take(5)
+            .Select(c => new CandidateLookupDto
+            {
+                CandidateId = c.CandidateId,
+                FullName = (c.FirstName + " " + (c.LastName ?? "")).Trim(),
+                Email = c.Email,
+                Phone = c.Phone,
+                CurrentCompany = c.CurrentCompany,
+                CurrentDesignation = c.CurrentDesignation,
+                CurrentCTC = c.CurrentCTC,
+                ExpectedCTC = c.ExpectedCTC,
+                NoticePeriodDays = c.NoticePeriodDays,
+                TotalExperience = c.TotalExperience,
+                Source = c.Source.HasValue ? c.Source.Value.ToString() : null,
+                ResumeFilePath = c.ResumeFilePath
+            })
+            .ToListAsync(ct);
+
+        return Ok(ApiResponse<List<CandidateLookupDto>>.Ok(matches));
+    }
+
     [HttpGet]
     [Filters.RequirePermission(PermissionCodes.Recruitment.View)]
     public async Task<ActionResult<ApiResponse<List<CandidateDto>>>> GetCandidates(
@@ -46,6 +85,7 @@ public class CandidatesController : ControllerBase
         [FromQuery] string? source,
         [FromQuery] string? sortBy,
         [FromQuery] string? sortOrder,
+        [FromQuery] Guid? jobId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken ct = default)
@@ -55,11 +95,18 @@ public class CandidatesController : ControllerBase
             .Include(c => c.CandidateAnswers)
             .AsQueryable();
 
+        // Filter by job posting (jobId filter)
+        if (jobId.HasValue)
+        {
+            query = query.Where(c => c.JobApplications.Any(a =>
+                a.Requisition.JobPostings.Any(p => p.JobId == jobId.Value)));
+        }
+
         if (!string.IsNullOrEmpty(search))
         {
             var cleanSearch = search.Trim().ToLower();
-            query = query.Where(c => 
-                c.FirstName.ToLower().Contains(cleanSearch) || 
+            query = query.Where(c =>
+                c.FirstName.ToLower().Contains(cleanSearch) ||
                 (c.LastName != null && c.LastName.ToLower().Contains(cleanSearch)) ||
                 c.Email.ToLower().Contains(cleanSearch) ||
                 (c.Phone != null && c.Phone.Contains(cleanSearch)) ||
@@ -113,7 +160,64 @@ public class CandidatesController : ControllerBase
             .Take(pageSize)
             .ToListAsync(ct);
 
+        var candidateIds = pagedCandidates.Select(c => c.CandidateId).ToList();
+
+        // Enrich with latest application metadata
+        var latestApps = await _context.JobApplications
+            .Include(a => a.Requisition)
+                .ThenInclude(r => r.Department)
+            .Include(a => a.Requisition)
+                .ThenInclude(r => r.JobPostings)
+            .Include(a => a.AssignedRecruiter)
+            .Where(a => candidateIds.Contains(a.CandidateId))
+            .GroupBy(a => a.CandidateId)
+            .Select(g => g.OrderByDescending(a => a.ApplicationDate).First())
+            .ToListAsync(ct);
+
+        var appLookup = latestApps.ToDictionary(a => a.CandidateId);
+
+        // Resolve recruiter user names for any apps that have AssignedRecruiterId
+        var recruiterIds = latestApps
+            .Where(a => a.AssignedRecruiterId.HasValue)
+            .Select(a => a.AssignedRecruiterId!.Value)
+            .Distinct()
+            .ToList();
+        var recruiterNames = await _context.Users
+            .Where(u => recruiterIds.Contains(u.UserId))
+            .ToDictionaryAsync(u => u.UserId, u => $"{u.FirstName} {u.LastName}".Trim(), ct);
+
+        var appCounts = await _context.JobApplications
+            .Where(a => candidateIds.Contains(a.CandidateId))
+            .GroupBy(a => a.CandidateId)
+            .Select(g => new { CandidateId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.CandidateId, x => x.Count, ct);
+
         var dtos = _mapper.Map<List<CandidateDto>>(pagedCandidates);
+
+        foreach (var dto in dtos)
+        {
+            if (appCounts.TryGetValue(dto.CandidateId, out var count))
+            {
+                dto.ApplicationsCount = count;
+            }
+
+            if (appLookup.TryGetValue(dto.CandidateId, out var app))
+            {
+                // Job title from posting if available, else requisition title
+                dto.LatestJobTitle = app.Requisition?.JobPostings?.FirstOrDefault()?.JobTitle
+                    ?? app.Requisition?.JobTitle;
+                dto.LatestDepartmentName = app.Requisition?.Department?.DeptName;
+                dto.LatestApplicationDate = app.ApplicationDate;
+                dto.LatestStage = app.CurrentStage.ToString();
+
+                if (app.AssignedRecruiterId.HasValue &&
+                    recruiterNames.TryGetValue(app.AssignedRecruiterId.Value, out var rName))
+                {
+                    dto.AssignedRecruiterName = rName;
+                }
+            }
+        }
+
         return Ok(ApiResponse<List<CandidateDto>>.PagedOk(dtos, page, pageSize, total));
     }
 
@@ -134,6 +238,7 @@ public class CandidatesController : ControllerBase
         }
 
         var dto = _mapper.Map<CandidateDto>(candidate);
+        dto.ApplicationsCount = candidate.JobApplications?.Count ?? 0;
         return Ok(ApiResponse<CandidateDto>.Ok(dto));
     }
 

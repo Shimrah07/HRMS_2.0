@@ -5,6 +5,7 @@ using IndiaHRMS.Application.DTOs.Organization;
 using IndiaHRMS.Application.DTOs.User;
 using IndiaHRMS.Application.DTOs.Performance;
 using IndiaHRMS.Application.DTOs.Recruitment;
+using IndiaHRMS.Application.DTOs.Attendance;
 using IndiaHRMS.Domain.Entities;
 using IndiaHRMS.Domain.Enums;
 
@@ -101,6 +102,8 @@ public class HRMSMappingProfile : Profile
             .ForMember(d => d.CostCenterName, o => o.MapFrom(s => s.CostCenter != null ? s.CostCenter.CostCenterName : null))
             .ForMember(d => d.ReportingManagerName, o => o.MapFrom(s => s.ReportingManager != null ? $"{s.ReportingManager.FirstName} {s.ReportingManager.LastName}" : null))
             .ForMember(d => d.L2ReportingManagerName, o => o.MapFrom(s => s.L2ReportingManager != null ? $"{s.L2ReportingManager.FirstName} {s.L2ReportingManager.LastName}" : null))
+            .ForMember(d => d.L3ReportingManagerName, o => o.MapFrom(s => s.L3ReportingManager != null ? $"{s.L3ReportingManager.FirstName} {s.L3ReportingManager.LastName}" : null))
+            .ForMember(d => d.L4ReportingManagerName, o => o.MapFrom(s => s.L4ReportingManager != null ? $"{s.L4ReportingManager.FirstName} {s.L4ReportingManager.LastName}" : null))
             .ForMember(d => d.FunctionalManagerName, o => o.MapFrom(s => s.FunctionalManager != null ? $"{s.FunctionalManager.FirstName} {s.FunctionalManager.LastName}" : null))
             .ForMember(d => d.BusinessUnitName, o => o.MapFrom(s => s.BusinessUnit != null ? s.BusinessUnit.Name : null))
             .ForMember(d => d.DivisionName, o => o.MapFrom(s => s.Division != null ? s.Division.Name : null))
@@ -145,6 +148,8 @@ public class HRMSMappingProfile : Profile
             .ForMember(d => d.JobFunction, o => o.Ignore())
             .ForMember(d => d.ProfitCenter, o => o.Ignore())
             .ForMember(d => d.L2ReportingManager, o => o.Ignore())
+            .ForMember(d => d.L3ReportingManager, o => o.Ignore())
+            .ForMember(d => d.L4ReportingManager, o => o.Ignore())
             .ForMember(d => d.FunctionalManager, o => o.Ignore())
             .ForMember(d => d.Shift, o => o.Ignore());
 
@@ -164,6 +169,8 @@ public class HRMSMappingProfile : Profile
             .ForMember(d => d.JobFunction, o => o.Ignore())
             .ForMember(d => d.ProfitCenter, o => o.Ignore())
             .ForMember(d => d.L2ReportingManager, o => o.Ignore())
+            .ForMember(d => d.L3ReportingManager, o => o.Ignore())
+            .ForMember(d => d.L4ReportingManager, o => o.Ignore())
             .ForMember(d => d.FunctionalManager, o => o.Ignore())
             .ForMember(d => d.Shift, o => o.Ignore());
 
@@ -396,6 +403,25 @@ public class HRMSMappingProfile : Profile
             .ForMember(d => d.CompanyId, o => o.Ignore())
             .ForMember(d => d.Company, o => o.Ignore());
 
+        CreateMap<ShiftMaster, ShiftMasterDto>()
+            .ForMember(d => d.StartTime, o => o.MapFrom(s => s.StartTime.ToString("HH:mm")))
+            .ForMember(d => d.EndTime, o => o.MapFrom(s => s.EndTime.ToString("HH:mm")));
+        CreateMap<CreateShiftRequest, ShiftMaster>()
+            .ForMember(d => d.ShiftId, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.Ignore())
+            .ForMember(d => d.Company, o => o.Ignore())
+            .ForMember(d => d.EmployeeShifts, o => o.Ignore())
+            .ForMember(d => d.StartTime, o => o.MapFrom(s => TimeOnly.Parse(s.StartTime)))
+            .ForMember(d => d.EndTime, o => o.MapFrom(s => TimeOnly.Parse(s.EndTime)));
+        CreateMap<UpdateShiftRequest, ShiftMaster>()
+            .ForMember(d => d.ShiftId, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.Company, o => o.Ignore())
+            .ForMember(d => d.EmployeeShifts, o => o.Ignore())
+            .ForMember(d => d.StartTime, o => o.MapFrom(s => TimeOnly.Parse(s.StartTime)))
+            .ForMember(d => d.EndTime, o => o.MapFrom(s => TimeOnly.Parse(s.EndTime)));
+
         // ─── Recruitment & Onboarding ─────────────────────────────────────────
         CreateMap<JobRequisition, JobRequisitionDto>()
             .ForMember(d => d.DepartmentName, o => o.MapFrom(s => s.Department.DeptName))
@@ -430,25 +456,6 @@ public class HRMSMappingProfile : Profile
             .ForMember(d => d.CurrentApproverId, o => o.Ignore())
             .ForMember(d => d.CurrentApprovalLevel, o => o.Ignore());
 
-        CreateMap<UpdateJobRequisitionRequest, JobRequisition>()
-            .ForMember(d => d.ReqId, o => o.Ignore())
-            .ForMember(d => d.CompanyId, o => o.Ignore())
-            .ForMember(d => d.RequisitionDate, o => o.Ignore())
-            .ForMember(d => d.RaisedBy, o => o.Ignore())
-            .ForMember(d => d.ApprovedBy, o => o.Ignore())
-            .ForMember(d => d.Company, o => o.Ignore())
-            .ForMember(d => d.Department, o => o.Ignore())
-            .ForMember(d => d.Designation, o => o.Ignore())
-            .ForMember(d => d.RaisedByUser, o => o.Ignore())
-            .ForMember(d => d.ApprovedByUser, o => o.Ignore())
-            .ForMember(d => d.JobApplications, o => o.Ignore())
-            .ForMember(d => d.JobPostings, o => o.Ignore())
-            .ForMember(d => d.MrfNumber, o => o.Ignore())
-            .ForMember(d => d.InternalHiringJustification, o => o.Ignore())
-            .ForMember(d => d.InternalHiringRemarks, o => o.Ignore())
-            .ForMember(d => d.CurrentApproverId, o => o.Ignore())
-            .ForMember(d => d.CurrentApprovalLevel, o => o.Ignore());
-
         CreateMap<JobPosting, JobPostingDto>()
             .ForMember(d => d.PublishingChannels, o => o.MapFrom(s => s.PublishingChannels.Select(pc => pc.ChannelName).ToList()))
             .ForMember(d => d.PerksAndBenefitsList, o => o.MapFrom(s => s.PerksAndBenefits.Select(pb => pb.PerkName).ToList()))
@@ -465,6 +472,8 @@ public class HRMSMappingProfile : Profile
             .ForMember(d => d.JobId, o => o.Ignore())
             .ForMember(d => d.PostedAt, o => o.Ignore())
             .ForMember(d => d.Status, o => o.Ignore())
+            .ForMember(d => d.PublishedById, o => o.Ignore())
+            .ForMember(d => d.PublishedByUser, o => o.Ignore())
             .ForMember(d => d.JobRequisition, o => o.Ignore())
             .ForMember(d => d.PublishChannels, o => o.MapFrom(s => string.Join(",", s.PublishChannels)))
             .ForMember(d => d.PublishingChannels, o => o.MapFrom(s => s.PublishingChannels.Select(pc => new JobPostingChannel { ChannelName = pc }).ToList()))
@@ -475,11 +484,13 @@ public class HRMSMappingProfile : Profile
             .ForMember(d => d.JobId, o => o.Ignore())
             .ForMember(d => d.ReqId, o => o.Ignore())
             .ForMember(d => d.PostedAt, o => o.Ignore())
+            .ForMember(d => d.PublishedById, o => o.Ignore())
+            .ForMember(d => d.PublishedByUser, o => o.Ignore())
             .ForMember(d => d.JobRequisition, o => o.Ignore())
             .ForMember(d => d.PublishChannels, o => o.MapFrom(s => string.Join(",", s.PublishChannels)))
-            .ForMember(d => d.PublishingChannels, o => o.MapFrom(s => s.PublishingChannels.Select(pc => new JobPostingChannel { ChannelName = pc }).ToList()))
-            .ForMember(d => d.PerksAndBenefits, o => o.MapFrom(s => s.PerksAndBenefits.Select(pb => new JobPostingPerk { PerkName = pb }).ToList()))
-            .ForMember(d => d.JobPostingQuestions, o => o.MapFrom(s => s.JobPostingQuestions));
+            .ForMember(d => d.PublishingChannels, o => o.Ignore())
+            .ForMember(d => d.PerksAndBenefits, o => o.Ignore())
+            .ForMember(d => d.JobPostingQuestions, o => o.Ignore());
 
         CreateMap<Candidate, CandidateDto>()
             .ForMember(d => d.ReferralEmployeeName, o => o.MapFrom(s => s.ReferralEmployee != null ? (s.ReferralEmployee.FirstName + " " + s.ReferralEmployee.LastName) : null))
@@ -534,10 +545,18 @@ public class HRMSMappingProfile : Profile
         CreateMap<JobApplication, JobApplicationDto>()
             .ForMember(d => d.JobTitle, o => o.MapFrom(s => s.Requisition.JobTitle))
             .ForMember(d => d.CandidateName, o => o.MapFrom(s => $"{s.Candidate.FirstName} {s.Candidate.LastName}"))
-            .ForMember(d => d.CandidateEmail, o => o.MapFrom(s => s.Candidate.Email));
+            .ForMember(d => d.CandidateEmail, o => o.MapFrom(s => s.Candidate.Email))
+            .ForMember(d => d.JobId, o => o.MapFrom(s => s.Requisition.JobPostings.FirstOrDefault() != null ? s.Requisition.JobPostings.FirstOrDefault().JobId : (Guid?)null))
+            .ForMember(d => d.DepartmentName, o => o.MapFrom(s => s.Requisition.Department != null ? s.Requisition.Department.DeptName : null))
+            .ForMember(d => d.AssignedRecruiterName, o => o.MapFrom(s => s.AssignedRecruiter != null ? $"{s.AssignedRecruiter.FirstName} {s.AssignedRecruiter.LastName}" : null))
+            .ForMember(d => d.InterviewDate, o => o.MapFrom(s => s.InterviewRounds.Any() ? s.InterviewRounds.Max(r => r.ScheduledAt) : (DateTime?)null))
+            .ForMember(d => d.Source, o => o.MapFrom(s => s.Candidate.Source.HasValue ? s.Candidate.Source.Value.ToString() : null))
+            .ForMember(d => d.Candidate, o => o.MapFrom(s => s.Candidate));
 
         CreateMap<InterviewRound, InterviewRoundDto>()
-            .ForMember(d => d.InterviewerName, o => o.MapFrom(s => $"{s.Interviewer.FirstName} {s.Interviewer.LastName}"));
+            .ForMember(d => d.InterviewerName, o => o.MapFrom(s => s.Interviewer != null ? $"{s.Interviewer.FirstName} {s.Interviewer.LastName}" : string.Empty))
+            .ForMember(d => d.CandidateId, o => o.MapFrom(s => s.JobApplication != null ? (Guid?)s.JobApplication.CandidateId : null))
+            .ForMember(d => d.JobTitle, o => o.MapFrom(s => s.JobApplication != null && s.JobApplication.Requisition != null ? s.JobApplication.Requisition.JobTitle : null));
 
         CreateMap<InterviewRoundPanelist, InterviewRoundPanelistDto>()
             .ForMember(d => d.EmployeeName, o => o.MapFrom(s => $"{s.Employee.FirstName} {s.Employee.LastName}"));

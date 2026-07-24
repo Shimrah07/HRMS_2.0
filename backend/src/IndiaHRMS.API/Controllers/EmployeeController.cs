@@ -295,6 +295,24 @@ public class EmployeeController : ControllerBase
             var active = await _context.Employees.AnyAsync(e => e.EmployeeId == request.L2ReportingManagerId.Value && e.IsActive, ct);
             if (!active) return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("L2 Reporting Manager must be an active employee."));
         }
+        if (request.L3ReportingManagerId.HasValue)
+        {
+            if (request.L3ReportingManagerId.Value == empId)
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Cannot assign self as L3 Reporting Manager."));
+            if (await IsCircularReportingAsync(empId, request.L3ReportingManagerId.Value, ct))
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Circular reporting detected for L3 Reporting Manager."));
+            var active = await _context.Employees.AnyAsync(e => e.EmployeeId == request.L3ReportingManagerId.Value && e.IsActive, ct);
+            if (!active) return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("L3 Reporting Manager must be an active employee."));
+        }
+        if (request.L4ReportingManagerId.HasValue)
+        {
+            if (request.L4ReportingManagerId.Value == empId)
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Cannot assign self as L4 Reporting Manager."));
+            if (await IsCircularReportingAsync(empId, request.L4ReportingManagerId.Value, ct))
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Circular reporting detected for L4 Reporting Manager."));
+            var active = await _context.Employees.AnyAsync(e => e.EmployeeId == request.L4ReportingManagerId.Value && e.IsActive, ct);
+            if (!active) return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("L4 Reporting Manager must be an active employee."));
+        }
         if (request.FunctionalManagerId.HasValue)
         {
             if (request.FunctionalManagerId.Value == empId)
@@ -479,7 +497,10 @@ public class EmployeeController : ControllerBase
         }
 
         // Notify the HR Admin / Creator
-        if (_currentUser.UserId.HasValue)
+        // Guard: only insert if the creator's UserId actually exists in the Users table
+        // (avoids FK_Notifications_Users_UserId violation if JWT token refers to a stale/re-seeded user)
+        if (_currentUser.UserId.HasValue &&
+            await _context.Users.AnyAsync(u => u.UserId == _currentUser.UserId.Value, ct))
         {
             var creatorNotif = new Notification
             {
@@ -537,6 +558,8 @@ public class EmployeeController : ControllerBase
                 request.ProfitCenterId != employee.ProfitCenterId ||
                 request.ReportingManagerId != employee.ReportingManagerId ||
                 request.L2ReportingManagerId != employee.L2ReportingManagerId ||
+                request.L3ReportingManagerId != employee.L3ReportingManagerId ||
+                request.L4ReportingManagerId != employee.L4ReportingManagerId ||
                 request.FunctionalManagerId != employee.FunctionalManagerId ||
                 request.EmploymentType != employee.EmploymentType)
             {
@@ -562,6 +585,24 @@ public class EmployeeController : ControllerBase
                 return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Circular reporting detected for L2 Reporting Manager."));
             var active = await _context.Employees.AnyAsync(e => e.EmployeeId == request.L2ReportingManagerId.Value && e.IsActive, ct);
             if (!active) return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("L2 Reporting Manager must be an active employee."));
+        }
+        if (request.L3ReportingManagerId.HasValue)
+        {
+            if (request.L3ReportingManagerId.Value == id)
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Cannot assign self as L3 Reporting Manager."));
+            if (await IsCircularReportingAsync(id, request.L3ReportingManagerId.Value, ct))
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Circular reporting detected for L3 Reporting Manager."));
+            var active = await _context.Employees.AnyAsync(e => e.EmployeeId == request.L3ReportingManagerId.Value && e.IsActive, ct);
+            if (!active) return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("L3 Reporting Manager must be an active employee."));
+        }
+        if (request.L4ReportingManagerId.HasValue)
+        {
+            if (request.L4ReportingManagerId.Value == id)
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Cannot assign self as L4 Reporting Manager."));
+            if (await IsCircularReportingAsync(id, request.L4ReportingManagerId.Value, ct))
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Circular reporting detected for L4 Reporting Manager."));
+            var active = await _context.Employees.AnyAsync(e => e.EmployeeId == request.L4ReportingManagerId.Value && e.IsActive, ct);
+            if (!active) return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("L4 Reporting Manager must be an active employee."));
         }
         if (request.FunctionalManagerId.HasValue)
         {

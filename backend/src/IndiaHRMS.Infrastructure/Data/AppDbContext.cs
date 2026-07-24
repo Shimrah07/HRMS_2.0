@@ -47,7 +47,7 @@ public class AppDbContext : DbContext
     public DbSet<HolidayCalendar> HolidayCalendars => Set<HolidayCalendar>();
     public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
     public DbSet<AttendanceRegularization> AttendanceRegularizations => Set<AttendanceRegularization>();
-
+    public DbSet<CompOffLedger> CompOffLedgers => Set<CompOffLedger>();
     // ─── Leave ────────────────────────────────────────────────────────────────
     public DbSet<LeaveType> LeaveTypes => Set<LeaveType>();
     public DbSet<LeaveBalance> LeaveBalances => Set<LeaveBalance>();
@@ -67,6 +67,7 @@ public class AppDbContext : DbContext
     public DbSet<JobRequisition> JobRequisitions => Set<JobRequisition>();
     public DbSet<Candidate> Candidates => Set<Candidate>();
     public DbSet<JobApplication> JobApplications => Set<JobApplication>();
+    public DbSet<PendingApplication> PendingApplications => Set<PendingApplication>();
     public DbSet<InterviewRound> InterviewRounds => Set<InterviewRound>();
     public DbSet<OfferLetter> OfferLetters => Set<OfferLetter>();
     public DbSet<JobPosting> JobPostings => Set<JobPosting>();
@@ -266,6 +267,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.PayrollGroup).HasConversion<string>().HasMaxLength(50);
             e.Property(x => x.WorkMode).HasConversion<string>().HasMaxLength(50);
             e.Property(x => x.VendorName).HasMaxLength(200);
+            e.Property(x => x.RecruitmentSource).HasMaxLength(100);
 
             e.HasOne(x => x.Company).WithMany(x => x.Employees).HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Department).WithMany(x => x.Employees).HasForeignKey(x => x.DeptId).OnDelete(DeleteBehavior.Restrict);
@@ -283,6 +285,8 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.JobFunction).WithMany().HasForeignKey(x => x.JobFunctionId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.ReportingManager).WithMany(x => x.DirectReports).HasForeignKey(x => x.ReportingManagerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.L2ReportingManager).WithMany().HasForeignKey(x => x.L2ReportingManagerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.L3ReportingManager).WithMany().HasForeignKey(x => x.L3ReportingManagerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.L4ReportingManager).WithMany().HasForeignKey(x => x.L4ReportingManagerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.FunctionalManager).WithMany().HasForeignKey(x => x.FunctionalManagerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Shift).WithMany().HasForeignKey(x => x.ShiftId).OnDelete(DeleteBehavior.Restrict);
         });
@@ -392,6 +396,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<EmployeeShift>(e => e.HasKey(x => x.EmpShiftId));
         modelBuilder.Entity<HolidayCalendar>(e => e.HasKey(x => x.HolidayId));
         modelBuilder.Entity<AttendanceRegularization>(e => e.HasKey(x => x.RegId));
+        modelBuilder.Entity<CompOffLedger>(e => e.HasKey(x => x.LedgerId));
 
         // ─── Leave ─────────────────────────────────────────────────────────────
         modelBuilder.Entity<LeaveBalance>(e =>
@@ -546,6 +551,28 @@ public class AppDbContext : DbContext
             e.HasKey(x => x.AppId);
             e.Property(x => x.CurrentStage).HasConversion<string>().HasMaxLength(30);
             e.Property(x => x.AiMatchScore).HasColumnType("decimal(5,2)");
+            e.HasOne(x => x.Requisition)
+                .WithMany(x => x.JobApplications)
+                .HasForeignKey(x => x.ReqId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ─── PendingApplication ────────────────────────────────────────────────
+        modelBuilder.Entity<PendingApplication>(e =>
+        {
+            e.HasKey(x => x.PendingAppId);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.CurrentCTC).HasColumnType("decimal(12,2)");
+            e.Property(x => x.ExpectedCTC).HasColumnType("decimal(12,2)");
+            e.Property(x => x.TotalExperience).HasColumnType("decimal(4,1)");
+            e.HasOne(x => x.JobPosting)
+                .WithMany()
+                .HasForeignKey(x => x.JobId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.ReferralEmployee)
+                .WithMany()
+                .HasForeignKey(x => x.ReferralEmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // ─── InterviewRound ────────────────────────────────────────────────────
@@ -572,6 +599,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.ExperienceMin).HasColumnType("decimal(4,1)");
             e.Property(x => x.ExperienceMax).HasColumnType("decimal(4,1)");
             e.HasOne(x => x.JobRequisition).WithMany(x => x.JobPostings).HasForeignKey(x => x.ReqId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.PublishedByUser).WithMany().HasForeignKey(x => x.PublishedById).OnDelete(DeleteBehavior.SetNull);
         });
 
         // ─── Screening Questions & Answers ──────────────────────────────────────

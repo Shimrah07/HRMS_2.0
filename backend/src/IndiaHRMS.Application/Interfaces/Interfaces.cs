@@ -140,3 +140,26 @@ public interface IPdfGenerationService
     Task<byte[]> GenerateExperienceLetterAsync(Guid separationId, CancellationToken ct = default);
     Task<byte[]> GenerateRelievingLetterAsync(Guid separationId, CancellationToken ct = default);
 }
+
+/// <summary>
+/// Reusable candidate application service used by both Manual HR Entry and the future Careers Portal.
+/// All entry points funnel through ApplyToJob() — zero code duplication.
+/// </summary>
+public interface IApplicationService
+{
+    /// <summary>
+    /// Creates or links a candidate to a Published Job Opening and sets ApplicationStage = Applied.
+    /// Accepts only JobId — ReqId is resolved internally and never exposed externally.
+    /// </summary>
+    Task<IndiaHRMS.Application.DTOs.Recruitment.ApplyToJobResult> ApplyToJobAsync(
+        IndiaHRMS.Application.DTOs.Recruitment.ApplyToJobRequest request,
+        CancellationToken ct = default);
+}
+
+public interface IHiringService
+{
+    Task<IndiaHRMS.Application.DTOs.Employee.EmployeeDetailDto> ConvertCandidateToEmployeeAsync(
+        Guid appId,
+        IndiaHRMS.Application.DTOs.Recruitment.ConvertCandidateRequest request,
+        CancellationToken ct = default);
+}

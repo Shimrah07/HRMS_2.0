@@ -28,6 +28,7 @@ const PIPELINE_COLUMNS = [
   { id: 'HRInterview', label: 'HR Discussion', color: '#EC4899' },
   { id: 'Offer', label: 'Offer Stage', color: '#F97316' },
   { id: 'BackgroundCheck', label: 'BGV Verification', color: '#6366F1' },
+  { id: 'Onboarding', label: 'Onboarding', color: '#8B5CF6' },
   { id: 'Joined', label: 'Joined', color: '#22C55E' },
   { id: 'Rejected', label: 'Rejected', color: '#EF4444' },
   { id: 'Withdrawn', label: 'Withdrawn', color: '#6B7280' }
@@ -49,11 +50,13 @@ const isValidTransition = (current, target) => {
     case 'InterviewL2':
     case 'ManagerReview':
     case 'HRInterview':
-      return ['InterviewL1', 'InterviewL2', 'ManagerReview', 'HRInterview', 'Offer', 'Shortlisted'].includes(target)
+      return ['InterviewL1', 'InterviewL2', 'ManagerReview', 'HRInterview', 'Offer', 'Shortlisted', 'Screening'].includes(target)
     case 'Offer':
-      return ['Joined', 'BackgroundCheck', 'InterviewL1', 'InterviewL2', 'HRInterview'].includes(target)
+      return ['Joined', 'Onboarding', 'BackgroundCheck', 'InterviewL1', 'InterviewL2', 'HRInterview'].includes(target)
     case 'BackgroundCheck':
-      return target === 'Joined' || target === 'Offer'
+      return ['Joined', 'Onboarding', 'Offer'].includes(target)
+    case 'Onboarding':
+      return ['Joined', 'BackgroundCheck', 'Offer'].includes(target)
     default:
       return true
   }
@@ -125,9 +128,60 @@ export default function AtsPipelinePage() {
       return
     }
 
+    const activePipelineStages = ['Shortlisted', 'InterviewL1', 'InterviewL2', 'ManagerReview', 'HRInterview', 'Offer', 'BackgroundCheck', 'Onboarding']
+    if (activePipelineStages.includes(targetStage) && !activePipelineStages.includes(sourceStage)) {
+      const conflictingApp = applications.find(a =>
+        a.candidate?.candidateId === draggedApp.candidate?.candidateId &&
+        a.appId !== draggedApp.appId &&
+        a.status !== 'Rejected' && a.status !== 'Withdrawn' &&
+        (activePipelineStages.includes(a.currentStage) || a.currentStage === 'Joined')
+      )
+      if (conflictingApp) {
+        Modal.error({
+          title: 'Active Pipeline Conflict',
+          content: (
+            <div style={{ marginTop: 8 }}>
+              <Paragraph style={{ marginBottom: 8 }}>
+                Candidate <strong>{draggedApp.candidate?.firstName} {draggedApp.candidate?.lastName}</strong> is already in an active interview pipeline for <strong>{conflictingApp.requisition?.jobTitle || 'another role'}</strong>.
+              </Paragraph>
+              <Paragraph type="danger" style={{ fontWeight: 600, margin: 0 }}>
+                A candidate cannot be active in multiple interview pipelines simultaneously.
+              </Paragraph>
+            </div>
+          )
+        })
+        setDraggedApp(null)
+        return
+      }
+    }
+
     if (targetStage === 'Rejected') {
       // Trigger rejection reason modal
       setRejectModal({ open: true, appId: draggedApp.appId, targetStage })
+    } else if (targetStage === 'Offer') {
+      const pending = []
+      if (draggedApp.technicalApproved !== true) pending.push('Technical')
+      if (draggedApp.hrApproved !== true) pending.push('HR')
+      if (draggedApp.managerApproved !== true) pending.push('Manager')
+
+      if (pending.length > 0) {
+        Modal.error({
+          title: 'Cannot Move to Offer Stage',
+          content: (
+            <div style={{ marginTop: 8 }}>
+              <Paragraph style={{ fontWeight: 600, marginBottom: 6 }}>Pending Approvals:</Paragraph>
+              <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 8, padding: '8px 12px' }}>
+                {pending.map(p => (
+                  <div key={p} style={{ color: '#ef4444', fontWeight: 600, fontSize: 13, padding: '2px 0' }}>• {p}</div>
+                ))}
+              </div>
+            </div>
+          )
+        })
+        setDraggedApp(null)
+        return
+      }
+      updateStageMutation.mutate({ appId: draggedApp.appId, stage: targetStage })
     } else {
       updateStageMutation.mutate({ appId: draggedApp.appId, stage: targetStage })
     }
@@ -235,14 +289,22 @@ export default function AtsPipelinePage() {
                       Drag profile here
                     </div>
                   ) : (
-                    colApps.map(app => (
+                    colApps.map(app => {
+                      const activePipelineStages = ['Shortlisted', 'InterviewL1', 'InterviewL2', 'ManagerReview', 'HRInterview', 'Offer', 'BackgroundCheck', 'Onboarding']
+                      const conflictingOtherApp = applications.find(other =>
+                        other.candidate?.candidateId === app.candidate?.candidateId &&
+                        other.appId !== app.appId &&
+                        other.status !== 'Rejected' && other.status !== 'Withdrawn' &&
+                        (activePipelineStages.includes(other.currentStage) || other.currentStage === 'Joined')
+                      )
+                      return (
                       <div
                         key={app.appId}
                         draggable
                         onDragStart={(e) => handleDragStart(e, app)}
                         style={{
                           background: 'var(--color-bg-container)',
-                          border: 'var(--border-glass)',
+                          border: conflictingOtherApp && !activePipelineStages.includes(app.currentStage) ? '1px solid #ffbb96' : 'var(--border-glass)',
                           borderRadius: 10,
                           padding: 12,
                           cursor: 'grab',
@@ -275,8 +337,15 @@ export default function AtsPipelinePage() {
                           {app.candidate?.currentDesignation || 'No Designation'} · {app.candidate?.currentCompany || 'No Company'}
                         </div>
 
-                        <Divider style={{ margin: '8px 0', opacity: 0.1 }} />
+                        {conflictingOtherApp && (
+                          <div style={{ marginTop: 4 }}>
+                            <Tag color="volcano" style={{ fontSize: 9, margin: 0, borderRadius: 4 }}>
+                              <WarningOutlined /> Active in {conflictingOtherApp.requisition?.jobTitle || 'another role'}
+                            </Tag>
+                          </div>
+                        )}
 
+                        <Row gutter={8} style={{ marginTop: 'auto', paddingTop: 8 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, opacity: 0.5 }}>
                           <span>Exp: {app.candidate?.totalExperience ?? 0} yrs</span>
                           <span>Source: {app.candidate?.source || 'Other'}</span>
@@ -292,9 +361,10 @@ export default function AtsPipelinePage() {
                             <ExclamationCircleOutlined /> Reason: {app.rejectionReason}
                           </div>
                         )}
+                        </Row>
                       </div>
-                    ))
-                  )}
+                    )
+                  }))}
                 </div>
               </div>
             )

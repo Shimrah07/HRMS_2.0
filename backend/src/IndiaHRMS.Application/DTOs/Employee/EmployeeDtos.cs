@@ -18,6 +18,7 @@ public class EmployeeListDto
     public string? PersonalPhone { get; set; }
     public string? ProfilePhoto { get; set; }
     public string DepartmentName { get; set; } = string.Empty;
+    public Guid DeptId { get; set; }
     public string DesignationTitle { get; set; } = string.Empty;
     public string LocationName { get; set; } = string.Empty;
     public Guid? ReportingManagerId { get; set; }
@@ -36,6 +37,7 @@ public class EmployeeListDto
     public PayrollGroup? PayrollGroup { get; set; }
     public WorkMode? WorkMode { get; set; }
     public int NoticePeriodDays { get; set; }
+    public Guid? CandidateId { get; set; }
 }
 
 public class EmployeeSummaryDto
@@ -134,6 +136,10 @@ public class EmployeeDetailDto
     public string? ReportingManagerName { get; set; }
     public Guid? L2ReportingManagerId { get; set; }
     public string? L2ReportingManagerName { get; set; }
+    public Guid? L3ReportingManagerId { get; set; }
+    public string? L3ReportingManagerName { get; set; }
+    public Guid? L4ReportingManagerId { get; set; }
+    public string? L4ReportingManagerName { get; set; }
     public Guid? FunctionalManagerId { get; set; }
     public string? FunctionalManagerName { get; set; }
     public Guid? BusinessUnitId { get; set; }
@@ -169,6 +175,7 @@ public class EmployeeDetailDto
     public string? ProfilePhoto { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public Guid? CandidateId { get; set; }
     public List<EmployeeDocumentDto> Documents { get; set; } = new();
     public List<BankDetailDto> BankDetails { get; set; } = new();
     public List<EducationDto> Educations { get; set; } = new();
@@ -245,6 +252,8 @@ public class CreateEmployeeRequest
     public Guid? CostCenterId { get; set; }
     public Guid? ReportingManagerId { get; set; }
     public Guid? L2ReportingManagerId { get; set; }
+    public Guid? L3ReportingManagerId { get; set; }
+    public Guid? L4ReportingManagerId { get; set; }
     public Guid? FunctionalManagerId { get; set; }
     public Guid? BusinessUnitId { get; set; }
     public Guid? DivisionId { get; set; }
@@ -332,6 +341,8 @@ public class UpdateEmployeeRequest
     public Guid? CostCenterId { get; set; }
     public Guid? ReportingManagerId { get; set; }
     public Guid? L2ReportingManagerId { get; set; }
+    public Guid? L3ReportingManagerId { get; set; }
+    public Guid? L4ReportingManagerId { get; set; }
     public Guid? FunctionalManagerId { get; set; }
     public Guid? BusinessUnitId { get; set; }
     public Guid? DivisionId { get; set; }

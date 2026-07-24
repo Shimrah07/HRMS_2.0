@@ -50,48 +50,62 @@ const NAV_GROUPS = [
     key: 'people',
     label: 'PEOPLE',
     items: [
-      { key: '/employees', icon: <TeamOutlined />,      label: 'Employees',      permission: PERMISSIONS.EMPLOYEE.VIEW, hideForEmployee: true },
-      { key: '/org-chart', icon: <ApartmentOutlined />, label: 'Org Chart',      permission: PERMISSIONS.EMPLOYEE.VIEW, hideForEmployee: true },
+      { key: '/employees', icon: <TeamOutlined />, label: 'Employees', permission: PERMISSIONS.EMPLOYEE.VIEW, hideForEmployee: true },
+      { key: '/org-chart', icon: <ApartmentOutlined />, label: 'Org Chart', permission: PERMISSIONS.EMPLOYEE.VIEW, hideForEmployee: true },
     ],
   },
   {
     key: 'organization',
     label: 'ORGANIZATION',
     items: [
-      { key: '/organization/departments',  icon: <BankOutlined />,   label: 'Departments',  permission: PERMISSIONS.COMPANY_SETUP.VIEW },
+      { key: '/organization/departments', icon: <BankOutlined />, label: 'Departments', permission: PERMISSIONS.COMPANY_SETUP.VIEW },
       { key: '/organization/designations', icon: <SafetyOutlined />, label: 'Designations', permission: PERMISSIONS.COMPANY_SETUP.VIEW },
-      { key: '/organization/locations',    icon: <GlobalOutlined />, label: 'Locations',    permission: PERMISSIONS.COMPANY_SETUP.VIEW },
+      { key: '/organization/locations', icon: <GlobalOutlined />, label: 'Locations', permission: PERMISSIONS.COMPANY_SETUP.VIEW },
     ],
   },
   {
     key: 'workforce',
     label: 'WORKFORCE',
     items: [
-      { key: '/attendance', icon: <ClockCircleOutlined />, label: 'Attendance', permission: PERMISSIONS.ATTENDANCE.VIEW },
-      { key: '/leave',      icon: <CalendarOutlined />,    label: 'Leave',      permission: PERMISSIONS.LEAVE.VIEW },
-      { key: '/payroll',    icon: <DollarOutlined />,      label: 'Payroll',    permission: PERMISSIONS.PAYROLL.VIEW },
+      { 
+        key: '/attendance', 
+        icon: <ClockCircleOutlined />, 
+        label: 'Attendance', 
+        permission: null, // Scoped via role filtering dynamically below
+        children: [
+          { key: '/attendance', label: 'My Attendance' },
+          { key: '/attendance/team', label: 'Team Attendance' },
+          { key: '/attendance/regularizations', label: 'Regularization Queue' },
+          { key: '/attendance/shifts', label: 'Shift & Roster' },
+          { key: '/attendance/overtime', label: 'Overtime & Comp-Off' },
+          { key: '/attendance/freeze', label: 'Attendance Freeze' },
+          { key: '/attendance/reports', label: 'Reports & Analytics' }
+        ]
+      },
+      { key: '/leave', icon: <CalendarOutlined />, label: 'Leave', permission: PERMISSIONS.LEAVE.VIEW },
+      { key: '/payroll', icon: <DollarOutlined />, label: 'Payroll', permission: PERMISSIONS.PAYROLL.VIEW },
     ],
   },
   {
     key: 'growth',
     label: 'GROWTH',
     items: [
-      { key: '/performance',  icon: <RocketOutlined />, label: 'Performance',  permission: PERMISSIONS.PERFORMANCE.VIEW },
+      { key: '/performance', icon: <RocketOutlined />, label: 'Performance', permission: PERMISSIONS.PERFORMANCE.VIEW },
       {
         key: '/recruitment',
         icon: <BookOutlined />,
         label: 'Recruitment',
         permission: PERMISSIONS.RECRUITMENT.VIEW,
         children: [
-          { key: '/recruitment', label: 'Manpower Requisition' },
+          { key: '/recruitment', label: 'Manpower Requisitions' },
           { key: '/recruitment/jobs', label: 'Job Openings' },
-          { key: '/recruitment/candidates', label: 'Candidate Database' },
-          { key: '/recruitment/pipeline', label: 'ATS Pipeline' },
+          { key: '/recruitment/candidates', label: 'Candidates' },
+          { key: '/recruitment/applications', label: 'Applications' },
           { key: '/recruitment/interviews', label: 'Interviews' },
-          { key: '/recruitment/offers', label: 'CTC & Offers' },
-          { key: '/recruitment/onboarding', label: 'Onboarding Tasks' },
-          { key: '/recruitment/probation', label: 'Probation Tracking' },
-          { key: '/recruitment/confirmation', label: 'Confirmations' }
+          { key: '/recruitment/offers', label: 'Offers' },
+          { key: '/recruitment/bgv', label: 'Background Verification' },
+          { key: '/recruitment/onboarding', label: 'Onboarding' },
+          { key: '/recruitment/probation', label: 'Probation' }
         ]
       },
     ],
@@ -100,24 +114,28 @@ const NAV_GROUPS = [
     key: 'admin',
     label: 'ADMINISTRATION',
     items: [
-      { key: '/users',         icon: <UserOutlined />,    label: 'Users & Roles', permission: PERMISSIONS.USER_MANAGEMENT.VIEW },
-      { key: '/notifications', icon: <BellOutlined />,    label: 'Notifications', permission: null },
-      { key: '/settings',      icon: <SettingOutlined />, label: 'Settings',      permission: PERMISSIONS.COMPANY_SETUP.VIEW },
+      { key: '/users', icon: <UserOutlined />, label: 'Users & Roles', permission: PERMISSIONS.USER_MANAGEMENT.VIEW },
+      { key: '/notifications', icon: <BellOutlined />, label: 'Notifications', permission: null },
+      { key: '/settings', icon: <SettingOutlined />, label: 'Settings', permission: PERMISSIONS.COMPANY_SETUP.VIEW },
     ],
   },
 ]
 
 export default function Sidebar() {
-  const navigate   = useNavigate()
-  const location   = useLocation()
+  const navigate = useNavigate()
+  const location = useLocation()
   const { sidebarCollapsed, toggleSidebar } = useUIStore()
   const { can, isSuperAdmin } = usePermission()
   const { roles } = useAuthStore()
-  const [recruitmentOpen, setRecruitmentOpen] = useState(true)
+  const [openMenus, setOpenMenus] = useState(['/recruitment', '/attendance'])
+
+  const toggleMenu = (key) => {
+    setOpenMenus(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])
+  }
 
   const isEmployee = roles.includes('EMPLOYEE') && !roles.some(r =>
     ['SUPER_ADMIN', 'HR_ADMIN', 'HR_MANAGER', 'HR_EXEC', 'PAYROLL_ADMIN', 'IT_ADMIN',
-     'REPORTING_MGR', 'DEPT_MANAGER', 'COMPLIANCE_OFFICER', 'AUDITOR', 'FINANCE_VIEWER'].includes(r)
+      'REPORTING_MGR', 'DEPT_MANAGER', 'COMPLIANCE_OFFICER', 'AUDITOR', 'FINANCE_VIEWER'].includes(r)
   )
 
   const isActive = (key) => location.pathname === key || location.pathname.startsWith(key + '/')
@@ -137,11 +155,50 @@ export default function Sidebar() {
       .map((item) => {
         if (item.children) {
           const isHRRole = roles.some(r => ['SUPER_ADMIN', 'HR_ADMIN', 'HR_MANAGER', 'RECRUITMENT_MANAGER'].includes(r));
+          const isOrgAdmin = roles.some(r => ['SUPER_ADMIN', 'HR_ADMIN', 'IT_ADMIN', 'COO'].includes(r));
+          const isReportingMgr = roles.includes('REPORTING_MGR') || roles.includes('DEPT_MANAGER');
+          const isPayrollOrCompliance = roles.some(r => ['PAYROLL_ADMIN', 'COMPLIANCE_OFFICER'].includes(r));
+          const isPureEmployee = isEmployee;
+
           return {
             ...item,
-            children: isHRRole 
-              ? item.children 
-              : item.children.filter(child => child.key === '/recruitment')
+            children: item.children.filter(child => {
+              if (child.key.startsWith('/recruitment')) {
+                if (isHRRole) return true;
+                return child.key === '/recruitment' || child.key === '/recruitment/jobs';
+              }
+              
+              if (child.key.startsWith('/attendance')) {
+                // Roles that see only reports
+                if (isPayrollOrCompliance) {
+                  return child.key === '/attendance/reports';
+                }
+
+                // HR Admin sees everything
+                if (roles.includes('HR_ADMIN') || roles.includes('SUPER_ADMIN')) {
+                  return true;
+                }
+
+                // Pure Employee sees My Attendance and Overtime
+                if (isPureEmployee) {
+                  return child.key === '/attendance' || child.key === '/attendance/overtime';
+                }
+
+                // Reporting Manager / Dept Manager
+                if (isReportingMgr) {
+                  const allowedForMgr = ['/attendance', '/attendance/team', '/attendance/regularizations', '/attendance/overtime', '/attendance/reports'];
+                  return allowedForMgr.includes(child.key);
+                }
+
+                // COO or other Org Admins might have specific access
+                if (isOrgAdmin) {
+                  return child.key !== '/attendance/freeze';
+                }
+
+                return false;
+              }
+              return true;
+            })
           };
         }
         return item;
@@ -259,7 +316,7 @@ export default function Sidebar() {
             {group.items.map((item) => {
               const active = isActive(item.key)
               const hasChildren = item.children && item.children.length > 0
-              const isMenuOpen = item.key === '/recruitment' ? recruitmentOpen : false
+              const isMenuOpen = openMenus.includes(item.key)
 
               const navItem = (
                 <div
@@ -269,14 +326,14 @@ export default function Sidebar() {
                   aria-current={active ? 'page' : undefined}
                   onClick={() => {
                     if (hasChildren) {
-                      setRecruitmentOpen(!recruitmentOpen)
+                      toggleMenu(item.key)
                     }
                     navigate(item.key)
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       if (hasChildren) {
-                        setRecruitmentOpen(!recruitmentOpen)
+                        toggleMenu(item.key)
                       }
                       navigate(item.key)
                     }
@@ -464,7 +521,7 @@ export default function Sidebar() {
         >
           {sidebarCollapsed
             ? <MenuUnfoldOutlined style={{ fontSize: 15 }} />
-            : <MenuFoldOutlined  style={{ fontSize: 15 }} />
+            : <MenuFoldOutlined style={{ fontSize: 15 }} />
           }
         </div>
       </div>

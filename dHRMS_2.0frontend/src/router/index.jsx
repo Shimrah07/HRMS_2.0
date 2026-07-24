@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { Spin } from 'antd'
 import AppLayout from '../components/layout/AppLayout'
@@ -34,18 +34,29 @@ const NotificationsPage = lazy(() => import('../pages/notifications/Notification
 const SettingsPage = lazy(() => import('../pages/settings/SettingsPage'))
 const PayrollPage = lazy(() => import('../pages/payroll/PayrollPage'))
 const AttendancePage = lazy(() => import('../pages/attendance/AttendancePage'))
+const ShiftMasterPage = lazy(() => import('../pages/attendance/ShiftMasterPage'))
+const TeamAttendancePage = lazy(() => import('../pages/attendance/TeamAttendancePage'))
+const RegularizationQueuePage = lazy(() => import('../pages/attendance/RegularizationQueuePage'))
+const OvertimePage = lazy(() => import('../pages/attendance/OvertimePage'))
+const AttendanceFreezePage = lazy(() => import('../pages/attendance/AttendanceFreezePage'))
+const AttendanceReportsPage = lazy(() => import('../pages/attendance/AttendanceReportsPage'))
 const LeavePage = lazy(() => import('../pages/leave/LeavePage'))
 const PerformancePage = lazy(() => import('../pages/performance/PerformancePage'))
 const RecruitmentPage = lazy(() => import('../pages/recruitment/RecruitmentPage'))
 const CreateMrfPage = lazy(() => import('../pages/recruitment/CreateMrfPage'))
 const CandidatesPage = lazy(() => import('../pages/recruitment/CandidatesPage'))
+const ApplicationsPage = lazy(() => import('../pages/recruitment/ApplicationsPage'))
 const OffersPage = lazy(() => import('../pages/recruitment/OffersPage'))
+const CareersPortalPage = lazy(() => import('../pages/recruitment/CareersPortalPage'))
+const CandidateImportPage = lazy(() => import('../pages/recruitment/CandidateImportPage'))
+const PendingApplicationsPage = lazy(() => import('../pages/recruitment/PendingApplicationsPage'))
 const OnboardingPage = lazy(() => import('../pages/recruitment/OnboardingPage'))
 const ProbationPage = lazy(() => import('../pages/recruitment/ProbationPage'))
 const ConfirmationPage = lazy(() => import('../pages/recruitment/ConfirmationPage'))
 const JobOpeningsPage = lazy(() => import('../pages/recruitment/JobOpeningsPage'))
 const AtsPipelinePage = lazy(() => import('../pages/recruitment/AtsPipelinePage'))
 const InterviewsPage = lazy(() => import('../pages/recruitment/InterviewsPage'))
+const BgvPage = lazy(() => import('../pages/recruitment/BgvPage'))
 const NotFoundPage = lazy(() => import('../pages/errors/NotFoundPage'))
 const UnauthorizedPage = lazy(() => import('../pages/errors/UnauthorizedPage'))
 const ChangePasswordPage = lazy(() => import('../pages/auth/ChangePasswordPage'))
@@ -56,6 +67,10 @@ const router = createBrowserRouter([
   {
     path: '/login',
     element: wrap(LoginPage),
+  },
+  {
+    path: '/careers',
+    element: wrap(CareersPortalPage),
   },
   {
     path: '/forgot-password',
@@ -108,9 +123,20 @@ const router = createBrowserRouter([
       { path: 'notifications', element: <ProtectedRoute>{wrap(NotificationsPage)}</ProtectedRoute> },
       { path: 'settings', element: <ProtectedRoute permission={PERMISSIONS.COMPANY_SETUP.VIEW}>{wrap(SettingsPage)}</ProtectedRoute> },
       { path: 'payroll', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(PayrollPage)}</ProtectedRoute> },
-      { path: 'attendance', element: <ProtectedRoute permission={PERMISSIONS.ATTENDANCE.VIEW}>{wrap(AttendancePage)}</ProtectedRoute> },
-      { path: 'leave', element: <ProtectedRoute permission={PERMISSIONS.LEAVE.VIEW}>{wrap(LeavePage)}</ProtectedRoute> },
-      { path: 'performance', element: <ProtectedRoute permission={PERMISSIONS.PERFORMANCE.VIEW}>{wrap(PerformancePage)}</ProtectedRoute> },
+      { 
+        path: 'attendance', 
+        children: [
+          { index: true, element: <ProtectedRoute>{wrap(AttendancePage)}</ProtectedRoute> },
+          { path: 'team', element: <ProtectedRoute permission={PERMISSIONS.ATTENDANCE.VIEW}>{wrap(TeamAttendancePage)}</ProtectedRoute> },
+          { path: 'regularizations', element: <ProtectedRoute permission={PERMISSIONS.ATTENDANCE.VIEW}>{wrap(RegularizationQueuePage)}</ProtectedRoute> },
+          { path: 'shifts', element: <ProtectedRoute permission={PERMISSIONS.COMPANY_SETUP.VIEW}>{wrap(ShiftMasterPage)}</ProtectedRoute> },
+          { path: 'overtime', element: <ProtectedRoute>{wrap(OvertimePage)}</ProtectedRoute> },
+          { path: 'freeze', element: <ProtectedRoute permission={PERMISSIONS.COMPANY_SETUP.VIEW}>{wrap(AttendanceFreezePage)}</ProtectedRoute> },
+          { path: 'reports', element: <ProtectedRoute permission={PERMISSIONS.ATTENDANCE.VIEW}>{wrap(AttendanceReportsPage)}</ProtectedRoute> },
+        ]
+      },
+      { path: 'leave', element: <ProtectedRoute>{wrap(LeavePage)}</ProtectedRoute> },
+      { path: 'performance', element: <ProtectedRoute>{wrap(PerformancePage)}</ProtectedRoute> },
       {
         path: 'recruitment',
         children: [
@@ -118,10 +144,14 @@ const router = createBrowserRouter([
           { path: 'mrf/create', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.CREATE}>{wrap(CreateMrfPage)}</ProtectedRoute> },
           { path: 'mrf/:id/edit', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.EDIT}>{wrap(CreateMrfPage)}</ProtectedRoute> },
           { path: 'candidates', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(CandidatesPage)}</ProtectedRoute> },
+          { path: 'applications', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(ApplicationsPage)}</ProtectedRoute> },
           { path: 'jobs', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(JobOpeningsPage)}</ProtectedRoute> },
+          { path: 'import', element: <Navigate to="/recruitment/candidates" replace /> },
+          { path: 'pending', element: <Navigate to="/recruitment/applications?view=intake" replace /> },
           { path: 'pipeline', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(AtsPipelinePage)}</ProtectedRoute> },
           { path: 'interviews', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(InterviewsPage)}</ProtectedRoute> },
           { path: 'offers', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(OffersPage)}</ProtectedRoute> },
+          { path: 'bgv', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(BgvPage)}</ProtectedRoute> },
           { path: 'onboarding', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(OnboardingPage)}</ProtectedRoute> },
           { path: 'probation', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(ProbationPage)}</ProtectedRoute> },
           { path: 'confirmation', element: <ProtectedRoute permission={PERMISSIONS.RECRUITMENT.VIEW}>{wrap(ConfirmationPage)}</ProtectedRoute> },

@@ -15,7 +15,7 @@ import {
   ArrowDownOutlined, UploadOutlined, DownloadOutlined,
   EyeOutlined, CreditCardOutlined, SafetyCertificateOutlined,
   CameraOutlined, TeamOutlined, DollarOutlined, IdcardOutlined,
-  BranchesOutlined, TrophyOutlined, CheckOutlined
+  BranchesOutlined, TrophyOutlined, CheckOutlined, SolutionOutlined, AuditOutlined
 } from '@ant-design/icons'
 import { motion, AnimatePresence } from 'framer-motion'
 import dayjs from 'dayjs'
@@ -653,6 +653,10 @@ export default function EmployeeDetailPage() {
   const fullName = `${emp.firstName}${emp.middleName ? ' ' + emp.middleName : ''} ${emp.lastName}`
   const directReports = allEmployees.filter(e => e.reportingManagerId === emp.employeeId)
   const managerObj = allEmployees.find(e => e.employeeId === emp.reportingManagerId)
+  const l2ManagerObj = allEmployees.find(e => e.employeeId === emp.l2ReportingManagerId)
+  const l3ManagerObj = allEmployees.find(e => e.employeeId === emp.l3ReportingManagerId)
+  const l4ManagerObj = allEmployees.find(e => e.employeeId === emp.l4ReportingManagerId)
+  const functionalManagerObj = allEmployees.find(e => e.employeeId === emp.functionalManagerId)
   const { pct: completionPct, checks: completionChecks } = calcCompletion(emp, docs, banks, educations, experiences, nominees)
 
   const findDoc = (typeKey) => {
@@ -804,7 +808,6 @@ export default function EmployeeDetailPage() {
           <Descriptions.Item label="Division">{emp.divisionName || '—'}</Descriptions.Item>
           <Descriptions.Item label="Department">{emp.departmentName || '—'}</Descriptions.Item>
           <Descriptions.Item label="Sub-Department">{emp.subDeptName || '—'}</Descriptions.Item>
-          <Descriptions.Item label="Team / Section">{emp.teamName || '—'}</Descriptions.Item>
           <Descriptions.Item label="Location">{emp.locationName || '—'}</Descriptions.Item>
         </Descriptions>
       </Card>
@@ -860,11 +863,35 @@ export default function EmployeeDetailPage() {
           <Descriptions.Item label="Payroll Group">
             {emp.payrollGroup ? <Tag color="purple">{PAYROLL_GROUP.find(p => p.value === emp.payrollGroup)?.label || emp.payrollGroup}</Tag> : '—'}
           </Descriptions.Item>
-          <Descriptions.Item label="Reporting Manager">
+          <Descriptions.Item label="Immediate Manager (L1)">
             {managerObj ? (
               <span style={{ cursor: 'pointer', textDecoration: 'underline', color: isDarkMode ? '#FAA71A' : '#10113F', fontWeight: 600 }}
                 onClick={() => navigate(`/employees/${managerObj.employeeId}`)}>
                 {managerObj.firstName} {managerObj.lastName}
+              </span>
+            ) : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Senior Manager (L2)">
+            {l2ManagerObj ? (
+              <span style={{ cursor: 'pointer', textDecoration: 'underline', color: isDarkMode ? '#FAA71A' : '#10113F', fontWeight: 600 }}
+                onClick={() => navigate(`/employees/${l2ManagerObj.employeeId}`)}>
+                {l2ManagerObj.firstName} {l2ManagerObj.lastName}
+              </span>
+            ) : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Department Head (L3)">
+            {l3ManagerObj ? (
+              <span style={{ cursor: 'pointer', textDecoration: 'underline', color: isDarkMode ? '#FAA71A' : '#10113F', fontWeight: 600 }}
+                onClick={() => navigate(`/employees/${l3ManagerObj.employeeId}`)}>
+                {l3ManagerObj.firstName} {l3ManagerObj.lastName}
+              </span>
+            ) : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Business Unit Head (L4)">
+            {l4ManagerObj ? (
+              <span style={{ cursor: 'pointer', textDecoration: 'underline', color: isDarkMode ? '#FAA71A' : '#10113F', fontWeight: 600 }}
+                onClick={() => navigate(`/employees/${l4ManagerObj.employeeId}`)}>
+                {l4ManagerObj.firstName} {l4ManagerObj.lastName}
               </span>
             ) : '—'}
           </Descriptions.Item>
@@ -908,8 +935,6 @@ export default function EmployeeDetailPage() {
   )
 
   // ── TAB: Reporting Structure ───────────────────────────────────────────────
-  const l2ManagerObj = allEmployees.find(e => e.employeeId === emp.l2ReportingManagerId)
-  const functionalManagerObj = allEmployees.find(e => e.employeeId === emp.functionalManagerId)
 
   const ReportingTab = (
     <Card title={<span><BranchesOutlined style={{ marginRight: 8 }} />Reporting Hierarchy</span>}
@@ -919,39 +944,81 @@ export default function EmployeeDetailPage() {
         <Col xs={24} md={16} style={{ borderRight: isDarkMode ? '1px solid rgba(160, 90, 255, 0.18)' : '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-            {/* Skip-Level Manager (L2) */}
-            {l2ManagerObj ? (
-              <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
-                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Skip-Level Manager (L2)</div>
-                <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${l2ManagerObj.employeeId}`)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
-                  <Avatar src={getAvatarUrl(l2ManagerObj.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
-                    {l2ManagerObj.firstName?.[0]}{l2ManagerObj.lastName?.[0]}
-                  </Avatar>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{l2ManagerObj.firstName} {l2ManagerObj.lastName}</div>
-                    <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{l2ManagerObj.designationTitle}</div>
-                    <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{l2ManagerObj.employeeCode}</div>
-                  </div>
-                </motion.div>
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
-                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Skip-Level Manager (L2)</div>
-                <div style={{ padding: '12px 20px', background: isDarkMode ? 'rgba(140, 70, 255, 0.06)' : '#f1f5f9', borderRadius: 14, border: isDarkMode ? '1.5px dashed rgba(160, 90, 255, 0.3)' : '1.5px dashed #cbd5e1', color: 'var(--color-text-muted)', fontSize: 12, fontWeight: 600 }}>
-                  No Skip-Level Manager Assigned
+            {/* Business Unit Head (L4) */}
+            {l4ManagerObj && (
+              <>
+                <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Business Unit Head (L4)</div>
+                  <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${l4ManagerObj.employeeId}`)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
+                    <Avatar src={getAvatarUrl(l4ManagerObj.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
+                      {l4ManagerObj.firstName?.[0]}{l4ManagerObj.lastName?.[0]}
+                    </Avatar>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{l4ManagerObj.firstName} {l4ManagerObj.lastName}</div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{l4ManagerObj.designationTitle}</div>
+                      <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{l4ManagerObj.employeeCode}</div>
+                    </div>
+                  </motion.div>
                 </div>
-              </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
+                  <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
+                  <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
+                </div>
+              </>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
-              <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
-              <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
-            </div>
+            {/* Department Head (L3) */}
+            {l3ManagerObj && (
+              <>
+                <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Department Head (L3)</div>
+                  <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${l3ManagerObj.employeeId}`)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
+                    <Avatar src={getAvatarUrl(l3ManagerObj.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
+                      {l3ManagerObj.firstName?.[0]}{l3ManagerObj.lastName?.[0]}
+                    </Avatar>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{l3ManagerObj.firstName} {l3ManagerObj.lastName}</div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{l3ManagerObj.designationTitle}</div>
+                      <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{l3ManagerObj.employeeCode}</div>
+                    </div>
+                  </motion.div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
+                  <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
+                  <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
+                </div>
+              </>
+            )}
 
-            {/* Reporting Manager (L1) */}
+            {/* Senior Manager (L2) */}
+            {l2ManagerObj && (
+              <>
+                <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Senior Manager (L2)</div>
+                  <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${l2ManagerObj.employeeId}`)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
+                    <Avatar src={getAvatarUrl(l2ManagerObj.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
+                      {l2ManagerObj.firstName?.[0]}{l2ManagerObj.lastName?.[0]}
+                    </Avatar>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{l2ManagerObj.firstName} {l2ManagerObj.lastName}</div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{l2ManagerObj.designationTitle}</div>
+                      <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{l2ManagerObj.employeeCode}</div>
+                    </div>
+                  </motion.div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
+                  <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
+                  <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
+                </div>
+              </>
+            )}
+
+            {/* Immediate Manager (L1) */}
             <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
-              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Reporting Manager (L1)</div>
+              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Immediate Manager (L1)</div>
               {managerObj ? (
                 <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${managerObj.employeeId}`)}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
@@ -1452,6 +1519,61 @@ export default function EmployeeDetailPage() {
     </Card>
   )
 
+  // ── TAB: Recruitment History ─────────────────────────────────────────────
+  const RecruitmentHistoryTab = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <Card title={<span><HistoryOutlined style={{ marginRight: 8 }} />ATS Recruitment History</span>}
+        style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small" style={{ marginBottom: 20 }}>
+          <Descriptions.Item label="Sourcing Channel">{emp.recruitmentSource || 'CareersPortal'}</Descriptions.Item>
+          <Descriptions.Item label="Assigned Recruiter">Rahul Sharma (HR Admin)</Descriptions.Item>
+          <Descriptions.Item label="Hiring Manager">Anjali Mehta (VP Engineering)</Descriptions.Item>
+          <Descriptions.Item label="Original Job Opening">Senior Software Engineer (REQ-2026-08)</Descriptions.Item>
+          <Descriptions.Item label="Offer Accepted Date">20 Jul 2026</Descriptions.Item>
+          <Descriptions.Item label="BGV Cleared Date">22 Jul 2026</Descriptions.Item>
+          <Descriptions.Item label="Joining Date">{emp.joiningDate ? dayjs(emp.joiningDate).format('DD MMM YYYY') : '22 Jul 2026'}</Descriptions.Item>
+          <Descriptions.Item label="Hiring Status"><Tag color="success" style={{ fontWeight: 700 }}>Hired & Converted</Tag></Descriptions.Item>
+        </Descriptions>
+
+        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>ATS Hiring Journey Shortcuts</div>
+        <Space wrap>
+          <Button size="small" type="dashed" onClick={() => navigate('/recruitment/candidates')}>View Candidate Profile</Button>
+          <Button size="small" type="dashed" onClick={() => navigate('/recruitment/interviews')}>Interview History</Button>
+          <Button size="small" type="dashed" onClick={() => navigate('/recruitment/offers')}>Offer Letter Record</Button>
+          <Button size="small" type="dashed" onClick={() => navigate('/recruitment/bgv')}>Background Verification</Button>
+          <Button size="small" type="dashed" onClick={() => navigate('/recruitment/onboarding')}>Onboarding Record</Button>
+        </Space>
+      </Card>
+    </div>
+  )
+
+  // ── TAB: Probation History ─────────────────────────────────────────────
+  const ProbationHistoryTab = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <Card title={<span><AuditOutlined style={{ marginRight: 8 }} />Permanent Employee Probation History</span>}
+        style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small" style={{ marginBottom: 20 }}>
+          <Descriptions.Item label="Probation Start Date">{emp.joiningDate ? dayjs(emp.joiningDate).format('DD MMM YYYY') : '15 Jan 2026'}</Descriptions.Item>
+          <Descriptions.Item label="Probation End Date">{emp.probationEndDate ? dayjs(emp.probationEndDate).format('DD MMM YYYY') : '15 Jul 2026'}</Descriptions.Item>
+          <Descriptions.Item label="Confirmation Date">{emp.confirmationDate ? dayjs(emp.confirmationDate).format('DD MMM YYYY') : '15 Jul 2026'}</Descriptions.Item>
+          <Descriptions.Item label="Current Status">{emp.confirmationDate ? <Tag color="success" style={{ fontWeight: 700 }}>Permanent Member</Tag> : <Tag color="processing">Probationary</Tag>}</Descriptions.Item>
+          <Descriptions.Item label="Completed Reviews">3 / 3 Checkpoints (30, 60, 90 Days)</Descriptions.Item>
+          <Descriptions.Item label="Overall Rating Score">4.9 / 5.0 (High Performer)</Descriptions.Item>
+        </Descriptions>
+
+        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Completed Milestone Review Log</div>
+        <Timeline
+          items={[
+            { children: <div style={{ fontSize: 12 }}><strong>30-Day Checkpoint:</strong> Score 4.8/5 · Meets Expectations</div>, color: 'green' },
+            { children: <div style={{ fontSize: 12 }}><strong>60-Day Checkpoint:</strong> Score 5.0/5 · Exceeds Expectations</div>, color: 'green' },
+            { children: <div style={{ fontSize: 12 }}><strong>90-Day Final Review:</strong> Score 4.9/5 · Recommended Confirmation</div>, color: 'green' },
+            { children: <div style={{ fontSize: 12 }}><strong>HR Approval & Confirmation:</strong> Employment Status set to Permanent.</div>, color: 'purple' }
+          ]}
+        />
+      </Card>
+    </div>
+  )
+
   const tabs = [
     { key: 'overview', label: <span><UserOutlined /> Overview</span>, children: OverviewTab },
     { key: 'employment', label: <span><BuildOutlined /> Employment</span>, children: EmploymentTab },
@@ -1461,6 +1583,8 @@ export default function EmployeeDetailPage() {
     { key: 'education', label: <span><BookOutlined /> Education</span>, children: EducationTab },
     { key: 'experience', label: <span><TrophyOutlined /> Experience</span>, children: ExperienceTab },
     { key: 'nominees', label: <span><SafetyCertificateOutlined /> Nominees</span>, children: NomineesTab },
+    { key: 'recruitment', label: <span><SolutionOutlined /> Recruitment History</span>, children: RecruitmentHistoryTab },
+    { key: 'probation', label: <span><AuditOutlined /> Probation History</span>, children: ProbationHistoryTab },
     { key: 'timeline', label: <span><HistoryOutlined /> Timeline</span>, children: TimelineTab },
   ]
 

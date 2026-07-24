@@ -99,8 +99,14 @@ try
     builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
     builder.Services.AddScoped<INotificationService, NotificationService>();
     builder.Services.AddScoped<IPdfGenerationService, IndiaHRMS.Infrastructure.Services.PdfGenerationService>();
+    builder.Services.AddScoped<IAttendanceProcessingService, IndiaHRMS.Infrastructure.Services.AttendanceProcessingService>();
     builder.Services.AddScoped<IndiaHRMS.Infrastructure.Services.IRealtimePush, IndiaHRMS.API.Extensions.SignalRRealtimePush>();
     builder.Services.AddScoped<IndiaHRMS.Infrastructure.Services.OnboardingOrchestrator>();
+    builder.Services.AddScoped<IApplicationService, IndiaHRMS.Infrastructure.Services.ApplicationService>();
+    builder.Services.AddScoped<IHiringService, IndiaHRMS.Infrastructure.Services.HiringService>();
+
+    // Register Background Services
+    builder.Services.AddHostedService<IndiaHRMS.API.BackgroundServices.AttendanceBatchProcessor>();
 
     // ─── AutoMapper ───────────────────────────────────────────────────────────
     builder.Services.AddAutoMapper(typeof(IndiaHRMS.Application.Mappings.HRMSMappingProfile));

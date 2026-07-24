@@ -353,11 +353,29 @@ body {
 .dark .ant-table-column-sorter-down.active,
 .dark .ant-table-filter-trigger.active { color: #FAA71A !important; }
 
-/* Table rows */
+/* Table rows & cell fixes */
 .ant-table-tbody > tr > td {
   border-bottom: 1px solid rgba(16, 17, 63, 0.04) !important;
   font-size: 13.5px !important;
   transition: background var(--duration-fast) ease;
+}
+.ant-table-cell-fix-left,
+.ant-table-cell-fix-right {
+  background: #ffffff !important;
+  z-index: 2 !important;
+}
+.dark .ant-table-cell-fix-left,
+.dark .ant-table-cell-fix-right {
+  background: #0E0726 !important;
+  z-index: 2 !important;
+}
+.ant-table-tbody > tr:hover > .ant-table-cell-fix-left,
+.ant-table-tbody > tr:hover > .ant-table-cell-fix-right {
+  background: rgba(16, 17, 63, 0.02) !important;
+}
+.dark .ant-table-tbody > tr:hover > .ant-table-cell-fix-left,
+.dark .ant-table-tbody > tr:hover > .ant-table-cell-fix-right {
+  background: rgba(140, 70, 255, 0.06) !important;
 }
 .dark .ant-table-tbody > tr > td {
   border-bottom: 1px solid rgba(160, 90, 255, 0.08) !important;

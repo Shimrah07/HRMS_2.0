@@ -393,6 +393,8 @@ public class Employee : BaseEntity
     public Guid? CostCenterId { get; set; }
     public Guid? ReportingManagerId { get; set; }
     public Guid? L2ReportingManagerId { get; set; }
+    public Guid? L3ReportingManagerId { get; set; }
+    public Guid? L4ReportingManagerId { get; set; }
     public Guid? FunctionalManagerId { get; set; }
     public Guid? BusinessUnitId { get; set; }
     public Guid? DivisionId { get; set; }
@@ -414,7 +416,9 @@ public class Employee : BaseEntity
     public EmploymentType EmploymentType { get; set; } = EmploymentType.FullTime;
     public EmploymentStatus EmploymentStatus { get; set; } = EmploymentStatus.Active;
     public string? ProfilePhoto { get; set; }
+    public string? RecruitmentSource { get; set; }
     public bool IsActive { get; set; } = true;
+    public Guid? CandidateId { get; set; }
 
     public Company Company { get; set; } = null!;
     public Department Department { get; set; } = null!;
@@ -432,6 +436,8 @@ public class Employee : BaseEntity
     public JobFunction? JobFunction { get; set; }
     public Employee? ReportingManager { get; set; }
     public Employee? L2ReportingManager { get; set; }
+    public Employee? L3ReportingManager { get; set; }
+    public Employee? L4ReportingManager { get; set; }
     public Employee? FunctionalManager { get; set; }
     public ShiftMaster? Shift { get; set; }
     public ICollection<Employee> DirectReports { get; set; } = new List<Employee>();
@@ -539,6 +545,7 @@ public class ShiftMaster : BaseEntity
     public TimeOnly StartTime { get; set; }
     public TimeOnly EndTime { get; set; }
     public int GracePeriodMins { get; set; }
+    public decimal HalfDayThresholdHrs { get; set; } = 4.0m;
     public bool IsNightShift { get; set; }
     public string WeeklyOffDays { get; set; } = "Saturday,Sunday";
     public bool IsActive { get; set; } = true;
@@ -588,6 +595,7 @@ public class AttendanceRecord : BaseEntity
     public decimal? Longitude { get; set; }
     public string? Remarks { get; set; }
     public bool IsRegularized { get; set; }
+    public bool IsFrozen { get; set; }
 
     public Employee Employee { get; set; } = null!;
 }
@@ -607,6 +615,17 @@ public class AttendanceRegularization : BaseEntity
 
     public Employee Employee { get; set; } = null!;
     public User? ApprovedByUser { get; set; }
+}
+
+public class CompOffLedger : BaseEntity
+{
+    public Guid LedgerId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public DateOnly EarnedDate { get; set; }
+    public DateOnly ExpiryDate { get; set; }
+    public CompOffStatus Status { get; set; } = CompOffStatus.Available;
+
+    public Employee Employee { get; set; } = null!;
 }
 
 // ─── Leave ────────────────────────────────────────────────────────────────────
@@ -855,6 +874,9 @@ public class JobRequisition : BaseEntity
     public string? InternalHiringRemarks { get; set; }
     public Guid? CurrentApproverId { get; set; }
     public int CurrentApprovalLevel { get; set; } = 0;
+    public Guid? CancelledBy { get; set; }
+    public DateTime? CancelledOn { get; set; }
+    public string? CancelReason { get; set; }
 
     public Company Company { get; set; } = null!;
     public Department? Department { get; set; }
@@ -898,6 +920,16 @@ public class JobPosting : BaseEntity
     public DateOnly? ExpiryDate { get; set; }
     public bool ShowSalary { get; set; } = false; // Deprecated flag
     public JobPostingStatus Status { get; set; } = JobPostingStatus.Draft;
+
+    // Publisher tracking
+    public Guid? PublishedById { get; set; }
+    public User? PublishedByUser { get; set; }
+
+    // Extensibility fields for career portals/job boards
+    public string? WorkMode { get; set; } = "Onsite"; // Onsite, Remote, Hybrid
+    public string? LocationName { get; set; }
+    public string? ExternalLink { get; set; }
+    public string? MetadataJson { get; set; }
 
     // Enterprise ATS Sourcing Schema
     public string? JobCategory { get; set; }
@@ -971,12 +1003,26 @@ public class JobApplication : BaseEntity
     public ApplicationStage CurrentStage { get; set; } = ApplicationStage.Applied;
     public string? RejectionReason { get; set; }
     public decimal? AiMatchScore { get; set; }
+    public string TimelineEventsJson { get; set; } = "[]";
+    public string NotesJson { get; set; } = "[]";
+
+    // The HR Admin / Super Admin who added this candidate.
+    // Auto-populated on creation. Null when submitted via Careers Portal.
+    public Guid? AssignedRecruiterId { get; set; }
 
     public JobRequisition Requisition { get; set; } = null!;
     public Candidate Candidate { get; set; } = null!;
+    public User? AssignedRecruiter { get; set; }
     public ICollection<InterviewRound> InterviewRounds { get; set; } = new List<InterviewRound>();
     public ICollection<OfferLetter> OfferLetters { get; set; } = new List<OfferLetter>();
+
+    public bool? TechnicalApproved { get; set; }
+    public bool? HrApproved { get; set; }
+    public bool? ManagerApproved { get; set; }
+    public string StageDataJson { get; set; } = "{}";
+    public string Status { get; set; } = "Active";
 }
+
 
 public class JobPostingQuestion : BaseEntity
 {
@@ -1029,10 +1075,11 @@ public class CandidateAnswer : BaseEntity
 public class InterviewRound : BaseEntity
 {
     public Guid RoundId { get; set; } = Guid.NewGuid();
-    public Guid AppId { get; set; }
+    public Guid? AppId { get; set; }
     public string RoundName { get; set; } = string.Empty;
     public string? RoundType { get; set; }
     public DateTime ScheduledAt { get; set; }
+    public int? DurationMinutes { get; set; }
     public Guid InterviewerId { get; set; }
     public string? Venue { get; set; }
     public string? MeetingLink { get; set; }
@@ -1041,7 +1088,19 @@ public class InterviewRound : BaseEntity
     public string? Feedback { get; set; }
     public DateTime? CompletedAt { get; set; }
 
-    public JobApplication JobApplication { get; set; } = null!;
+    // General Interview & Extra Fields
+    public bool IsGeneralInterview { get; set; } = false;
+    public string? Category { get; set; }
+    public string? CandidateName { get; set; }
+    public string? CandidateEmail { get; set; }
+    public string? CandidatePhone { get; set; }
+    public string? Company { get; set; }
+    public string? Department { get; set; }
+    public string? Notes { get; set; }
+    public string? AttachmentsJson { get; set; }
+    public string? ChecklistJson { get; set; }
+
+    public JobApplication? JobApplication { get; set; }
     public Employee Interviewer { get; set; } = null!;
     public ICollection<InterviewRoundPanelist> Panelists { get; set; } = new List<InterviewRoundPanelist>();
 }
@@ -1380,4 +1439,39 @@ public class EmailTemplate : BaseEntity
     public bool IsActive { get; set; } = true;
 
     public Company Company { get; set; } = null!;
+}
+
+public enum PendingApplicationStatus
+{
+    Pending,
+    Approved,
+    Rejected
+}
+
+public class PendingApplication : BaseEntity
+{
+    public Guid PendingAppId { get; set; } = Guid.NewGuid();
+    public Guid JobId { get; set; }
+    
+    public string FirstName { get; set; } = string.Empty;
+    public string? LastName { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    
+    public string? CurrentCompany { get; set; }
+    public string? CurrentDesignation { get; set; }
+    public decimal? CurrentCTC { get; set; }
+    public decimal? ExpectedCTC { get; set; }
+    public int? NoticePeriodDays { get; set; }
+    public decimal? TotalExperience { get; set; }
+    public string? Source { get; set; }
+    public string? ResumeFilePath { get; set; }
+    public Guid? ReferralEmployeeId { get; set; }
+    
+    public PendingApplicationStatus Status { get; set; } = PendingApplicationStatus.Pending;
+    public DateTime AppliedDate { get; set; } = DateTime.UtcNow;
+    public string? RejectionReason { get; set; }
+    
+    public JobPosting JobPosting { get; set; } = null!;
+    public Employee? ReferralEmployee { get; set; }
 }

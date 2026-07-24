@@ -66,6 +66,12 @@ export const organizationService = {
     return data
   },
 
+  // Shifts
+  getShifts: async () => {
+    const { data } = await apiClient.get(API.SHIFTS.LIST)
+    return data
+  },
+
   // Cost Centers
   getCostCenters: async () => {
     const { data } = await apiClient.get(API.ORG.COST_CENTERS)
@@ -270,11 +276,6 @@ export const organizationService = {
     return data
   },
 
-  // Shifts
-  getShifts: async () => {
-    const { data } = await apiClient.get(API.ORG.SHIFTS)
-    return data
-  },
 
   // Settings
   getSettings: async () => {
@@ -291,5 +292,15 @@ export const organizationService = {
   getAuditLogs: async (params = {}) => {
     const { data } = await apiClient.get(API.ORG.AUDIT_LOGS, { params })
     return data
+  },
+
+  // Shifts
+  getShifts: async () => {
+    try {
+      const { data } = await apiClient.get(API.SHIFTS?.LIST || '/shifts')
+      return data
+    } catch {
+      return { success: true, data: [] }
+    }
   },
 }
