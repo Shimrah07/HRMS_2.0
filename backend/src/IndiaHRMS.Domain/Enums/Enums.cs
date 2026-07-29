@@ -79,6 +79,7 @@ public enum DocumentType
 public enum LeaveStatus
 {
     Pending,
+    Level1Approved,
     Approved,
     Rejected,
     Cancelled,
@@ -181,9 +182,11 @@ public enum TrainingMode
 
 public enum HolidayType
 {
+    Mandatory,
     National,
     State,
     Optional,
+    Restricted,
     Company
 }
 

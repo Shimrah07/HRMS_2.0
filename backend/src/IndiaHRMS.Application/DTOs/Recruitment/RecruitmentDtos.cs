@@ -637,7 +637,7 @@ public class CreateOfferRequest
 {
     public Guid AppId { get; set; }
     public decimal OfferedCTC { get; set; }
-    public DateOnly JoiningDate { get; set; }
+    public DateOnly? JoiningDate { get; set; }
     public int ExpiryDays { get; set; } = 30;
 }
 

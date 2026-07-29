@@ -628,7 +628,7 @@ public class CompOffLedger : BaseEntity
     public Employee Employee { get; set; } = null!;
 }
 
-// ─── Leave ────────────────────────────────────────────────────────────────────
+// ─── Leave Module (M4 Enterprise Engine) ──────────────────────────────────────
 
 public class LeaveType : BaseEntity
 {
@@ -638,17 +638,44 @@ public class LeaveType : BaseEntity
     public string LeaveCode { get; set; } = string.Empty;
     public int MaxDaysPerYear { get; set; }
     public int MaxDaysPerApplication { get; set; }
+    public string AccrualFrequency { get; set; } = "Monthly"; // Monthly, Quarterly, Yearly, Event
+    public decimal AccrualRate { get; set; } = 1.5m;
     public bool IsCarryForward { get; set; }
     public int MaxCarryForwardDays { get; set; }
     public bool IsEncashable { get; set; }
+    public string EncashmentRule { get; set; } = "YearEnd"; // YearEnd, ExitOnly, None
     public bool IsPaidLeave { get; set; } = true;
-    public string ApplicableGender { get; set; } = "All";
+    public string ApplicableGender { get; set; } = "All"; // All, Male, Female
     public int MinServiceDaysRequired { get; set; }
+    public int MinNoticeDays { get; set; } = 3;
+    public bool SandwichRuleApplicable { get; set; } = false;
+    public bool ProRataForMidYear { get; set; } = true;
+    public string? ClubbingRestrictedWith { get; set; }
     public bool IsActive { get; set; } = true;
 
     public Company Company { get; set; } = null!;
+    public ICollection<LeavePolicyRule> PolicyRules { get; set; } = new List<LeavePolicyRule>();
     public ICollection<LeaveBalance> LeaveBalances { get; set; } = new List<LeaveBalance>();
     public ICollection<LeaveApplication> LeaveApplications { get; set; } = new List<LeaveApplication>();
+    public ICollection<LeaveLedger> LeaveLedgers { get; set; } = new List<LeaveLedger>();
+}
+
+public class LeavePolicyRule : BaseEntity
+{
+    public Guid PolicyRuleId { get; set; } = Guid.NewGuid();
+    public Guid LeaveTypeId { get; set; }
+    public string? GradeCode { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public Guid? LocationId { get; set; }
+    public decimal? QuotaOverride { get; set; }
+    public int? MinNoticeDays { get; set; }
+    public int? MaxConsecutiveDays { get; set; }
+    public bool? SandwichRule { get; set; }
+    public bool IsActive { get; set; } = true;
+
+    public LeaveType LeaveType { get; set; } = null!;
+    public Department? Department { get; set; }
+    public Location? Location { get; set; }
 }
 
 public class LeaveBalance : BaseEntity
@@ -677,18 +704,85 @@ public class LeaveApplication : BaseEntity
     public DateOnly ToDate { get; set; }
     public decimal TotalDays { get; set; }
     public bool IsHalfDay { get; set; }
+    public string? HalfDayType { get; set; } // FirstHalf, SecondHalf
     public string? Reason { get; set; }
+    public Guid? BackupEmployeeId { get; set; }
+    public string? ContactPhone { get; set; }
     public LeaveStatus Status { get; set; } = LeaveStatus.Pending;
     public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
     public Guid? ApproverId { get; set; }
     public DateTime? ApprovedAt { get; set; }
+    public Guid? Level2ApproverId { get; set; }
+    public DateTime? Level2ApprovedAt { get; set; }
     public string? RejectionReason { get; set; }
     public DateTime? CancelledAt { get; set; }
     public string? AttachmentPath { get; set; }
 
     public Employee Employee { get; set; } = null!;
     public LeaveType LeaveType { get; set; } = null!;
+    public Employee? BackupEmployee { get; set; }
     public User? Approver { get; set; }
+    public User? Level2Approver { get; set; }
+}
+
+public class LeaveLedger : BaseEntity
+{
+    public Guid LedgerId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public Guid LeaveTypeId { get; set; }
+    public string TxnType { get; set; } = "Accrual"; // Accrual, Availed, Encashed, Lapsed, CarriedForward, Adjustment
+    public DateOnly TxnDate { get; set; }
+    public decimal Days { get; set; }
+    public decimal RunningBalance { get; set; }
+    public string? ReferenceId { get; set; }
+    public string? Remarks { get; set; }
+
+    public Employee Employee { get; set; } = null!;
+    public LeaveType LeaveType { get; set; } = null!;
+}
+
+public class StatutoryLeaveEvent : BaseEntity
+{
+    public Guid EventId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public string EventType { get; set; } = "Maternity"; // Maternity, Paternity, Adoption, Miscarriage
+    public DateOnly EventDate { get; set; }
+    public DateOnly? ExpectedDeliveryDate { get; set; }
+    public int ChildOrder { get; set; } = 1; // 1, 2, 3+
+    public int EntitlementDays { get; set; }
+    public string? MedicalCertPath { get; set; }
+    public string Status { get; set; } = "Approved"; // Pending, Approved, Completed
+
+    public Employee Employee { get; set; } = null!;
+}
+
+public class LeaveEncashment : BaseEntity
+{
+    public Guid EncashmentId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public Guid LeaveTypeId { get; set; }
+    public decimal DaysEncashed { get; set; }
+    public decimal DailyRate { get; set; }
+    public decimal TotalAmount { get; set; }
+    public decimal TaxExemptAmount { get; set; }
+    public decimal TaxableAmount { get; set; }
+    public string ProcessedMonth { get; set; } = string.Empty; // YYYY-MM
+    public string Status { get; set; } = "Pending"; // Pending, Processed, Paid
+
+    public Employee Employee { get; set; } = null!;
+    public LeaveType LeaveType { get; set; } = null!;
+}
+
+public class SectorLeaveConfig : BaseEntity
+{
+    public Guid SectorConfigId { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    public string IndustryType { get; set; } = "General"; // Manufacturing, IT, Retail, Healthcare, Construction, Government
+    public string RuleKey { get; set; } = string.Empty;
+    public string RuleValue { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+
+    public Company Company { get; set; } = null!;
 }
 
 // ─── Payroll ──────────────────────────────────────────────────────────────────

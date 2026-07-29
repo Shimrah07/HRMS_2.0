@@ -22,7 +22,7 @@ const { Option } = Select
 const { TabPane } = Tabs
 
 // Standardized Enterprise KPI Card Component
-function StandardKpiCard({ title, value, icon, color, badgeText, badgeColor = 'default' }) {
+function StandardKpiCard({ title, value, icon, color = '#3B82F6', badgeText, badgeColor = 'default' }) {
   const isLongValue = typeof value === 'string' && value.length > 5
 
   return (
@@ -31,10 +31,12 @@ function StandardKpiCard({ title, value, icon, color, badgeText, badgeColor = 'd
       style={{
         background: 'var(--color-bg-container)',
         border: 'var(--border-glass)',
-        borderRadius: 10,
-        height: 84,
+        borderRadius: 12,
+        height: '100%',
+        minHeight: 90,
         transition: 'all 0.2s ease-in-out',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+        overflow: 'hidden'
       }}
       styles={{
         body: {
@@ -42,37 +44,55 @@ function StandardKpiCard({ title, value, icon, color, badgeText, badgeColor = 'd
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          gap: 6
         }
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
         <span
           style={{
             fontSize: 10.5,
             fontWeight: 700,
             color: 'var(--color-text-secondary)',
             textTransform: 'uppercase',
-            letterSpacing: '0.4px',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
+            letterSpacing: '0.3px',
+            lineHeight: 1.25,
+            wordBreak: 'break-word',
+            flex: 1
           }}
           title={title}
         >
           {title}
         </span>
-        <span style={{ fontSize: 15, color, flexShrink: 0 }}>{icon}</span>
+        {icon && (
+          <div
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 6,
+              background: `${color}18`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 14,
+              color: color,
+              flexShrink: 0
+            }}
+          >
+            {icon}
+          </div>
+        )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4, marginTop: 'auto' }}>
         <span
           style={{
-            fontSize: isLongValue ? 14 : 18,
+            fontSize: isLongValue ? 14 : 19,
             fontWeight: 800,
             color: 'var(--color-text)',
-            lineHeight: 1,
-            whiteSpace: 'nowrap'
+            lineHeight: 1.1,
+            wordBreak: 'break-word'
           }}
         >
           {value}
@@ -85,11 +105,14 @@ function StandardKpiCard({ title, value, icon, color, badgeText, badgeColor = 'd
               fontWeight: 700,
               margin: 0,
               borderRadius: 4,
-              padding: '0 4px',
+              padding: '0 5px',
               height: 18,
               lineHeight: '18px',
               border: 'none',
-              flexShrink: 0
+              flexShrink: 0,
+              maxWidth: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
             }}
           >
             {badgeText}
@@ -538,34 +561,34 @@ export default function ProbationPage() {
 
       {/* 10 Executive KPI Cards Grid */}
       <Row gutter={[10, 10]} style={{ marginBottom: 16 }}>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Probationers" value="10 Active" icon={<UserOutlined />} color="#3B82F6" badgeText="ACTIVE" badgeColor="blue" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Due This Week" value="2 Due" icon={<ClockCircleOutlined />} color="#F59E0B" badgeText="DUE" badgeColor="warning" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Reviews Overdue" value="1 Overdue" icon={<ExclamationCircleOutlined />} color="#EF4444" badgeText="ALERT" badgeColor="error" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Confirmed Hires" value="5 Hired" icon={<CheckCircleOutlined />} color="#10B981" badgeText="CONFIRMED" badgeColor="success" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Extensions" value="1 Extended" icon={<SyncOutlined />} color="#8B5CF6" badgeText="EXTENSION" badgeColor="purple" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Employees on PIP" value="1 on PIP" icon={<WarningOutlined />} color="#EC4899" badgeText="PIP" badgeColor="pink" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Avg Review Score" value="4.2 / 5.0" icon={<StarOutlined />} color="#10B981" badgeText="SCORE" badgeColor="success" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Avg Days Left" value="42 Days" icon={<ClockCircleOutlined />} color="#06B6D4" badgeText="AVG" badgeColor="cyan" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Confirmation Rate" value="92%" icon={<RiseOutlined />} color="#22C55E" badgeText="92%" badgeColor="success" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Manager Rate" value="85%" icon={<TeamOutlined />} color="#7C3AED" badgeText="85%" badgeColor="purple" />
         </Col>
       </Row>

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Card, Descriptions, Avatar, Button, Form, Input, message, Spin,
   Row, Col, Tabs, Tag, Timeline, Modal, Space, Progress, Tooltip, Table,
-  notification
+  notification, Select, DatePicker
 } from 'antd'
 import {
   EditOutlined, SaveOutlined, UserOutlined, BuildOutlined,
@@ -47,6 +47,7 @@ export default function MyProfilePage() {
   const [editing, setEditing] = useState(false)
   const [form] = Form.useForm()
   const photoRef = useRef(null)
+  const [localPhotoUrl, setLocalPhotoUrl] = useState(null)
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['my-profile'],
@@ -69,6 +70,8 @@ export default function MyProfilePage() {
       }
       queryClient.invalidateQueries({ queryKey: ['my-profile'] })
       queryClient.invalidateQueries({ queryKey: ['employee', id] })
+      // Reset file input so same file can be re-selected
+      if (photoRef.current) photoRef.current.value = ''
     },
     onError: () => {
       notification.error({
@@ -76,6 +79,8 @@ export default function MyProfilePage() {
         description: 'Failed to upload profile photo.',
         placement: 'topRight'
       })
+      setLocalPhotoUrl(null)
+      if (photoRef.current) photoRef.current.value = ''
     },
   })
 
@@ -98,6 +103,9 @@ export default function MyProfilePage() {
       })
       return 
     }
+    // Show immediate local preview
+    const objectUrl = URL.createObjectURL(file)
+    setLocalPhotoUrl(objectUrl)
     photoMutation.mutate(file)
   }
 
@@ -344,7 +352,9 @@ export default function MyProfilePage() {
     ].filter(Boolean)
     const payload = {
       ...values,
-      currentAddress: parts.join(', ')
+      currentAddress: parts.join(', '),
+      dateOfBirth: values.dateOfBirth ? values.dateOfBirth.format('YYYY-MM-DD') : undefined,
+      marriageDate: values.marriageDate ? values.marriageDate.format('YYYY-MM-DD') : undefined,
     }
     updateMutation.mutate(payload)
   }
@@ -407,9 +417,88 @@ export default function MyProfilePage() {
       children: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {editing ? (
-            <Card title="Edit Contact & Address Details" style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+            <Card title="Edit Personal & Contact Details" style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
               <Form form={form} layout="vertical" validateTrigger={['onBlur', 'onChange']} scrollToFirstError={{ focusFirstInput: true }}>
                 <Row gutter={[16, 0]}>
+
+                  {/* ── Personal Info ── */}
+                  <Col xs={24}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12, paddingBottom: 6, borderBottom: 'var(--border-glass)' }}>Personal Information</div>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item name="dateOfBirth" label="Date of Birth">
+                      <DatePicker style={{ width: '100%', borderRadius: 8 }} format="DD MMM YYYY" disabledDate={(d) => d && d.isAfter(dayjs().subtract(15, 'years'))} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item name="gender" label="Gender">
+                      <Select style={{ borderRadius: 8 }} placeholder="Select gender" options={[
+                        { value: 'Male', label: 'Male' },
+                        { value: 'Female', label: 'Female' },
+                        { value: 'Other', label: 'Other / Prefer not to say' },
+                      ]} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item name="bloodGroup" label="Blood Group">
+                      <Select style={{ borderRadius: 8 }} placeholder="Select blood group" options={[
+                        'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
+                      ].map(v => ({ value: v, label: v }))} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item name="maritalStatus" label="Marital Status">
+                      <Select style={{ borderRadius: 8 }} placeholder="Select status" options={[
+                        { value: 'Single', label: 'Single' },
+                        { value: 'Married', label: 'Married' },
+                        { value: 'Divorced', label: 'Divorced' },
+                        { value: 'Widowed', label: 'Widowed' },
+                      ]} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item noStyle shouldUpdate={(prev, curr) => prev.maritalStatus !== curr.maritalStatus}>
+                      {({ getFieldValue }) => getFieldValue('maritalStatus') === 'Married' ? (
+                        <Form.Item name="spouseName" label="Spouse Name">
+                          <Input placeholder="e.g. Priya Sharma" style={{ borderRadius: 8 }} />
+                        </Form.Item>
+                      ) : null}
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item noStyle shouldUpdate={(prev, curr) => prev.maritalStatus !== curr.maritalStatus}>
+                      {({ getFieldValue }) => getFieldValue('maritalStatus') === 'Married' ? (
+                        <Form.Item name="marriageDate" label="Marriage Date">
+                          <DatePicker style={{ width: '100%', borderRadius: 8 }} format="DD MMM YYYY" />
+                        </Form.Item>
+                      ) : null}
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item name="religion" label="Religion">
+                      <Input placeholder="e.g. Hindu" style={{ borderRadius: 8 }} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item name="motherTongue" label="Mother Tongue">
+                      <Input placeholder="e.g. Hindi" style={{ borderRadius: 8 }} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item name="fatherName" label="Father's Name">
+                      <Input placeholder="e.g. Rajesh Kumar" style={{ borderRadius: 8 }} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item name="numberOfDependents" label="Number of Dependents" normalize={(v) => (v === '' ? undefined : Number(v))}>
+                      <Input type="number" min={0} max={20} placeholder="e.g. 2" style={{ borderRadius: 8 }} />
+                    </Form.Item>
+                  </Col>
+
+                  {/* ── Contact Info ── */}
+                  <Col xs={24} style={{ marginTop: 8 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12, paddingBottom: 6, borderBottom: 'var(--border-glass)' }}>Contact Information</div>
+                  </Col>
                   <Col xs={24} sm={12}>
                     <Form.Item name="personalEmail" label="Personal Email" rules={[VALIDATORS.required('Personal Email'), VALIDATORS.personalEmail]}>
                       <Input placeholder="e.g. self@domain.com" style={{ borderRadius: 8 }} />
@@ -450,8 +539,11 @@ export default function MyProfilePage() {
                   </Col>
                   
                   {/* Emergency Contact */}
+                  <Col xs={24} style={{ marginTop: 8 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12, paddingBottom: 6, borderBottom: 'var(--border-glass)' }}>Emergency Contact</div>
+                  </Col>
                   <Col xs={24} sm={6}>
-                    <Form.Item name="emergencyContactName" label="Emergency Contact Name" rules={[VALIDATORS.required('Emergency Contact Name')]}>
+                    <Form.Item name="emergencyContactName" label="Contact Name" rules={[VALIDATORS.required('Emergency Contact Name')]}>
                       <Input placeholder="e.g. Rajesh Kumar" style={{ borderRadius: 8 }} />
                     </Form.Item>
                   </Col>
@@ -463,7 +555,7 @@ export default function MyProfilePage() {
                   <Col xs={24} sm={6}>
                     <Form.Item 
                       name="emergencyContactPhone" 
-                      label="Emergency Contact Phone" 
+                      label="Emergency Phone" 
                       rules={[VALIDATORS.required('Emergency Contact Phone'), VALIDATORS.phone]}
                       normalize={NORMALIZE.numeric}
                       onKeyPress={FILTER_KEYPRESS.numericOnly}
@@ -484,6 +576,9 @@ export default function MyProfilePage() {
                   </Col>
 
                   {/* Current Address */}
+                  <Col xs={24} style={{ marginTop: 8 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12, paddingBottom: 6, borderBottom: 'var(--border-glass)' }}>Current Address</div>
+                  </Col>
                   <Col xs={24} sm={12}>
                     <Form.Item name="currentAddressLine1" label="Current Address Line 1" rules={[VALIDATORS.required('Current Address Line 1')]}>
                       <Input placeholder="Flat, House No., Building, Apartment" style={{ borderRadius: 8 }} />
@@ -1293,12 +1388,19 @@ export default function MyProfilePage() {
         actions={
           editing ? (
             <Space>
-              <Button onClick={() => setEditing(false)} style={{ borderRadius: 8 }}>Cancel</Button>
+              <Button onClick={() => { setEditing(false); setLocalPhotoUrl(null) }} style={{ borderRadius: 8 }}>Cancel</Button>
               <Button type="primary" icon={<SaveOutlined />} loading={updateMutation.isPending} onClick={handleSave}
                 style={{ borderRadius: 8, fontWeight: 600 }}>Save Changes</Button>
             </Space>
           ) : (
-            <Button icon={<EditOutlined />} onClick={() => { setEditing(true); form.setFieldsValue(profile) }} style={{ borderRadius: 8 }}>
+            <Button icon={<EditOutlined />} onClick={() => {
+              setEditing(true)
+              form.setFieldsValue({
+                ...profile,
+                dateOfBirth: profile.dateOfBirth ? dayjs(profile.dateOfBirth) : undefined,
+                marriageDate: profile.marriageDate ? dayjs(profile.marriageDate) : undefined,
+              })
+            }} style={{ borderRadius: 8 }}>
               Edit Personal Info
             </Button>
           )
@@ -1326,7 +1428,7 @@ export default function MyProfilePage() {
                 <div style={{ position: 'relative', display: 'inline-block' }}>
                   <Avatar
                     size={96}
-                    src={getAvatarUrl(profile.profilePhoto)}
+                    src={localPhotoUrl || getAvatarUrl(profile.profilePhoto)}
                     style={{
                       border: isDarkMode ? '4px solid var(--color-surface)' : '4px solid #fff',
                       background: 'linear-gradient(135deg, #10113F 0%, #2d2f82 100%)',

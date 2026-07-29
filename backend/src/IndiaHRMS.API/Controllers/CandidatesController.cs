@@ -362,6 +362,51 @@ public class CandidatesController : ControllerBase
         return Ok(ApiResponse<CandidateDto>.Ok(dto, "Resume uploaded successfully."));
     }
 
+    [HttpGet("resume-download")]
+    [AllowAnonymous]
+    public async Task<IActionResult> DownloadResume(
+        [FromQuery] string filePath,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return BadRequest(ApiResponse<string>.Fail("File path parameter is required."));
+        }
+
+        try
+        {
+            var cleanPath = Uri.UnescapeDataString(filePath).Replace("\\", "/");
+            if (cleanPath.Contains(".."))
+            {
+                return BadRequest(ApiResponse<string>.Fail("Invalid file path navigation."));
+            }
+
+            var stream = await _fileService.GetAsync(cleanPath, ct);
+            var extension = Path.GetExtension(cleanPath).ToLowerInvariant();
+            var contentType = extension switch
+            {
+                ".pdf" => "application/pdf",
+                ".doc" => "application/msword",
+                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ".png" => "image/png",
+                ".jpg" => "image/jpeg",
+                ".jpeg" => "image/jpeg",
+                _ => "application/octet-stream"
+            };
+
+            var fileName = Path.GetFileName(cleanPath);
+            return File(stream, contentType, fileName);
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound(ApiResponse<string>.Fail("Resume file was not found on the server."));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<string>.Fail($"Failed to download resume file: {ex.Message}"));
+        }
+    }
+
     [HttpDelete("{id:guid}")]
     [Filters.RequirePermission(PermissionCodes.Recruitment.Edit)]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteCandidate(Guid id, CancellationToken ct)

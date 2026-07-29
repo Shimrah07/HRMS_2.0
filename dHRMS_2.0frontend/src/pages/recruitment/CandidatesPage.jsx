@@ -4,7 +4,7 @@ import {
   Card, Table, Tag, Button, Space, Input, Select, Modal, Form, message,
   Badge, Row, Col, Drawer, Divider, Typography, List, Empty, Tooltip,
   DatePicker, InputNumber, Avatar, Upload, Descriptions, Popconfirm, Steps, Timeline, Alert,
-  Dropdown, Statistic
+  Dropdown, Statistic, Progress
 } from 'antd'
 import {
   SearchOutlined, UserAddOutlined, FilePdfOutlined,
@@ -91,25 +91,108 @@ export default function CandidatesPage() {
 
   const getUnifiedTimeline = (candidate) => {
     if (!candidate) return []
-    return [
-      { category: 'Recruitment', title: 'Application Submitted', description: 'Applied for Job Opening.', time: '12 Jul 2026, 10:30 AM', actor: 'Candidate Self-Service', color: 'blue' },
-      { category: 'Recruitment', title: 'Screening Completed', description: 'Resume screened and shortlisted for L1 Technical Interview.', time: '13 Jul 2026, 02:15 PM', actor: 'Rahul Sharma (HR Admin)', color: 'blue' },
-      { category: 'Interviews', title: 'Technical L1 Interview Approved', description: 'Scored 92% on technical architecture & coding exercise.', time: '15 Jul 2026, 04:00 PM', actor: 'Tech Interviewer', color: 'green' },
-      { category: 'Interviews', title: 'HR Interview Approved', description: 'Cultural fit and compensation expectations verified.', time: '17 Jul 2026, 11:30 AM', actor: 'Anjali Mehta (HR Manager)', color: 'green' },
-      { category: 'Interviews', title: 'Managerial Round Approved', description: 'Final leadership discussion cleared with positive feedback.', time: '18 Jul 2026, 03:45 PM', actor: 'Engineering Manager', color: 'green' },
-      { category: 'Offers', title: 'Offer Letter Generated', description: 'Draft Offer created for Offered CTC ₹ 14,50,000.', time: '19 Jul 2026, 09:30 AM', actor: 'Rahul Sharma (HR Admin)', color: 'purple' },
-      { category: 'Offers', title: 'Offer Approved & Sent', description: 'Manager approved offer letter dispatched via portal.', time: '19 Jul 2026, 02:00 PM', actor: 'Hiring Manager', color: 'purple' },
-      { category: 'Offers', title: 'Offer Accepted', description: 'Candidate signed digital offer letter.', time: '20 Jul 2026, 10:15 AM', actor: candidate.firstName ? `${candidate.firstName} ${candidate.lastName || ''}` : 'Candidate', color: 'green' },
-      { category: 'Background Verification', title: 'Background Verification Initiated', description: 'AuthBridge BGV Case created (Executive Package).', time: '20 Jul 2026, 10:30 AM', actor: 'System Auto-Trigger', color: 'cyan' },
-      { category: 'Background Verification', title: 'Candidate Documents Uploaded', description: 'Aadhaar, PAN, and Degree Certificate uploaded.', time: '21 Jul 2026, 11:00 AM', actor: 'Candidate', color: 'cyan' },
-      { category: 'Background Verification', title: 'Background Verification Cleared', description: 'Identity, Employment & Education checks verified successfully.', time: '22 Jul 2026, 01:20 PM', actor: 'AuthBridge Agency Officer', color: 'green' },
-      { category: 'Onboarding', title: 'Onboarding Initiated', description: 'Pre-joining tasks and IT hardware requests queued.', time: '22 Jul 2026, 02:00 PM', actor: 'Rahul Sharma (HR Admin)', color: 'gold' },
-      { category: 'Onboarding', title: 'Employee Code Generated', description: 'EMP0004 generated with sequence lock.', time: '22 Jul 2026, 03:00 PM', actor: 'System Auto-Generator', color: 'green' },
-      { category: 'Onboarding', title: 'Employee Master Record Created', description: 'Official employee profile created on Probation.', time: '22 Jul 2026, 03:00 PM', actor: 'Rahul Sharma (HR Admin)', color: 'green' },
-      { category: 'Onboarding', title: 'User Account Created', description: 'Credentials & EMPLOYEE role provisioned.', time: '22 Jul 2026, 03:01 PM', actor: 'Identity Provider', color: 'green' },
-      { category: 'Onboarding', title: 'Department & Manager Assigned', description: 'Assigned to Engineering Dept under VP Eng.', time: '22 Jul 2026, 03:01 PM', actor: 'HR Admin', color: 'green' },
-      { category: 'Onboarding', title: 'Onboarding Completed & Recruitment Closed', description: 'Candidate archived as Converted to Employee.', time: '22 Jul 2026, 03:05 PM', actor: 'System Pipeline Archive', color: 'blue' }
-    ]
+    const apps = candidate.jobApplications || []
+    const events = []
+
+    // 1. Candidate Record Created
+    if (candidate.createdAt) {
+      events.push({
+        category: 'Recruitment',
+        title: 'Candidate Profile Registered',
+        description: `Registered in Sourcing Database via ${candidate.source || 'ManualHR'}.`,
+        time: dayjs(candidate.createdAt).format('DD MMM YYYY, hh:mm A'),
+        actor: 'Sourcing System',
+        color: 'green'
+      })
+    }
+
+    // 2. Resume File Uploaded
+    if (candidate.resumeFilePath) {
+      events.push({
+        category: 'Recruitment',
+        title: 'Resume CV Document Uploaded',
+        description: 'Attachment document uploaded to candidate file storage.',
+        time: dayjs(candidate.updatedAt || candidate.createdAt).format('DD MMM YYYY, hh:mm A'),
+        actor: 'Sourcing System',
+        color: 'green'
+      })
+    }
+
+    // 3. Process job applications dynamically
+    apps.forEach(app => {
+      const jobTitle = app.requisition?.jobTitle || 'Job Opening'
+      
+      if (app.applicationDate) {
+        events.push({
+          category: 'Recruitment',
+          title: `Application Submitted (${jobTitle})`,
+          description: `Candidate linked to ${jobTitle} in stage ${app.currentStage || 'Applied'}.`,
+          time: dayjs(app.applicationDate).format('DD MMM YYYY, hh:mm A'),
+          actor: 'Recruitment Portal',
+          color: 'blue'
+        })
+      }
+
+      if (app.timelineEventsJson) {
+        try {
+          const parsedEvents = JSON.parse(app.timelineEventsJson)
+          if (Array.isArray(parsedEvents)) {
+            parsedEvents.forEach(e => {
+              events.push({
+                category: e.category || 'Recruitment',
+                title: e.event || 'Stage Update',
+                description: e.remarks || `Moved to ${e.event}`,
+                time: dayjs(e.timestamp).format('DD MMM YYYY, hh:mm A'),
+                actor: e.actor || 'System',
+                color: e.color || 'purple'
+              })
+            })
+          }
+        } catch (err) {
+          console.error('Failed to parse timelineEventsJson', err)
+        }
+      }
+
+      if (app.stageDataJson) {
+        try {
+          const sd = JSON.parse(app.stageDataJson)
+          if (sd.technicalInterview) {
+            events.push({
+              category: 'Interviews',
+              title: 'Technical L1 Interview Completed',
+              description: `Score: ${sd.technicalInterview.technicalRating || '-'}/10. ${sd.technicalInterview.feedback || ''}`,
+              time: sd.technicalInterview.interviewDate ? dayjs(sd.technicalInterview.interviewDate).format('DD MMM YYYY') : 'Completed',
+              actor: 'Technical Panel',
+              color: 'green'
+            })
+          }
+          if (sd.hrInterview) {
+            events.push({
+              category: 'Interviews',
+              title: 'HR Interview Completed',
+              description: `Score: ${sd.hrInterview.hrRating || '-'}/10. ${sd.hrInterview.feedback || ''}`,
+              time: sd.hrInterview.interviewDate ? dayjs(sd.hrInterview.interviewDate).format('DD MMM YYYY') : 'Completed',
+              actor: 'HR Manager',
+              color: 'green'
+            })
+          }
+          if (sd.offerDetails) {
+            events.push({
+              category: 'Offers',
+              title: 'Offer Letter Generated',
+              description: `Offered CTC ₹ ${sd.offerDetails.offeredCtc || '-'}`,
+              time: sd.offerDetails.createdDate ? dayjs(sd.offerDetails.createdDate).format('DD MMM YYYY') : 'Generated',
+              actor: 'HR Admin',
+              color: 'purple'
+            })
+          }
+        } catch (err) {
+          console.error('Failed to parse stageDataJson', err)
+        }
+      }
+    })
+
+    return events
   }
 
   // KPI Dashboard Stats
@@ -359,8 +442,9 @@ export default function CandidatesPage() {
 
       if (res.success) {
         const savedCand = res.data
-        if (fileList.length > 0 && fileList[0].originFileObj) {
-          const uploadRes = await recruitmentService.uploadResume(savedCand.candidateId, fileList[0].originFileObj)
+        const newFileToUpload = fileList[0]?.originFileObj || (fileList[0] instanceof File ? fileList[0] : null)
+        if (newFileToUpload) {
+          const uploadRes = await recruitmentService.uploadResume(savedCand.candidateId, newFileToUpload)
           if (!uploadRes.success) {
             message.warning('Candidate profile saved, but resume upload failed.')
           }
@@ -1045,224 +1129,216 @@ export default function CandidatesPage() {
       >
         <Steps current={currentStep} items={stepsItems} style={{ marginBottom: 24 }} size="small" />
 
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" preserve={true}>
           {/* Step 1: Personal Details */}
-          {currentStep === 0 && (
-            <div>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="firstName" label="First Name" rules={[{ required: true, message: 'First Name is required' }]}>
-                    <Input placeholder="John" style={{ borderRadius: 6 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="lastName" label="Last Name">
-                    <Input placeholder="Doe" style={{ borderRadius: 6 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="email" label="Email Address" rules={[{ required: true, type: 'email', message: 'Enter a valid email' }]}>
-                    <Input placeholder="john.doe@email.com" style={{ borderRadius: 6 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="phone" label="Mobile Number" rules={[{ required: true, pattern: /^\d{10}$/, message: 'Enter a valid 10-digit number' }]}>
-                    <Input placeholder="9876543210" style={{ borderRadius: 6 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="gender" label="Gender">
-                    <Select placeholder="Select Gender" dropdownStyle={{ background: isDarkMode ? '#1c1e3d' : '#fff' }}>
-                      <Option value="Male">Male</Option>
-                      <Option value="Female">Female</Option>
-                      <Option value="Other">Other</Option>
-                      <Option value="Transgender">Transgender</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="dateOfBirth" label="Date of Birth">
-                    <DatePicker style={{ width: '100%', borderRadius: 6 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="currentLocation" label="Current City">
-                    <Input placeholder="Mumbai" style={{ borderRadius: 6 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="preferredLocation" label="Preferred Sourcing Location">
-                    <Input placeholder="Bangalore" style={{ borderRadius: 6 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Form.Item name="linkedIn" label="LinkedIn URL">
-                <Input placeholder="https://linkedin.com/in/username" prefix={<LinkOutlined />} style={{ borderRadius: 6 }} />
-              </Form.Item>
-              <Form.Item name="portfolio" label="Portfolio / Website URL">
-                <Input placeholder="https://github.com/username" prefix={<LinkOutlined />} style={{ borderRadius: 6 }} />
-              </Form.Item>
-            </div>
-          )}
+          <div style={{ display: currentStep === 0 ? 'block' : 'none' }}>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="firstName" label="First Name" rules={[{ required: true, message: 'First Name is required' }]}>
+                  <Input placeholder="John" style={{ borderRadius: 6 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="lastName" label="Last Name">
+                  <Input placeholder="Doe" style={{ borderRadius: 6 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="email" label="Email Address" rules={[{ required: true, type: 'email', message: 'Enter a valid email' }]}>
+                  <Input placeholder="john.doe@email.com" style={{ borderRadius: 6 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="phone" label="Mobile Number" rules={[{ required: true, pattern: /^\d{10}$/, message: 'Enter a valid 10-digit number' }]}>
+                  <Input placeholder="9876543210" style={{ borderRadius: 6 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="gender" label="Gender">
+                  <Select placeholder="Select Gender" dropdownStyle={{ background: isDarkMode ? '#1c1e3d' : '#fff' }}>
+                    <Option value="Male">Male</Option>
+                    <Option value="Female">Female</Option>
+                    <Option value="Other">Other</Option>
+                    <Option value="Transgender">Transgender</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="dateOfBirth" label="Date of Birth">
+                  <DatePicker style={{ width: '100%', borderRadius: 6 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="currentLocation" label="Current City">
+                  <Input placeholder="Mumbai" style={{ borderRadius: 6 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="preferredLocation" label="Preferred Sourcing Location">
+                  <Input placeholder="Bangalore" style={{ borderRadius: 6 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item name="linkedIn" label="LinkedIn URL">
+              <Input placeholder="https://linkedin.com/in/username" prefix={<LinkOutlined />} style={{ borderRadius: 6 }} />
+            </Form.Item>
+            <Form.Item name="portfolio" label="Portfolio / Website URL">
+              <Input placeholder="https://github.com/username" prefix={<LinkOutlined />} style={{ borderRadius: 6 }} />
+            </Form.Item>
+          </div>
 
           {/* Step 2: Professional Profile */}
-          {currentStep === 1 && (
-            <div>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="currentCompany" label="Current Employer">
-                    <Input placeholder="e.g. Google" style={{ borderRadius: 6 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="currentDesignation" label="Current Designation">
-                    <Input placeholder="e.g. Tech Lead" style={{ borderRadius: 6 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="totalExperience" label="Total Experience (Years)" rules={[{ type: 'number', min: 0, message: 'Must be positive' }]}>
-                    <InputNumber min={0} step={0.5} style={{ width: '100%', borderRadius: 6 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item 
-                    name="relevantExperience" 
-                    label="Relevant Experience (Years)" 
-                    rules={[
-                      { type: 'number', min: 0, message: 'Must be positive' },
-                      ({ getFieldValue }) => ({
-                        validator(_, val) {
-                          const total = getFieldValue('totalExperience') || 0
-                          if (val != null && val > total) {
-                            return Promise.reject(new Error('Relevant experience cannot exceed total experience'))
-                          }
-                          return Promise.resolve()
+          <div style={{ display: currentStep === 1 ? 'block' : 'none' }}>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="currentCompany" label="Current Employer">
+                  <Input placeholder="e.g. Google" style={{ borderRadius: 6 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="currentDesignation" label="Current Designation">
+                  <Input placeholder="e.g. Tech Lead" style={{ borderRadius: 6 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="totalExperience" label="Total Experience (Years)" rules={[{ type: 'number', min: 0, message: 'Must be positive' }]}>
+                  <InputNumber min={0} step={0.5} style={{ width: '100%', borderRadius: 6 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item 
+                  name="relevantExperience" 
+                  label="Relevant Experience (Years)" 
+                  rules={[
+                    { type: 'number', min: 0, message: 'Must be positive' },
+                    ({ getFieldValue }) => ({
+                      validator(_, val) {
+                        const total = getFieldValue('totalExperience') || 0
+                        if (val != null && val > total) {
+                          return Promise.reject(new Error('Relevant experience cannot exceed total experience'))
                         }
-                      })
-                    ]}
-                  >
-                    <InputNumber min={0} step={0.5} style={{ width: '100%', borderRadius: 6 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Form.Item name="highestQualification" label="Highest Educational Qualification">
-                <Input placeholder="e.g. Master of Technology (MTech)" style={{ borderRadius: 6 }} />
-              </Form.Item>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item name="currentCTC" label="Current CTC (Per Annum)">
-                    <InputNumber style={{ width: '100%', borderRadius: 6 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item name="expectedCTC" label="Expected CTC (Per Annum)">
-                    <InputNumber style={{ width: '100%', borderRadius: 6 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item name="noticePeriodDays" label="Notice Period (Days)">
-                    <InputNumber min={0} max={180} style={{ width: '100%', borderRadius: 6 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Form.Item name="skills" label="Key Technical Skills (Comma Separated)">
-                <Input placeholder="e.g. React, Docker, Kubernetes" style={{ borderRadius: 6 }} />
-              </Form.Item>
-              <Form.Item name="languages" label="Languages Spoken (Comma Separated)">
-                <Input placeholder="e.g. English, Hindi, German" style={{ borderRadius: 6 }} />
-              </Form.Item>
-            </div>
-          )}
+                        return Promise.resolve()
+                      }
+                    })
+                  ]}
+                >
+                  <InputNumber min={0} step={0.5} style={{ width: '100%', borderRadius: 6 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item name="highestQualification" label="Highest Educational Qualification">
+              <Input placeholder="e.g. Master of Technology (MTech)" style={{ borderRadius: 6 }} />
+            </Form.Item>
+            <Row gutter={16}>
+              <Col span={8}>
+                <Form.Item name="currentCTC" label="Current CTC (Per Annum)">
+                  <InputNumber style={{ width: '100%', borderRadius: 6 }} />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item name="expectedCTC" label="Expected CTC (Per Annum)">
+                  <InputNumber style={{ width: '100%', borderRadius: 6 }} />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item name="noticePeriodDays" label="Notice Period (Days)">
+                  <InputNumber min={0} max={180} style={{ width: '100%', borderRadius: 6 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item name="skills" label="Key Technical Skills (Comma Separated)">
+              <Input placeholder="e.g. React, Docker, Kubernetes" style={{ borderRadius: 6 }} />
+            </Form.Item>
+            <Form.Item name="languages" label="Languages Spoken (Comma Separated)">
+              <Input placeholder="e.g. English, Hindi, German" style={{ borderRadius: 6 }} />
+            </Form.Item>
+          </div>
 
           {/* Step 3: Sourcing & Recruitment */}
-          {currentStep === 2 && (
-            <div>
-              <Row gutter={16}>
+          <div style={{ display: currentStep === 2 ? 'block' : 'none' }}>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="referralEmployeeId" label="Referred By (Employee)">
+                  <Select
+                    showSearch
+                    allowClear
+                    placeholder="Search employee..."
+                    optionFilterProp="children"
+                    filterOption={(i, o) => (o?.label ?? '').toLowerCase().includes(i.toLowerCase())}
+                    options={employees.map(e => ({ value: e.employeeId, label: `${e.firstName} ${e.lastName || ''} (${e.employeeCode})` }))}
+                    dropdownStyle={{ background: isDarkMode ? '#1c1e3d' : '#fff' }}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="willingToRelocate" label="Willing to Relocate?">
+                  <Select placeholder="Select Option" dropdownStyle={{ background: isDarkMode ? '#1c1e3d' : '#fff' }}>
+                    <Option value="Yes">Yes</Option>
+                    <Option value="No">No</Option>
+                    <Option value="Conditional">Conditional</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              {editingCandidate && (
                 <Col span={12}>
-                  <Form.Item name="referralEmployeeId" label="Referred By (Employee)">
-                    <Select
-                      showSearch
-                      allowClear
-                      placeholder="Search employee..."
-                      optionFilterProp="children"
-                      filterOption={(i, o) => (o?.label ?? '').toLowerCase().includes(i.toLowerCase())}
-                      options={employees.map(e => ({ value: e.employeeId, label: `${e.firstName} ${e.lastName || ''} (${e.employeeCode})` }))}
-                      dropdownStyle={{ background: isDarkMode ? '#1c1e3d' : '#fff' }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="willingToRelocate" label="Willing to Relocate?">
-                    <Select placeholder="Select Option" dropdownStyle={{ background: isDarkMode ? '#1c1e3d' : '#fff' }}>
-                      <Option value="Yes">Yes</Option>
-                      <Option value="No">No</Option>
-                      <Option value="Conditional">Conditional</Option>
+                  <Form.Item name="candidateStatus" label="ATS Status">
+                    <Select placeholder="Select status" dropdownStyle={{ background: isDarkMode ? '#1c1e3d' : '#fff' }}>
+                      {STATUSES.map(s => <Option key={s} value={s}>{s}</Option>)}
                     </Select>
                   </Form.Item>
                 </Col>
-              </Row>
-              <Row gutter={16}>
-                {editingCandidate && (
-                  <Col span={12}>
-                    <Form.Item name="candidateStatus" label="ATS Status">
-                      <Select placeholder="Select status" dropdownStyle={{ background: isDarkMode ? '#1c1e3d' : '#fff' }}>
-                        {STATUSES.map(s => <Option key={s} value={s}>{s}</Option>)}
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                )}
-              </Row>
-              <Form.Item name="tags" label="Candidate Sourcing Tags">
-                <Select mode="tags" placeholder="Add custom sourcing tags (e.g. GoldMedalist, ImmediateJoiner)">
-                  <Option value="Immediate Joiner">Immediate Joiner</Option>
-                  <Option value="Premium College">Premium College</Option>
-                  <Option value="Diverse Candidate">Diverse Candidate</Option>
-                </Select>
-              </Form.Item>
-            </div>
-          )}
+              )}
+            </Row>
+            <Form.Item name="tags" label="Candidate Sourcing Tags">
+              <Select mode="tags" placeholder="Add custom sourcing tags (e.g. GoldMedalist, ImmediateJoiner)">
+                <Option value="Immediate Joiner">Immediate Joiner</Option>
+                <Option value="Premium College">Premium College</Option>
+                <Option value="Diverse Candidate">Diverse Candidate</Option>
+              </Select>
+            </Form.Item>
+          </div>
 
           {/* Step 4: Resume Upload */}
-          {currentStep === 3 && (
-            <div>
-              <Form.Item label="Upload Resume Attachment (PDF, DOC, DOCX up to 10MB)">
-                <Dragger
-                  onRemove={() => setFileList([])}
-                  beforeUpload={(file) => {
-                    const isLt10M = file.size / 1024 / 1024 < 10
-                    if (!isLt10M) {
-                      message.error('Resume must be smaller than 10MB!')
-                      return Upload.LIST_IGNORE
-                    }
-                    const allowed = ['.pdf', '.doc', '.docx']
-                    const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
-                    if (!allowed.includes(extension)) {
-                      message.error('Invalid format. PDF or Word only!')
-                      return Upload.LIST_IGNORE
-                    }
-                    setFileList([file])
-                    return false
-                  }}
-                  fileList={fileList}
-                  style={{ background: 'rgba(255,255,255,0.01)', border: '1px dashed rgba(255,255,255,0.15)', borderRadius: 10 }}
-                >
-                  <p className="ant-upload-drag-icon"><InboxOutlined style={{ color: isDarkMode ? '#FAA71A' : '#7C3AED' }} /></p>
-                  <p className="ant-upload-text" style={{ color: 'rgba(255,255,255,0.85)' }}>Drag & Drop CV file here</p>
-                  <p className="ant-upload-hint" style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11.5 }}>
-                    Accepting PDF, DOC, or DOCX formats only. Max size limit 10MB.
-                  </p>
-                </Dragger>
-              </Form.Item>
-            </div>
-          )}
+          <div style={{ display: currentStep === 3 ? 'block' : 'none' }}>
+            <Form.Item label="Upload Resume Attachment (PDF, DOC, DOCX up to 10MB)">
+              <Dragger
+                onRemove={() => setFileList([])}
+                beforeUpload={(file) => {
+                  const isLt10M = file.size / 1024 / 1024 < 10
+                  if (!isLt10M) {
+                    message.error('Resume must be smaller than 10MB!')
+                    return Upload.LIST_IGNORE
+                  }
+                  const allowed = ['.pdf', '.doc', '.docx']
+                  const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+                  if (!allowed.includes(extension)) {
+                    message.error('Invalid format. PDF or Word only!')
+                    return Upload.LIST_IGNORE
+                  }
+                  setFileList([file])
+                  return false
+                }}
+                fileList={fileList}
+                style={{ background: 'rgba(255,255,255,0.01)', border: '1px dashed rgba(255,255,255,0.15)', borderRadius: 10 }}
+              >
+                <p className="ant-upload-drag-icon"><InboxOutlined style={{ color: isDarkMode ? '#FAA71A' : '#7C3AED' }} /></p>
+                <p className="ant-upload-text" style={{ color: 'rgba(255,255,255,0.85)' }}>Drag & Drop CV file here</p>
+                <p className="ant-upload-hint" style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11.5 }}>
+                  Accepting PDF, DOC, or DOCX formats only. Max size limit 10MB.
+                </p>
+              </Dragger>
+            </Form.Item>
+          </div>
         </Form>
       </Drawer>
 
@@ -1426,65 +1502,151 @@ export default function CandidatesPage() {
 
             <Divider />
 
-            {/* Candidate Hiring Readiness & Overall Recruitment Health Card */}
-            <Card
-              style={{
-                background: 'var(--color-bg-container)',
-                border: '1px solid rgba(124, 58, 237, 0.3)',
-                borderRadius: 12,
-                marginBottom: 24
-              }}
-              styles={{ body: { padding: 16 } }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--color-text)' }}>
-                  🎯 Candidate Hiring Readiness
-                </span>
-                <Tag color="success" style={{ fontWeight: 800, fontSize: 11, padding: '2px 8px', borderRadius: 6, margin: 0 }}>
-                  🟢 HEALTHY • No Pending Blockers
-                </Tag>
-              </div>
+            {/* Candidate Hiring Readiness & Dynamic Recruitment Progress */}
+            {(() => {
+              const apps = selectedCandidate.jobApplications || []
+              const hasApps = apps.length > 0
+              const latestApp = hasApps ? apps[0] : null
+              const currentStage = latestApp ? (latestApp.currentStage || 'Applied') : null
 
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>Overall Lifecycle Readiness:</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: '#10B981' }}>96%</span>
-                </div>
-                <Progress percent={96} strokeColor="#10B981" showInfo={false} />
-              </div>
+              const stagesOrder = [
+                'Applied', 'Screening', 'Shortlisted', 'InterviewL1', 'InterviewL2', 
+                'ManagerReview', 'HRInterview', 'Offer', 'BackgroundCheck', 'Onboarding', 'Hired'
+              ]
+              const stageIndex = currentStage ? stagesOrder.indexOf(currentStage) : -1
 
-              {/* Interactive Stage Checklist Chips */}
-              <Row gutter={[8, 8]}>
-                {[
-                  { stage: 'Screening', status: 'Complete', path: '/recruitment/applications', isDone: true },
-                  { stage: 'Technical Interview', status: 'Complete', path: '/recruitment/interviews', isDone: true },
-                  { stage: 'HR Interview', status: 'Complete', path: '/recruitment/interviews', isDone: true },
-                  { stage: 'Manager Interview', status: 'Complete', path: '/recruitment/interviews', isDone: true },
-                  { stage: 'Offer Letter', status: 'Accepted', path: '/recruitment/offers', isDone: true },
-                  { stage: 'Background Check', status: 'Cleared', path: '/recruitment/bgv', isDone: true },
-                  { stage: 'Employee Onboarding', status: 'Waiting', path: '/recruitment/onboarding', isDone: false }
-                ].map(item => (
-                  <Col span={12} key={item.stage}>
-                    <Card
-                      size="small"
-                      hoverable
-                      onClick={() => navigate(item.path)}
-                      style={{
-                        borderRadius: 8,
-                        border: item.isDone ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)',
-                        background: item.isDone ? 'rgba(16, 185, 129, 0.03)' : 'rgba(245, 158, 11, 0.03)'
-                      }}
-                      styles={{ body: { padding: '8px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }}
-                    >
-                      <span style={{ fontSize: 11, fontWeight: 700 }}>{item.stage}</span>
-                      <Tag color={item.isDone ? 'success' : 'warning'} style={{ margin: 0, fontWeight: 700, fontSize: 10, borderRadius: 4 }}>
-                        {item.isDone ? '✔ ' : '⏳ '}{item.status}
+              const milestones = [
+                {
+                  stage: 'Screening',
+                  path: '/recruitment/applications',
+                  isDone: stageIndex >= 1,
+                  status: stageIndex >= 1 ? 'Complete' : 'Pending'
+                },
+                {
+                  stage: 'Technical Interview',
+                  path: '/recruitment/interviews',
+                  isDone: stageIndex >= 3,
+                  status: stageIndex >= 3 ? 'Complete' : 'Pending'
+                },
+                {
+                  stage: 'HR & Manager Interview',
+                  path: '/recruitment/interviews',
+                  isDone: stageIndex >= 5,
+                  status: stageIndex >= 5 ? 'Complete' : 'Pending'
+                },
+                {
+                  stage: 'Offer Letter',
+                  path: '/recruitment/offers',
+                  isDone: stageIndex >= 7,
+                  status: stageIndex >= 7 ? 'Issued' : 'Pending'
+                },
+                {
+                  stage: 'Background Check',
+                  path: '/recruitment/bgv',
+                  isDone: stageIndex >= 8,
+                  status: stageIndex >= 8 ? 'Cleared' : 'Pending'
+                },
+                {
+                  stage: 'Employee Onboarding',
+                  path: '/recruitment/onboarding',
+                  isDone: stageIndex >= 9,
+                  status: stageIndex >= 9 ? 'Complete' : 'Waiting'
+                }
+              ]
+
+              const completedCount = milestones.filter(m => m.isDone).length
+              const readinessPercent = hasApps ? Math.round((completedCount / milestones.length) * 100) : 0
+
+              if (!hasApps) {
+                return (
+                  <Card
+                    style={{
+                      background: 'var(--color-bg-container)',
+                      border: '1px dashed rgba(124, 58, 237, 0.3)',
+                      borderRadius: 12,
+                      marginBottom: 24
+                    }}
+                    styles={{ body: { padding: 20 } }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--color-text)' }}>
+                        🎯 Candidate Sourcing Status
+                      </span>
+                      <Tag color="default" style={{ fontWeight: 700, fontSize: 11, padding: '2px 8px', borderRadius: 6, margin: 0 }}>
+                        ⚪ UNLINKED • No Job Applications
                       </Tag>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-            </Card>
+                    </div>
+                    <p style={{ fontSize: 12.5, opacity: 0.7, margin: '0 0 14px' }}>
+                      This candidate is registered in the database but has not applied or been linked to any active Job Opening yet.
+                    </p>
+                    <Button
+                      type="primary"
+                      icon={<SendOutlined />}
+                      size="small"
+                      onClick={() => { setApplyCandidate(selectedCandidate); setApplyOpen(true) }}
+                      style={{ borderRadius: 6, fontWeight: 600 }}
+                    >
+                      Link Candidate to Job Opening
+                    </Button>
+                  </Card>
+                )
+              }
+
+              return (
+                <Card
+                  style={{
+                    background: 'var(--color-bg-container)',
+                    border: '1px solid rgba(124, 58, 237, 0.3)',
+                    borderRadius: 12,
+                    marginBottom: 24
+                  }}
+                  styles={{ body: { padding: 16 } }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--color-text)' }}>
+                      🎯 Candidate Hiring Readiness ({latestApp.jobTitle || 'Active Job'})
+                    </span>
+                    <Tag color={readinessPercent >= 80 ? 'success' : 'processing'} style={{ fontWeight: 800, fontSize: 11, padding: '2px 8px', borderRadius: 6, margin: 0 }}>
+                      {readinessPercent >= 80 ? '🟢 HEALTHY • On Track' : '🔵 IN PROGRESS • Active Pipeline'}
+                    </Tag>
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700 }}>Overall Lifecycle Readiness:</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: readinessPercent >= 80 ? '#10B981' : '#3B82F6' }}>
+                        {readinessPercent}%
+                      </span>
+                    </div>
+                    <Progress percent={readinessPercent} strokeColor={readinessPercent >= 80 ? '#10B981' : '#3B82F6'} showInfo={false} />
+                  </div>
+
+                  {/* Dynamic Stage Milestone Chips */}
+                  <Row gutter={[8, 8]}>
+                    {milestones.map(item => (
+                      <Col span={12} key={item.stage}>
+                        <Card
+                          size="small"
+                          hoverable
+                          onClick={() => navigate(item.path)}
+                          style={{
+                            borderRadius: 8,
+                            border: item.isDone ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(245, 158, 11, 0.2)',
+                            background: item.isDone ? 'rgba(16, 185, 129, 0.03)' : 'rgba(245, 158, 11, 0.02)'
+                          }}
+                          styles={{ body: { padding: '8px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }}
+                        >
+                          <span style={{ fontSize: 11, fontWeight: 700 }}>{item.stage}</span>
+                          <Tag color={item.isDone ? 'success' : 'warning'} style={{ margin: 0, fontWeight: 700, fontSize: 10, borderRadius: 4 }}>
+                            {item.isDone ? '✔ ' : '⏳ '}{item.status}
+                          </Tag>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                </Card>
+              )
+            })()}
 
             {/* Personal Details */}
             <Descriptions title="Personal Information" bordered column={1} size="small" style={{ marginBottom: 24 }}>

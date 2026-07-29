@@ -125,17 +125,17 @@ export default function StatCard({
       </div>
 
       {/* Value */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 12, marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 12, marginBottom: 8, flexWrap: 'wrap' }}>
         <span
           style={{
-            fontSize: (value && value.toString().length > 10) ? 20 : (value && value.toString().length > 8) ? 22 : 30,
+            fontSize: (value && value.toString().length > 10) ? 18 : (value && value.toString().length > 8) ? 20 : 28,
             fontWeight: 800,
             color: 'var(--color-text-primary)',
             letterSpacing: '-0.03em',
-            lineHeight: 1.05,
+            lineHeight: 1.1,
             transition: 'color 0.2s ease',
-            wordBreak: 'normal',
-            whiteSpace: 'nowrap',
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
           }}
         >
           {typeof value === 'number' ? value.toLocaleString() : (value ?? '—')}

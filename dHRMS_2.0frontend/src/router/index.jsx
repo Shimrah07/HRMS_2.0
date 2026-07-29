@@ -41,6 +41,15 @@ const OvertimePage = lazy(() => import('../pages/attendance/OvertimePage'))
 const AttendanceFreezePage = lazy(() => import('../pages/attendance/AttendanceFreezePage'))
 const AttendanceReportsPage = lazy(() => import('../pages/attendance/AttendanceReportsPage'))
 const LeavePage = lazy(() => import('../pages/leave/LeavePage'))
+const LeaveDashboardPage = lazy(() => import('../pages/leave/LeaveDashboardPage'))
+const LeaveApplicationsPage = lazy(() => import('../pages/leave/LeaveApplicationsPage'))
+const LeaveBalancePage = lazy(() => import('../pages/leave/LeaveBalancePage'))
+const LeavePoliciesPage = lazy(() => import('../pages/leave/LeavePoliciesPage'))
+const HolidayCalendarPage = lazy(() => import('../pages/leave/HolidayCalendarPage'))
+const StatutoryLeavePage = lazy(() => import('../pages/leave/StatutoryLeavePage'))
+const LeaveEncashmentPage = lazy(() => import('../pages/leave/LeaveEncashmentPage'))
+const SectorRulesPage = lazy(() => import('../pages/leave/SectorRulesPage'))
+const LeaveReportsPage = lazy(() => import('../pages/leave/LeaveReportsPage'))
 const PerformancePage = lazy(() => import('../pages/performance/PerformancePage'))
 const RecruitmentPage = lazy(() => import('../pages/recruitment/RecruitmentPage'))
 const CreateMrfPage = lazy(() => import('../pages/recruitment/CreateMrfPage'))
@@ -135,7 +144,22 @@ const router = createBrowserRouter([
           { path: 'reports', element: <ProtectedRoute permission={PERMISSIONS.ATTENDANCE.VIEW}>{wrap(AttendanceReportsPage)}</ProtectedRoute> },
         ]
       },
-      { path: 'leave', element: <ProtectedRoute>{wrap(LeavePage)}</ProtectedRoute> },
+      { 
+        path: 'leave', 
+        errorElement: <Navigate to="/leave" replace />,
+        children: [
+          { index: true, element: <ProtectedRoute>{wrap(LeaveApplicationsPage)}</ProtectedRoute> },
+          { path: 'dashboard', element: <Navigate to="/leave" replace /> },
+          { path: 'applications', element: <ProtectedRoute>{wrap(LeaveApplicationsPage)}</ProtectedRoute> },
+          { path: 'balance', element: <ProtectedRoute>{wrap(LeaveBalancePage)}</ProtectedRoute> },
+          { path: 'policies', element: <ProtectedRoute permission={PERMISSIONS.LEAVE.VIEW}>{wrap(LeavePoliciesPage)}</ProtectedRoute> },
+          { path: 'holidays', element: <ProtectedRoute>{wrap(HolidayCalendarPage)}</ProtectedRoute> },
+          { path: 'statutory', element: <ProtectedRoute>{wrap(StatutoryLeavePage)}</ProtectedRoute> },
+          { path: 'encashment', element: <ProtectedRoute>{wrap(LeaveEncashmentPage)}</ProtectedRoute> },
+          { path: 'sector-rules', element: <ProtectedRoute permission={PERMISSIONS.LEAVE.VIEW}>{wrap(SectorRulesPage)}</ProtectedRoute> },
+          { path: 'reports', element: <ProtectedRoute>{wrap(LeaveReportsPage)}</ProtectedRoute> },
+        ]
+      },
       { path: 'performance', element: <ProtectedRoute>{wrap(PerformancePage)}</ProtectedRoute> },
       {
         path: 'recruitment',

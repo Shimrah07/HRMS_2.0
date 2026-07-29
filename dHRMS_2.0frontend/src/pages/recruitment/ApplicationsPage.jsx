@@ -244,31 +244,36 @@ function PreparationChecklistPanel({ checklist, isReadOnly, onUpdate }) {
 
 // ─── Categorized Attachments Subcomponent ───────────────────────────────────
 function CategorizedAttachmentsPanel({ roundId, attachments = [], isReadOnly, onUploaded }) {
-  const [fileList, setFileList] = useState([])
+  const [localAttachments, setLocalAttachments] = useState(attachments || [])
   const [docType, setDocType] = useState('Assignment')
   const [uploading, setUploading] = useState(false)
+
+  useEffect(() => {
+    setLocalAttachments(attachments || [])
+  }, [attachments])
 
   const handleUpload = async (file) => {
     setUploading(true)
     try {
+      const fallbackAtt = {
+        id: Date.now().toString(),
+        fileName: file.name,
+        documentType: docType,
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+        uploadedOn: new Date().toISOString()
+      }
+
+      let newAtt = fallbackAtt
       if (roundId) {
         const res = await recruitmentService.uploadInterviewAttachment(roundId, file, docType)
         if (res.success) {
-          message.success(`Attachment (${docType}) uploaded successfully.`)
-          onUploaded && onUploaded(res.data)
+          newAtt = res.data || fallbackAtt
         }
-      } else {
-        // Fallback inline attachment representation
-        const newAtt = {
-          id: Date.now().toString(),
-          fileName: file.name,
-          documentType: docType,
-          size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-          uploadedOn: new Date().toISOString()
-        }
-        onUploaded && onUploaded(newAtt)
-        message.success(`Attachment (${docType}) attached to draft.`)
       }
+
+      setLocalAttachments(prev => [...prev, newAtt])
+      onUploaded && onUploaded(newAtt)
+      message.success(`Attachment (${docType}) attached successfully.`)
     } catch (err) {
       message.error('Failed to upload attachment.')
     } finally {
@@ -282,7 +287,7 @@ function CategorizedAttachmentsPanel({ roundId, attachments = [], isReadOnly, on
   return (
     <Card
       size="small"
-      title={<span style={{ fontWeight: 600 }}>📎 Interview Attachments & Files ({attachments.length})</span>}
+      title={<span style={{ fontWeight: 600 }}>📎 Interview Attachments & Files ({localAttachments.length})</span>}
       style={{ marginBottom: 16, borderRadius: 10, background: 'var(--color-bg-elevated)' }}
     >
       {!isReadOnly && (
@@ -296,12 +301,12 @@ function CategorizedAttachmentsPanel({ roundId, attachments = [], isReadOnly, on
         </Space>
       )}
 
-      {attachments.length === 0 ? (
+      {localAttachments.length === 0 ? (
         <div style={{ fontSize: 12, opacity: 0.45, fontStyle: 'italic' }}>No attachments uploaded for this interview round.</div>
       ) : (
         <List
           size="small"
-          dataSource={attachments}
+          dataSource={localAttachments}
           renderItem={att => (
             <List.Item
               extra={
@@ -390,38 +395,118 @@ function StageWorkspace({ app, onSaved, isDarkMode, onConvertClick, user, isRead
   const renderInterviewSummary = (namespace, title = 'Upcoming Interview') => {
     const data = stageData[namespace] || {}
     const isScheduled = !!data.interviewStatus
-    
+
+    const getStatusTag = (status) => {
+      if (status === 'Completed') return <Tag color="success" style={{ borderRadius: 6, fontWeight: 700, margin: 0 }}>🟢 Completed</Tag>
+      if (status === 'Cancelled') return <Tag color="error" style={{ borderRadius: 6, fontWeight: 700, margin: 0 }}>🔴 Cancelled</Tag>
+      if (status === 'Rescheduled') return <Tag color="warning" style={{ borderRadius: 6, fontWeight: 700, margin: 0 }}>🟠 Rescheduled</Tag>
+      return <Tag color="processing" style={{ borderRadius: 6, fontWeight: 700, margin: 0 }}>🔵 Scheduled</Tag>
+    }
+
     return (
-      <Card size="small" style={{ marginBottom: 16, background: isDarkMode ? 'rgba(255,255,255,0.02)' : '#fff', border: isDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', borderRadius: 8 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Title level={5} style={{ margin: 0, fontSize: 14 }}>{title}</Title>
-          {!isReadOnly && (
-            <Button type={isScheduled ? 'default' : 'primary'} size="small" icon={<CalendarOutlined />} onClick={() => {
-              scheduleForm.setFieldsValue(data)
-              setScheduleModalOpen(namespace)
-            }}>
-              {isScheduled ? 'Reschedule' : 'Schedule Interview'}
-            </Button>
-          )}
+      <Card
+        size="small"
+        style={{
+          marginBottom: 20,
+          background: isDarkMode ? 'rgba(30, 32, 60, 0.6)' : '#f8fafc',
+          border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
+          borderRadius: 12,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+        }}
+        styles={{ body: { padding: '16px 20px' } }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <Space align="center" size="middle">
+            <Avatar style={{ background: isDarkMode ? '#FAA71A' : '#7C3AED', color: isDarkMode ? '#111' : '#fff' }} icon={<CalendarOutlined />} />
+            <div>
+              <Title level={5} style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>{title}</Title>
+              {isScheduled && <Text type="secondary" style={{ fontSize: 11.5 }}>Scheduled for candidate interview round</Text>}
+            </div>
+          </Space>
+          <Space>
+            {isScheduled && getStatusTag(data.interviewStatus)}
+            {!isReadOnly && (
+              <Button
+                type={isScheduled ? 'default' : 'primary'}
+                size="small"
+                icon={<CalendarOutlined />}
+                onClick={() => {
+                  scheduleForm.setFieldsValue(data)
+                  setScheduleModalOpen(namespace)
+                }}
+                style={{ borderRadius: 6, fontWeight: 600 }}
+              >
+                {isScheduled ? 'Reschedule' : 'Schedule Interview'}
+              </Button>
+            )}
+          </Space>
         </div>
+
         {isScheduled ? (
-          <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 12 }}>
-            <Descriptions.Item label="Date">{data.interviewDate ? dayjs(data.interviewDate).format('DD MMM YYYY') : '-'}</Descriptions.Item>
-            <Descriptions.Item label="Time">{data.interviewTime || '-'}</Descriptions.Item>
-            <Descriptions.Item label="Interviewer">{data.interviewer || '-'}</Descriptions.Item>
-            <Descriptions.Item label="Mode">{data.interviewMode || '-'}</Descriptions.Item>
-            <Descriptions.Item label="Location/Link">
-               {data.meetingLink?.startsWith('http') ? <a href={data.meetingLink} target="_blank" rel="noreferrer">Meeting Link</a> : (data.meetingLink || '-')}
-            </Descriptions.Item>
-            <Descriptions.Item label="Status">
-              <Tag color={data.interviewStatus === 'Completed' ? 'success' : data.interviewStatus === 'Cancelled' ? 'error' : 'processing'} style={{ margin: 0 }}>
-                {data.interviewStatus}
-              </Tag>
-            </Descriptions.Item>
-          </Descriptions>
+          <div style={{
+            background: isDarkMode ? 'rgba(0,0,0,0.2)' : '#ffffff',
+            border: isDarkMode ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e8eef5',
+            borderRadius: 10,
+            padding: '14px 16px'
+          }}>
+            <Row gutter={[16, 12]}>
+              <Col xs={12} sm={8}>
+                <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 2 }}>📅 Date</div>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{data.interviewDate ? dayjs(data.interviewDate).format('DD MMM YYYY') : '-'}</div>
+              </Col>
+              <Col xs={12} sm={8}>
+                <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 2 }}>⏰ Time</div>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{data.interviewTime || '-'}</div>
+              </Col>
+              <Col xs={12} sm={8}>
+                <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 2 }}>👤 Interviewer</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-primary-light)' }}>{data.interviewer || '-'}</div>
+              </Col>
+              <Col xs={12} sm={8}>
+                <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 2 }}>💻 Mode</div>
+                <Tag color={data.interviewMode === 'Online' ? 'cyan' : 'purple'} style={{ borderRadius: 4, fontWeight: 600, margin: 0 }}>
+                  {data.interviewMode || '-'}
+                </Tag>
+              </Col>
+              <Col xs={24} sm={16}>
+                <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 2 }}>🔗 Location / Meeting Link</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, wordBreak: 'break-all' }}>
+                  {data.meetingLink?.startsWith('http') ? (
+                    <a href={data.meetingLink} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <LinkOutlined /> Open Meeting Link
+                    </a>
+                  ) : (
+                    data.meetingLink || '-'
+                  )}
+                </div>
+              </Col>
+            </Row>
+          </div>
         ) : (
-          <div style={{ marginTop: 12 }}>
-            <Text type="secondary">Not scheduled yet. Click the button above to schedule this interview.</Text>
+          <div style={{
+            background: isDarkMode ? 'rgba(0,0,0,0.15)' : '#ffffff',
+            border: '1px dashed rgba(124, 58, 237, 0.25)',
+            borderRadius: 10,
+            padding: '16px',
+            textAlign: 'center'
+          }}>
+            <Text type="secondary" style={{ fontSize: 12.5, display: 'block', marginBottom: 8 }}>
+              No interview has been scheduled for this round yet.
+            </Text>
+            {!isReadOnly && (
+              <Button
+                type="primary"
+                size="small"
+                icon={<CalendarOutlined />}
+                onClick={() => {
+                  scheduleForm.setFieldsValue(data)
+                  setScheduleModalOpen(namespace)
+                }}
+                style={{ borderRadius: 6 }}
+              >
+                Schedule {title}
+              </Button>
+            )}
           </div>
         )}
       </Card>
@@ -1296,6 +1381,25 @@ export default function ApplicationsPage() {
     }
   }
 
+  const handleUploadResumeInApplication = async (file) => {
+    try {
+      const candId = selectedApp?.candidateId || selectedApp?.candidate?.candidateId
+      if (!candId) {
+        message.error('Candidate ID not found.')
+        return false
+      }
+      const res = await recruitmentService.uploadResume(candId, file)
+      if (res.success) {
+        message.success('Resume uploaded successfully.')
+        handleOpenDrawer(selectedApp, 'resume')
+        loadApplications()
+      }
+    } catch (err) {
+      message.error('Failed to upload resume file.')
+    }
+    return false
+  }
+
   const handleOpenHistory = (app) => { setHistoryApp(app); setHistoryModalOpen(true) }
 
   const handleAddNote = async () => {
@@ -2147,29 +2251,50 @@ export default function ApplicationsPage() {
             {
               key: 'resume',
               label: <span><FilePdfOutlined /> Resume</span>,
-              children: (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <Title level={5} style={{ margin: 0 }}>Candidate Resume</Title>
-                    {selectedApp.candidate?.resumeFilePath && (
-                      <Button type="primary" ghost size="small" icon={<DownloadOutlined />} href={getFileUrl(selectedApp.candidate.resumeFilePath)} target="_blank">Download</Button>
+              children: (() => {
+                const resumePath = selectedApp.candidate?.resumeFilePath || selectedApp.resumeFilePath || selectedApp.ResumeFilePath
+                return (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <Title level={5} style={{ margin: 0 }}>Candidate Resume</Title>
+                      <Space>
+                        {resumePath && (
+                          <Button type="primary" ghost size="small" icon={<DownloadOutlined />} href={getFileUrl(resumePath)} target="_blank">
+                            Download
+                          </Button>
+                        )}
+                        <Upload beforeUpload={handleUploadResumeInApplication} showUploadList={false} accept=".pdf,.doc,.docx">
+                          <Button type="dashed" size="small" icon={<UploadOutlined />}>
+                            {resumePath ? 'Replace Resume' : 'Upload Resume'}
+                          </Button>
+                        </Upload>
+                      </Space>
+                    </div>
+
+                    {resumePath ? (
+                      resumePath.toLowerCase().endsWith('.pdf') ? (
+                        <div style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, overflow: 'hidden', height: 560 }}>
+                          <iframe title="Resume" src={getFileUrl(resumePath)} width="100%" height="100%" style={{ border: 'none' }} />
+                        </div>
+                      ) : (
+                        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                          <FilePdfOutlined style={{ fontSize: 40, color: '#3B82F6', marginBottom: 12 }} />
+                          <Paragraph>Resume is a document file. Click below to download and view.</Paragraph>
+                          <Button type="primary" href={getFileUrl(resumePath)} target="_blank">Download to View</Button>
+                        </div>
+                      )
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '40px 0', background: 'rgba(255,255,255,0.01)', border: '1px dashed rgba(255,255,255,0.15)', borderRadius: 10 }}>
+                        <FilePdfOutlined style={{ fontSize: 36, color: '#94a3b8', marginBottom: 8 }} />
+                        <Paragraph type="secondary" style={{ marginBottom: 12 }}>No resume has been uploaded for this candidate yet.</Paragraph>
+                        <Upload beforeUpload={handleUploadResumeInApplication} showUploadList={false} accept=".pdf,.doc,.docx">
+                          <Button type="primary" icon={<UploadOutlined />}>Upload Candidate Resume</Button>
+                        </Upload>
+                      </div>
                     )}
                   </div>
-                  {selectedApp.candidate?.resumeFilePath ? (
-                    selectedApp.candidate.resumeFilePath.toLowerCase().endsWith('.pdf') ? (
-                      <div style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, overflow: 'hidden', height: 560 }}>
-                        <iframe title="Resume" src={getFileUrl(selectedApp.candidate.resumeFilePath)} width="100%" height="100%" style={{ border: 'none' }} />
-                      </div>
-                    ) : (
-                      <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                        <FilePdfOutlined style={{ fontSize: 40, color: '#3B82F6', marginBottom: 12 }} />
-                        <Paragraph>Resume is a document file. Click below to download and view.</Paragraph>
-                        <Button type="primary" href={getFileUrl(selectedApp.candidate.resumeFilePath)} target="_blank">Download to View</Button>
-                      </div>
-                    )
-                  ) : <Paragraph type="secondary">No resume uploaded.</Paragraph>}
-                </div>
-              )
+                )
+              })()
             },
             {
               key: 'workspace',

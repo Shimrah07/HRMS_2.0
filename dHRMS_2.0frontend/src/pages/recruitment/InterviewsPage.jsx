@@ -104,50 +104,67 @@ function StandardKpiCard({ title, value, icon, color, badgeText, badgeColor = 'd
     <Card
       bordered={false}
       style={{
-        background: 'var(--color-bg-container)',
+        background: 'var(--color-card-bg)',
+        backdropFilter: 'blur(12px)',
         border: 'var(--border-glass)',
-        borderRadius: 10,
-        height: 86,
+        borderRadius: 12,
+        height: '100%',
+        minHeight: 92,
         transition: 'all 0.2s ease-in-out',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+        boxShadow: 'var(--shadow-subtle)'
       }}
       styles={{
         body: {
-          padding: '10px 12px',
+          padding: '12px 14px',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          gap: 6
         }
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
         <span
           style={{
-            fontSize: 10.5,
+            fontSize: 11,
             fontWeight: 700,
             color: 'var(--color-text-secondary)',
             textTransform: 'uppercase',
             letterSpacing: '0.4px',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
+            lineHeight: 1.2,
+            wordBreak: 'break-word'
           }}
           title={title}
         >
           {title}
         </span>
-        <span style={{ fontSize: 16, color, flexShrink: 0 }}>{icon}</span>
+        <div
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 8,
+            background: `${color}18`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 15,
+            color: color,
+            flexShrink: 0
+          }}
+        >
+          {icon}
+        </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4, marginTop: 'auto' }}>
         <span
           style={{
-            fontSize: isLongValue ? 15 : 20,
+            fontSize: isLongValue ? 15 : 21,
             fontWeight: 800,
-            color: 'var(--color-text)',
-            lineHeight: 1,
-            whiteSpace: 'nowrap'
+            color: 'var(--color-text-primary)',
+            lineHeight: 1.1,
+            wordBreak: 'break-word'
           }}
         >
           {value}
@@ -156,15 +173,18 @@ function StandardKpiCard({ title, value, icon, color, badgeText, badgeColor = 'd
           <Tag
             color={badgeColor}
             style={{
-              fontSize: 9,
+              fontSize: 9.5,
               fontWeight: 700,
               margin: 0,
               borderRadius: 4,
-              padding: '0 5px',
-              height: 18,
-              lineHeight: '18px',
+              padding: '0 6px',
+              height: 20,
+              lineHeight: '20px',
               border: 'none',
-              flexShrink: 0
+              flexShrink: 0,
+              maxWidth: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
             }}
           >
             {badgeText}
@@ -815,7 +835,7 @@ export default function InterviewsPage() {
 
       {/* KPI Dashboard Header */}
       <Row gutter={[12, 12]} style={{ marginBottom: 20 }}>
-        <Col xs={12} sm={8} md={4}>
+        <Col xs={12} sm={8} md={8} lg={4}>
           <StandardKpiCard
             title="Needs Scheduling"
             value={kpis.needsScheduling}
@@ -825,7 +845,7 @@ export default function InterviewsPage() {
             badgeColor={kpis.needsScheduling > 0 ? "error" : "success"}
           />
         </Col>
-        <Col xs={12} sm={8} md={4}>
+        <Col xs={12} sm={8} md={8} lg={4}>
           <StandardKpiCard
             title="Today's"
             value={kpis.today}
@@ -835,7 +855,7 @@ export default function InterviewsPage() {
             badgeColor="processing"
           />
         </Col>
-        <Col xs={12} sm={8} md={4}>
+        <Col xs={12} sm={8} md={8} lg={4}>
           <StandardKpiCard
             title="Upcoming"
             value={kpis.upcoming}
@@ -845,7 +865,7 @@ export default function InterviewsPage() {
             badgeColor="purple"
           />
         </Col>
-        <Col xs={12} sm={8} md={4}>
+        <Col xs={12} sm={8} md={8} lg={4}>
           <StandardKpiCard
             title="Completed"
             value={kpis.completedToday}
@@ -855,7 +875,7 @@ export default function InterviewsPage() {
             badgeColor="success"
           />
         </Col>
-        <Col xs={12} sm={8} md={4}>
+        <Col xs={12} sm={8} md={8} lg={4}>
           <StandardKpiCard
             title="Pending Feedback"
             value={kpis.pendingFeedback}
@@ -865,7 +885,7 @@ export default function InterviewsPage() {
             badgeColor={kpis.pendingFeedback > 0 ? "warning" : "default"}
           />
         </Col>
-        <Col xs={12} sm={8} md={4}>
+        <Col xs={12} sm={8} md={8} lg={4}>
           <StandardKpiCard
             title="Avg Duration"
             value={(() => {

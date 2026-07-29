@@ -91,6 +91,6 @@ public class CreateOfferRequestValidator : AbstractValidator<CreateOfferRequest>
     {
         RuleFor(x => x.AppId).NotEmpty().WithMessage("Application ID is required.");
         RuleFor(x => x.OfferedCTC).GreaterThan(0).WithMessage("Offered CTC must be greater than zero.");
-        RuleFor(x => x.JoiningDate).NotEmpty().WithMessage("Expected DOJ is required.");
+        RuleFor(x => x.JoiningDate).NotEmpty().When(x => x.JoiningDate.HasValue).WithMessage("Expected DOJ is required.");
     }
 }

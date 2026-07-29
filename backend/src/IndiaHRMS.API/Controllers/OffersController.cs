@@ -121,18 +121,20 @@ public class OffersController : ControllerBase
             return BadRequest(ApiResponse<OfferLetterDto>.Fail("Offer validity cannot exceed 30 days."));
         }
 
-        if (request.JoiningDate.DayOfWeek == DayOfWeek.Sunday)
+        var joiningDate = request.JoiningDate ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(15));
+
+        if (joiningDate.DayOfWeek == DayOfWeek.Sunday)
         {
             return BadRequest(ApiResponse<OfferLetterDto>.Fail("Expected DOJ cannot be a Sunday."));
         }
 
         var maxDoj = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(60));
-        if (request.JoiningDate > maxDoj)
+        if (joiningDate > maxDoj)
         {
             return BadRequest(ApiResponse<OfferLetterDto>.Fail("Expected DOJ must be within 60 days."));
         }
 
-        var isHoliday = await _context.HolidayCalendars.AnyAsync(h => h.HolidayDate == request.JoiningDate && h.IsActive, ct);
+        var isHoliday = await _context.HolidayCalendars.AnyAsync(h => h.HolidayDate == joiningDate && h.IsActive, ct);
         if (isHoliday)
         {
             return BadRequest(ApiResponse<OfferLetterDto>.Fail("Expected DOJ cannot be a public holiday."));
@@ -143,13 +145,13 @@ public class OffersController : ControllerBase
             OfferId = Guid.NewGuid(),
             AppId = request.AppId,
             OfferedCTC = request.OfferedCTC,
-            JoiningDate = request.JoiningDate,
+            JoiningDate = joiningDate,
             OfferDate = DateTime.UtcNow,
-            ExpiryDate = DateTime.UtcNow.AddDays(request.ExpiryDays),
+            ExpiryDate = DateTime.UtcNow.AddDays(request.ExpiryDays > 0 ? request.ExpiryDays : 30),
             Status = OfferStatus.Draft
         };
 
-        TimelineHelper.AddTimelineEvent(app, "Offer Drafted", $"Offer drafted for ₹ {request.OfferedCTC:N0} with DOJ: {request.JoiningDate:dd MMM yyyy}.");
+        TimelineHelper.AddTimelineEvent(app, "Offer Drafted", $"Offer drafted for ₹ {request.OfferedCTC:N0} with DOJ: {joiningDate:dd MMM yyyy}.");
 
         _context.OfferLetters.Add(offer);
         await _context.SaveChangesAsync(ct);

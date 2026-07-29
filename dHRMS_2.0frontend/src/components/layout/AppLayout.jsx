@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Layout } from 'antd'
 import { motion } from 'framer-motion'
 import { Outlet, useLocation } from 'react-router-dom'
@@ -11,16 +12,37 @@ const { Content } = Layout
 export default function AppLayout() {
   const { sidebarCollapsed } = useUIStore()
   const location = useLocation()
-  const sidebarWidth = sidebarCollapsed ? 64 : 256
+
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const isMobile = windowWidth < 768
+  const isTablet = windowWidth >= 768 && windowWidth < 1024
+
+  // On mobile screens (<768px), sidebar is rendering as off-canvas Drawer, so content margin is 0
+  const sidebarWidth = isMobile ? 0 : (sidebarCollapsed || isTablet ? 64 : 256)
+
+  const contentPadding = isMobile
+    ? '16px 12px 24px'
+    : isTablet
+    ? '20px 20px 28px'
+    : '24px 32px 32px'
+
+  const contentMarginTop = isMobile ? 72 : 80
 
   return (
-    <Layout className="min-h-screen" style={{ background: 'var(--color-surface)', position: 'relative', overflow: 'hidden' }}>
+    <Layout className="min-h-screen" style={{ background: 'var(--color-surface)', position: 'relative', overflowX: 'hidden' }}>
       {/* Decorative premium accent blobs */}
       <div className="bg-blob bg-blob-accent" style={{ top: '-10%', left: '25%', opacity: 0.08 }} />
       <div className="bg-blob bg-blob-secondary" style={{ bottom: '10%', right: '10%', opacity: 0.06 }} />
       <div className="bg-blob bg-blob-premium" style={{ top: '45%', left: '-5%', opacity: 0.05 }} />
 
-      <Sidebar />
+      <Sidebar isMobile={isMobile} />
       <Layout
         style={{
           marginLeft: sidebarWidth,
@@ -28,14 +50,16 @@ export default function AppLayout() {
           background: 'transparent',
           position: 'relative',
           zIndex: 1,
+          minWidth: 0,
         }}
       >
-        <Topbar />
+        <Topbar isMobile={isMobile} />
         <Content
           style={{
-            marginTop: 80,
-            padding: '24px 32px 32px',
-            minHeight: 'calc(100vh - 80px)',
+            marginTop: contentMarginTop,
+            padding: contentPadding,
+            minHeight: `calc(100vh - ${contentMarginTop}px)`,
+            minWidth: 0,
           }}
         >
           <motion.div

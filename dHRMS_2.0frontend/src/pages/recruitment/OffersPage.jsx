@@ -215,8 +215,8 @@ function OfferHealthBanner({ status }) {
 }
 
 // Standardized Enterprise KPI Card Component
-function StandardKpiCard({ title, value, icon, color, badgeText, badgeColor = 'default' }) {
-  const isLongValue = typeof value === 'string' && value.length > 4
+function StandardKpiCard({ title, value, icon, color = '#3B82F6', badgeText, badgeColor = 'default' }) {
+  const isLongValue = typeof value === 'string' && value.length > 5
 
   return (
     <Card
@@ -224,10 +224,12 @@ function StandardKpiCard({ title, value, icon, color, badgeText, badgeColor = 'd
       style={{
         background: 'var(--color-bg-container)',
         border: 'var(--border-glass)',
-        borderRadius: 10,
-        height: 86,
+        borderRadius: 12,
+        height: '100%',
+        minHeight: 90,
         transition: 'all 0.2s ease-in-out',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+        overflow: 'hidden'
       }}
       styles={{
         body: {
@@ -235,37 +237,55 @@ function StandardKpiCard({ title, value, icon, color, badgeText, badgeColor = 'd
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          gap: 6
         }
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
         <span
           style={{
             fontSize: 10.5,
             fontWeight: 700,
             color: 'var(--color-text-secondary)',
             textTransform: 'uppercase',
-            letterSpacing: '0.4px',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
+            letterSpacing: '0.3px',
+            lineHeight: 1.25,
+            wordBreak: 'break-word',
+            flex: 1
           }}
           title={title}
         >
           {title}
         </span>
-        <span style={{ fontSize: 16, color, flexShrink: 0 }}>{icon}</span>
+        {icon && (
+          <div
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 6,
+              background: `${color}18`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 14,
+              color: color,
+              flexShrink: 0
+            }}
+          >
+            {icon}
+          </div>
+        )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4, marginTop: 'auto' }}>
         <span
           style={{
             fontSize: isLongValue ? 14 : 19,
             fontWeight: 800,
             color: 'var(--color-text)',
-            lineHeight: 1,
-            whiteSpace: 'nowrap'
+            lineHeight: 1.1,
+            wordBreak: 'break-word'
           }}
         >
           {value}
@@ -282,7 +302,10 @@ function StandardKpiCard({ title, value, icon, color, badgeText, badgeColor = 'd
               height: 18,
               lineHeight: '18px',
               border: 'none',
-              flexShrink: 0
+              flexShrink: 0,
+              maxWidth: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
             }}
           >
             {badgeText}
@@ -576,31 +599,51 @@ export default function OffersPage() {
   // Handle Wizard Save Draft / Finish
   const handleSaveWizardOffer = async (isFinalSubmit = false) => {
     try {
-      const values = await wizardForm.validateFields()
       setSavingDraft(true)
+      const allValues = wizardForm.getFieldsValue(true)
+
+      const rawAppId = allValues.appId || wizardAppId || applications[0]?.appId
+      if (!rawAppId) {
+        message.error('Please select a valid candidate application.')
+        setSavingDraft(false)
+        return
+      }
+
+      const rawJingDate = allValues.joiningDate
+      let joiningDateStr = null
+      if (rawJingDate) {
+        if (typeof rawJingDate.format === 'function') {
+          joiningDateStr = rawJingDate.format('YYYY-MM-DD')
+        } else if (typeof rawJingDate === 'string' && rawJingDate.length >= 10) {
+          joiningDateStr = rawJingDate.substring(0, 10)
+        }
+      }
+      if (!joiningDateStr) {
+        joiningDateStr = dayjs().add(15, 'day').format('YYYY-MM-DD')
+      }
 
       const payload = {
-        appId: values.appId,
-        offeredCTC: values.offeredCTC,
-        joiningDate: values.joiningDate ? values.joiningDate.format('YYYY-MM-DD') : null,
-        expiryDays: values.expiryDays ?? 30,
+        appId: rawAppId,
+        offeredCTC: Number(allValues.offeredCTC || wizardCtc || 1200000),
+        joiningDate: joiningDateStr,
+        expiryDays: Number(allValues.expiryDays ?? 30),
         templateId: selectedTemplateId,
         status: isFinalSubmit ? 'PendingManager' : 'Draft',
-        workMode: values.workMode,
-        ndaRequired: values.ndaRequired
+        workMode: allValues.workMode || 'Hybrid',
+        ndaRequired: allValues.ndaRequired ?? true
       }
 
       const res = await recruitmentService.createOffer(payload)
       if (res.success) {
-        message.success(isFinalSubmit ? 'Offer submitted for Hiring Manager approval!' : 'Offer draft saved successfully.')
+        message.success(isFinalSubmit ? 'Offer letter generated and submitted successfully!' : 'Offer draft saved successfully.')
         setWizardOpen(false)
         fetchOffers()
         fetchMetadata()
+      } else {
+        message.error(res.message || res.errors?.[0] || 'Failed to save offer letter.')
       }
     } catch (err) {
-      if (err.response?.data?.message) {
-        message.error(err.response.data.message)
-      }
+      message.error(err.response?.data?.message || err.response?.data?.errors?.request?.[0] || 'Failed to generate offer letter.')
     } finally {
       setSavingDraft(false)
     }
@@ -892,34 +935,34 @@ export default function OffersPage() {
 
       {/* Analytics Dashboard KPI Header Grid (10 Metrics) */}
       <Row gutter={[10, 10]} style={{ marginBottom: 16 }}>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Draft Offers" value={analyticsKpis.drafts} icon={<FileTextOutlined />} color="#3B82F6" badgeText="DRAFT" badgeColor="blue" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Pending Approval" value={analyticsKpis.pending} icon={<ExclamationCircleOutlined />} color="#F59E0B" badgeText="APPROVAL" badgeColor="warning" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Sent To Candidate" value={analyticsKpis.sent} icon={<SendOutlined />} color="#10B981" badgeText="RELEASED" badgeColor="success" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Negotiation" value={analyticsKpis.negotiation} icon={<ExperimentOutlined />} color="#8B5CF6" badgeText="REVISION" badgeColor="purple" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Accepted" value={analyticsKpis.accepted} icon={<CheckCircleOutlined />} color="#059669" badgeText="JOINED" badgeColor="emerald" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Acceptance Rate" value={analyticsKpis.acceptanceRate} icon={<RiseOutlined />} color="#10B981" badgeText="KPI" badgeColor="success" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Negotiation Rate" value={analyticsKpis.negotiationRate} icon={<SwapOutlined />} color="#8B5CF6" badgeText="KPI" badgeColor="purple" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Avg Approval Time" value={analyticsKpis.avgApprovalTime} icon={<ClockCircleOutlined />} color="#F59E0B" badgeText="SLA" badgeColor="warning" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Expiring 7 Days" value={analyticsKpis.expiringThisWeek} icon={<ThunderboltOutlined />} color="#EF4444" badgeText="URGENT" badgeColor="error" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.4}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Avg Offered CTC" value={analyticsKpis.avgCtc} icon={<DollarOutlined />} color="#10B981" badgeText="BENCHMARK" badgeColor="cyan" />
         </Col>
       </Row>
@@ -1046,7 +1089,7 @@ export default function OffersPage() {
               ]}
             />
 
-            <Form form={wizardForm} layout="vertical">
+            <Form form={wizardForm} layout="vertical" preserve={true}>
               {/* STEP 1: CANDIDATE & OPENING */}
               {wizardStep === 0 && (
                 <div>

@@ -50,8 +50,13 @@ public class AppDbContext : DbContext
     public DbSet<CompOffLedger> CompOffLedgers => Set<CompOffLedger>();
     // ─── Leave ────────────────────────────────────────────────────────────────
     public DbSet<LeaveType> LeaveTypes => Set<LeaveType>();
+    public DbSet<LeavePolicyRule> LeavePolicyRules => Set<LeavePolicyRule>();
     public DbSet<LeaveBalance> LeaveBalances => Set<LeaveBalance>();
     public DbSet<LeaveApplication> LeaveApplications => Set<LeaveApplication>();
+    public DbSet<LeaveLedger> LeaveLedgers => Set<LeaveLedger>();
+    public DbSet<StatutoryLeaveEvent> StatutoryLeaveEvents => Set<StatutoryLeaveEvent>();
+    public DbSet<LeaveEncashment> LeaveEncashments => Set<LeaveEncashment>();
+    public DbSet<SectorLeaveConfig> SectorLeaveConfigs => Set<SectorLeaveConfig>();
 
     // ─── Payroll ──────────────────────────────────────────────────────────────
     public DbSet<SalaryComponent> SalaryComponents => Set<SalaryComponent>();
@@ -398,7 +403,26 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<AttendanceRegularization>(e => e.HasKey(x => x.RegId));
         modelBuilder.Entity<CompOffLedger>(e => e.HasKey(x => x.LedgerId));
 
-        // ─── Leave ─────────────────────────────────────────────────────────────
+        // ─── Leave Module (M4) ──────────────────────────────────────────────────
+        modelBuilder.Entity<LeaveType>(e =>
+        {
+            e.HasKey(x => x.LeaveTypeId);
+            e.HasIndex(x => new { x.CompanyId, x.LeaveCode });
+            e.Property(x => x.LeaveTypeName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.LeaveCode).HasMaxLength(20).IsRequired();
+            e.Property(x => x.AccrualRate).HasColumnType("decimal(5,2)");
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<LeavePolicyRule>(e =>
+        {
+            e.HasKey(x => x.PolicyRuleId);
+            e.Property(x => x.QuotaOverride).HasColumnType("decimal(5,2)");
+            e.HasOne(x => x.LeaveType).WithMany(x => x.PolicyRules).HasForeignKey(x => x.LeaveTypeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Location).WithMany().HasForeignKey(x => x.LocationId).OnDelete(DeleteBehavior.SetNull);
+        });
+
         modelBuilder.Entity<LeaveBalance>(e =>
         {
             e.HasKey(x => x.BalanceId);
@@ -422,10 +446,47 @@ public class AppDbContext : DbContext
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
             e.HasOne(x => x.Employee).WithMany(x => x.LeaveApplications).HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.LeaveType).WithMany(x => x.LeaveApplications).HasForeignKey(x => x.LeaveTypeId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(x => x.Approver).WithMany().HasForeignKey(x => x.ApproverId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.BackupEmployee).WithMany().HasForeignKey(x => x.BackupEmployeeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Approver).WithMany().HasForeignKey(x => x.ApproverId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Level2Approver).WithMany().HasForeignKey(x => x.Level2ApproverId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<LeaveType>(e => e.HasKey(x => x.LeaveTypeId));
+        modelBuilder.Entity<LeaveLedger>(e =>
+        {
+            e.HasKey(x => x.LedgerId);
+            e.HasIndex(x => new { x.EmployeeId, x.LeaveTypeId, x.TxnDate });
+            e.Property(x => x.Days).HasColumnType("decimal(6,2)");
+            e.Property(x => x.RunningBalance).HasColumnType("decimal(6,2)");
+            e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.LeaveType).WithMany(x => x.LeaveLedgers).HasForeignKey(x => x.LeaveTypeId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<StatutoryLeaveEvent>(e =>
+        {
+            e.HasKey(x => x.EventId);
+            e.HasIndex(x => new { x.EmployeeId, x.EventType });
+            e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LeaveEncashment>(e =>
+        {
+            e.HasKey(x => x.EncashmentId);
+            e.HasIndex(x => new { x.EmployeeId, x.ProcessedMonth });
+            e.Property(x => x.DaysEncashed).HasColumnType("decimal(5,2)");
+            e.Property(x => x.DailyRate).HasColumnType("decimal(12,2)");
+            e.Property(x => x.TotalAmount).HasColumnType("decimal(12,2)");
+            e.Property(x => x.TaxExemptAmount).HasColumnType("decimal(12,2)");
+            e.Property(x => x.TaxableAmount).HasColumnType("decimal(12,2)");
+            e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.LeaveType).WithMany().HasForeignKey(x => x.LeaveTypeId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SectorLeaveConfig>(e =>
+        {
+            e.HasKey(x => x.SectorConfigId);
+            e.HasIndex(x => new { x.CompanyId, x.IndustryType, x.RuleKey }).IsUnique();
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        });
 
         // ─── Payroll ───────────────────────────────────────────────────────────
         modelBuilder.Entity<EmployeeSalary>(e =>

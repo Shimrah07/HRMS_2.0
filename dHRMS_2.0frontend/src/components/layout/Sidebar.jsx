@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import React from 'react'
-import { Layout, Tooltip } from 'antd'
+import { Layout, Tooltip, Drawer } from 'antd'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
@@ -41,7 +41,6 @@ const NAV_GROUPS = [
   {
     key: 'self-service',
     label: 'MY WORKSPACE',
-    // Only visible for all authenticated users — self-service
     items: [
       { key: '/employees/my-profile', icon: <UserOutlined />, label: 'My Profile', permission: null, selfOnly: true },
     ],
@@ -71,7 +70,7 @@ const NAV_GROUPS = [
         key: '/attendance', 
         icon: <ClockCircleOutlined />, 
         label: 'Attendance', 
-        permission: null, // Scoped via role filtering dynamically below
+        permission: null,
         children: [
           { key: '/attendance', label: 'My Attendance' },
           { key: '/attendance/team', label: 'Team Attendance' },
@@ -82,7 +81,22 @@ const NAV_GROUPS = [
           { key: '/attendance/reports', label: 'Reports & Analytics' }
         ]
       },
-      { key: '/leave', icon: <CalendarOutlined />, label: 'Leave', permission: PERMISSIONS.LEAVE.VIEW },
+      { 
+        key: '/leave', 
+        icon: <CalendarOutlined />, 
+        label: 'Leave', 
+        permission: null,
+        children: [
+          { key: '/leave', label: 'My Leave & Applications' },
+          { key: '/leave/balance', label: 'Leave Balance & Ledger' },
+          { key: '/leave/policies', label: 'Leave Policy' },
+          { key: '/leave/holidays', label: 'Holiday Calendar' },
+          { key: '/leave/statutory', label: 'Statutory Leave' },
+          { key: '/leave/encashment', label: 'Leave Encashment' },
+          { key: '/leave/sector-rules', label: 'Sector Rules' },
+          { key: '/leave/reports', label: 'Reports & Analytics' }
+        ]
+      },
       { key: '/payroll', icon: <DollarOutlined />, label: 'Payroll', permission: PERMISSIONS.PAYROLL.VIEW },
     ],
   },
@@ -121,13 +135,13 @@ const NAV_GROUPS = [
   },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ isMobile }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { sidebarCollapsed, toggleSidebar } = useUIStore()
+  const { sidebarCollapsed, toggleSidebar, mobileDrawerOpen, closeMobileDrawer } = useUIStore()
   const { can, isSuperAdmin } = usePermission()
   const { roles } = useAuthStore()
-  const [openMenus, setOpenMenus] = useState(['/recruitment', '/attendance'])
+  const [openMenus, setOpenMenus] = useState(['/recruitment', '/attendance', '/leave'])
 
   const toggleMenu = (key) => {
     setOpenMenus(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])
@@ -144,11 +158,8 @@ export default function Sidebar() {
     ...group,
     items: group.items
       .filter((item) => {
-        // Hide employee-specific items for non-employees (they already have employee list access)
         if (item.selfOnly && !isEmployee) return false
-        // Hide HR-only items from pure employees
         if (item.hideForEmployee && isEmployee) return false
-        // Check permission
         if (item.permission === null) return true
         return isSuperAdmin || can(item.permission)
       })
@@ -169,32 +180,14 @@ export default function Sidebar() {
               }
               
               if (child.key.startsWith('/attendance')) {
-                // Roles that see only reports
-                if (isPayrollOrCompliance) {
-                  return child.key === '/attendance/reports';
-                }
-
-                // HR Admin sees everything
-                if (roles.includes('HR_ADMIN') || roles.includes('SUPER_ADMIN')) {
-                  return true;
-                }
-
-                // Pure Employee sees My Attendance and Overtime
-                if (isPureEmployee) {
-                  return child.key === '/attendance' || child.key === '/attendance/overtime';
-                }
-
-                // Reporting Manager / Dept Manager
+                if (isPayrollOrCompliance) return child.key === '/attendance/reports';
+                if (roles.includes('HR_ADMIN') || roles.includes('SUPER_ADMIN')) return true;
+                if (isPureEmployee) return child.key === '/attendance' || child.key === '/attendance/overtime';
                 if (isReportingMgr) {
                   const allowedForMgr = ['/attendance', '/attendance/team', '/attendance/regularizations', '/attendance/overtime', '/attendance/reports'];
                   return allowedForMgr.includes(child.key);
                 }
-
-                // COO or other Org Admins might have specific access
-                if (isOrgAdmin) {
-                  return child.key !== '/attendance/freeze';
-                }
-
+                if (isOrgAdmin) return child.key !== '/attendance/freeze';
                 return false;
               }
               return true;
@@ -205,27 +198,8 @@ export default function Sidebar() {
       })
   })).filter((group) => group.items.length > 0)
 
-  return (
-    <Sider
-      className="hrms-sidebar"
-      collapsed={sidebarCollapsed}
-      collapsible={false}
-      width={256}
-      collapsedWidth={64}
-      style={{
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        height: '100vh',
-        zIndex: 200,
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        background: 'linear-gradient(180deg, #130830 0%, #0E0522 55%, #0A0420 100%)',
-        borderRight: '1px solid rgba(160, 90, 255, 0.15)',
-        boxShadow: '4px 0 32px rgba(5, 2, 20, 0.4)',
-        transition: 'width 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-      }}
-    >
+  const sidebarContent = (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'linear-gradient(180deg, #130830 0%, #0E0522 55%, #0A0420 100%)' }}>
       {/* ── Logo ── */}
       <div
         role="button"
@@ -235,15 +209,23 @@ export default function Sidebar() {
           height: 64,
           display: 'flex',
           alignItems: 'center',
-          padding: sidebarCollapsed ? '0 16px' : '0 20px',
+          padding: (sidebarCollapsed && !isMobile) ? '0 16px' : '0 20px',
           borderBottom: '1px solid rgba(255,255,255,0.07)',
           cursor: 'pointer',
           flexShrink: 0,
           gap: 12,
           userSelect: 'none',
         }}
-        onClick={() => navigate('/dashboard')}
-        onKeyDown={(e) => e.key === 'Enter' && navigate('/dashboard')}
+        onClick={() => {
+          if (isMobile) closeMobileDrawer()
+          navigate('/dashboard')
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            if (isMobile) closeMobileDrawer()
+            navigate('/dashboard')
+          }
+        }}
       >
         {/* Logo icon */}
         <div
@@ -266,7 +248,7 @@ export default function Sidebar() {
         </div>
 
         <AnimatePresence>
-          {!sidebarCollapsed && (
+          {(!sidebarCollapsed || isMobile) && (
             <motion.div
               initial={{ opacity: 0, x: -10, width: 0 }}
               animate={{ opacity: 1, x: 0, width: 'auto' }}
@@ -286,12 +268,12 @@ export default function Sidebar() {
       </div>
 
       {/* ── Navigation ── */}
-      <div style={{ padding: '8px 0 8px', flex: 1 }}>
+      <div style={{ padding: '8px 0 8px', flex: 1, overflowY: 'auto' }}>
         {filteredGroups.map((group) => (
           <div key={group.key} style={{ marginBottom: 2 }}>
             {/* Section label */}
             <AnimatePresence>
-              {!sidebarCollapsed && (
+              {(!sidebarCollapsed || isMobile) && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -327,22 +309,26 @@ export default function Sidebar() {
                   onClick={() => {
                     if (hasChildren) {
                       toggleMenu(item.key)
+                    } else {
+                      if (isMobile) closeMobileDrawer()
+                      navigate(item.key)
                     }
-                    navigate(item.key)
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       if (hasChildren) {
                         toggleMenu(item.key)
+                      } else {
+                        if (isMobile) closeMobileDrawer()
+                        navigate(item.key)
                       }
-                      navigate(item.key)
                     }
                   }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 11,
-                    padding: sidebarCollapsed ? '0 15px' : '0 12px 0 16px',
+                    padding: (sidebarCollapsed && !isMobile) ? '0 15px' : '0 12px 0 16px',
                     height: 42,
                     margin: '2px 8px',
                     borderRadius: 10,
@@ -385,7 +371,7 @@ export default function Sidebar() {
                   </span>
 
                   <AnimatePresence>
-                    {!sidebarCollapsed && (
+                    {(!sidebarCollapsed || isMobile) && (
                       <motion.span
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -407,7 +393,7 @@ export default function Sidebar() {
                     )}
                   </AnimatePresence>
 
-                  {!sidebarCollapsed && item.badge && (
+                  {(!sidebarCollapsed || isMobile) && item.badge && (
                     <span
                       style={{
                         fontSize: 9,
@@ -428,7 +414,7 @@ export default function Sidebar() {
 
               return (
                 <React.Fragment key={item.key}>
-                  {sidebarCollapsed ? (
+                  {sidebarCollapsed && !isMobile ? (
                     <Tooltip title={item.label} placement="right">
                       {navItem}
                     </Tooltip>
@@ -444,8 +430,16 @@ export default function Sidebar() {
                                 key={child.key}
                                 role="button"
                                 tabIndex={0}
-                                onClick={() => navigate(child.key)}
-                                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate(child.key)}
+                                onClick={() => {
+                                  if (isMobile) closeMobileDrawer()
+                                  navigate(child.key)
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    if (isMobile) closeMobileDrawer()
+                                    navigate(child.key)
+                                  }
+                                }}
                                 style={{
                                   display: 'flex',
                                   alignItems: 'center',
@@ -489,42 +483,85 @@ export default function Sidebar() {
         ))}
       </div>
 
-      {/* ── Collapse Toggle ── */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '10px 8px' }}>
-        <div
-          role="button"
-          tabIndex={0}
-          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          onClick={toggleSidebar}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleSidebar()}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: sidebarCollapsed ? 'center' : 'flex-end',
-            padding: '8px 14px',
-            cursor: 'pointer',
-            borderRadius: 10,
-            color: 'rgba(255,255,255,0.35)',
-            transition: 'all 0.15s ease',
-            userSelect: 'none',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(250,167,26,0.1)'
-            e.currentTarget.style.color = '#FAA71A'
-            e.currentTarget.style.boxShadow = '0 0 0 1px rgba(250,167,26,0.2)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.35)'
-            e.currentTarget.style.boxShadow = 'none'
-          }}
-        >
-          {sidebarCollapsed
-            ? <MenuUnfoldOutlined style={{ fontSize: 15 }} />
-            : <MenuFoldOutlined style={{ fontSize: 15 }} />
-          }
+      {/* ── Collapse Toggle (Desktop/Tablet Only) ── */}
+      {!isMobile && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '10px 8px' }}>
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            onClick={toggleSidebar}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleSidebar()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-end',
+              padding: '8px 14px',
+              cursor: 'pointer',
+              borderRadius: 10,
+              color: 'rgba(255,255,255,0.35)',
+              transition: 'all 0.15s ease',
+              userSelect: 'none',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(250,167,26,0.1)'
+              e.currentTarget.style.color = '#FAA71A'
+              e.currentTarget.style.boxShadow = '0 0 0 1px rgba(250,167,26,0.2)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = 'rgba(255,255,255,0.35)'
+              e.currentTarget.style.boxShadow = 'none'
+            }}
+          >
+            {sidebarCollapsed
+              ? <MenuUnfoldOutlined style={{ fontSize: 15 }} />
+              : <MenuFoldOutlined style={{ fontSize: 15 }} />
+            }
+          </div>
         </div>
-      </div>
+      )}
+    </div>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer
+        placement="left"
+        width={280}
+        open={mobileDrawerOpen}
+        onClose={closeMobileDrawer}
+        styles={{ body: { padding: 0, background: '#0A0420' }, header: { display: 'none' } }}
+        className="hrms-mobile-sidebar-drawer"
+        closeIcon={null}
+      >
+        {sidebarContent}
+      </Drawer>
+    )
+  }
+
+  return (
+    <Sider
+      className="hrms-sidebar"
+      collapsed={sidebarCollapsed}
+      collapsible={false}
+      width={256}
+      collapsedWidth={64}
+      style={{
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        height: '100vh',
+        zIndex: 200,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        background: 'linear-gradient(180deg, #130830 0%, #0E0522 55%, #0A0420 100%)',
+        borderRight: '1px solid rgba(160, 90, 255, 0.15)',
+        boxShadow: '4px 0 32px rgba(5, 2, 20, 0.4)',
+        transition: 'width 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+      }}
+    >
+      {sidebarContent}
     </Sider>
   )
 }

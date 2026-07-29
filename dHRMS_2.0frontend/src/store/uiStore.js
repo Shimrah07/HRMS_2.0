@@ -8,10 +8,16 @@ const useUIStore = create(
       isDarkMode: false,
       commandPaletteOpen: false,
       notificationPanelOpen: false,
+      mobileDrawerOpen: false,
 
       toggleSidebar: () =>
         set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setSidebarCollapsed: (val) => set({ sidebarCollapsed: val }),
+
+      toggleMobileDrawer: () =>
+        set((state) => ({ mobileDrawerOpen: !state.mobileDrawerOpen })),
+      setMobileDrawerOpen: (val) => set({ mobileDrawerOpen: val }),
+      closeMobileDrawer: () => set({ mobileDrawerOpen: false }),
 
       toggleDarkMode: () =>
         set((state) => {

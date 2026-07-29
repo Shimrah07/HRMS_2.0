@@ -618,7 +618,7 @@ export default function EmployeeListPage() {
             onChange={(e) => setSearchInput(e.target.value)}
             onPressEnter={handleSearch}
             allowClear
-            style={{ width: 380, height: 40, borderRadius: 8 }}
+            style={{ flex: '1 1 220px', maxWidth: 380, height: 40, borderRadius: 8 }}
           />
           <Select
             key="select-dept"

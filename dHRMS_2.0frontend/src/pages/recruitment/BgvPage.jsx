@@ -31,8 +31,8 @@ const { Option } = Select
 const { Text, Title } = Typography
 
 // Standardized Enterprise KPI Card Component
-function StandardKpiCard({ title, value, icon, color, badgeText, badgeColor = 'default' }) {
-  const isLongValue = typeof value === 'string' && value.length > 4
+function StandardKpiCard({ title, value, icon, color = '#3B82F6', badgeText, badgeColor = 'default' }) {
+  const isLongValue = typeof value === 'string' && value.length > 5
 
   return (
     <Card
@@ -40,10 +40,12 @@ function StandardKpiCard({ title, value, icon, color, badgeText, badgeColor = 'd
       style={{
         background: 'var(--color-bg-container)',
         border: 'var(--border-glass)',
-        borderRadius: 10,
-        height: 86,
+        borderRadius: 12,
+        height: '100%',
+        minHeight: 90,
         transition: 'all 0.2s ease-in-out',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+        overflow: 'hidden'
       }}
       styles={{
         body: {
@@ -51,37 +53,55 @@ function StandardKpiCard({ title, value, icon, color, badgeText, badgeColor = 'd
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          gap: 6
         }
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
         <span
           style={{
             fontSize: 10.5,
             fontWeight: 700,
             color: 'var(--color-text-secondary)',
             textTransform: 'uppercase',
-            letterSpacing: '0.4px',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
+            letterSpacing: '0.3px',
+            lineHeight: 1.25,
+            wordBreak: 'break-word',
+            flex: 1
           }}
           title={title}
         >
           {title}
         </span>
-        <span style={{ fontSize: 16, color, flexShrink: 0 }}>{icon}</span>
+        {icon && (
+          <div
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 6,
+              background: `${color}18`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 14,
+              color: color,
+              flexShrink: 0
+            }}
+          >
+            {icon}
+          </div>
+        )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4, marginTop: 'auto' }}>
         <span
           style={{
             fontSize: isLongValue ? 14 : 19,
             fontWeight: 800,
             color: 'var(--color-text)',
-            lineHeight: 1,
-            whiteSpace: 'nowrap'
+            lineHeight: 1.1,
+            wordBreak: 'break-word'
           }}
         >
           {value}
@@ -98,7 +118,10 @@ function StandardKpiCard({ title, value, icon, color, badgeText, badgeColor = 'd
               height: 18,
               lineHeight: '18px',
               border: 'none',
-              flexShrink: 0
+              flexShrink: 0,
+              maxWidth: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
             }}
           >
             {badgeText}
@@ -486,35 +509,35 @@ export default function BgvPage() {
 
       {/* 11 Enterprise KPI Header Cards Grid */}
       <Row gutter={[10, 10]} style={{ marginBottom: 16 }}>
-        <Col xs={12} sm={8} md={4} lg={2.18}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Total Cases" value={stats.total} icon={<SafetyCertificateOutlined />} color="#3B82F6" badgeText="TOTAL" badgeColor="blue" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.18}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Newly Initiated" value={stats.newly} icon={<PlusOutlined />} color="#06B6D4" badgeText="NEW" badgeColor="cyan" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.18}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="In Progress" value={stats.inProgress} icon={<SyncOutlined spin={stats.inProgress > 0} />} color="#F59E0B" badgeText="RUNNING" badgeColor="warning" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.18}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Pending Candidate" value={stats.pendingCandidate} icon={<ClockCircleOutlined />} color="#8B5CF6" badgeText="DOCS" badgeColor="purple" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.18}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Cleared Cases" value={stats.cleared} icon={<CheckCircleOutlined />} color="#10B981" badgeText="PASSED" badgeColor="success" />
         </Col>
 
-        <Col xs={12} sm={8} md={4} lg={2.18}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Discrepancies" value={stats.discrepancies} icon={<AlertOutlined />} color="#EF4444" badgeText="ISSUE" badgeColor="error" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.18}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="SLA Breached" value={stats.slaBreached} icon={<ThunderboltOutlined />} color="#EF4444" badgeText="OVERDUE" badgeColor="error" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.18}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Avg Completion" value={stats.avgTime} icon={<ClockCircleOutlined />} color="#F59E0B" badgeText="SLA" badgeColor="warning" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.18}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Avg Progress" value={stats.avgProgress} icon={<RiseOutlined />} color="#10B981" badgeText="KPI" badgeColor="success" />
         </Col>
-        <Col xs={12} sm={8} md={4} lg={2.18}>
+        <Col xs={12} sm={8} md={6} style={{ flex: '1 1 170px', minWidth: 165 }}>
           <StandardKpiCard title="Avg Risk Level" value={stats.avgRisk} icon={<WarningOutlined />} color="#10B981" badgeText="HEALTHY" badgeColor="emerald" />
         </Col>
       </Row>

@@ -209,10 +209,10 @@ export default function JobOpeningsPage() {
     queryFn: () => employeeService.getEmployees({ status: 'Active' })
   })
 
-  // Load ONLY Approved MRFs for selection (exclude already posted ones)
+  // Load Approved MRFs for selection
   const { data: approvedMrfsData } = useQuery({
     queryKey: ['approved-requisitions'],
-    queryFn: () => recruitmentService.getRequisitions({ status: 'Approved', excludePosted: true }),
+    queryFn: () => recruitmentService.getRequisitions({ status: 'Approved' }),
     enabled: canPublish
   })
 
@@ -397,43 +397,24 @@ export default function JobOpeningsPage() {
         extra={
           canPublish && (
             <Space>
-              {approvedMrfs.length === 0 ? (
-                <Tooltip title="No approved manpower requisitions available to create job postings.">
-                  <Button type="primary" disabled icon={<PlusOutlined />} style={{ borderRadius: 8 }}>
-                    Create Job Posting
-                  </Button>
-                </Tooltip>
-              ) : (
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setFormDrawer({ open: true, record: null, reqRecord: null })}
-                  style={{
-                    background: isDarkMode ? '#FAA71A' : '#11133F',
-                    borderColor: isDarkMode ? '#FAA71A' : '#11133F',
-                    color: isDarkMode ? '#11133F' : '#fff',
-                    borderRadius: 8,
-                    fontWeight: 600
-                  }}
-                >
-                  Create Job Posting
-                </Button>
-              )}
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setFormDrawer({ open: true, record: null, reqRecord: null })}
+                style={{
+                  background: isDarkMode ? '#FAA71A' : '#11133F',
+                  borderColor: isDarkMode ? '#FAA71A' : '#11133F',
+                  color: isDarkMode ? '#11133F' : '#fff',
+                  borderRadius: 8,
+                  fontWeight: 600
+                }}
+              >
+                Create Job Posting
+              </Button>
             </Space>
           )
         }
       />
-
-      {/* Warnings & Alerts */}
-      {canPublish && approvedMrfs.length === 0 && (
-        <Alert
-          message="No Approved Requisitions Available"
-          description="You cannot create new Job Postings because there are no Approved Manpower Requisitions (MRFs) in the database. Please raise and approve an MRF first."
-          type="warning"
-          showIcon
-          style={{ marginBottom: 20, borderRadius: 8 }}
-        />
-      )}
 
       {/* Stats Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>

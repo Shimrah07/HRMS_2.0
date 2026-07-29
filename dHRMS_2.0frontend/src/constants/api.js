@@ -6,6 +6,10 @@ export const getAvatarUrl = (photoPath) => {
     return photoPath
   }
   const cleanPath = photoPath.startsWith('/') ? photoPath.slice(1) : photoPath
+  // Avoid double /uploads/ if the path already contains the prefix
+  if (cleanPath.startsWith('uploads/')) {
+    return `/${cleanPath}`
+  }
   return `/uploads/${cleanPath}`
 }
 

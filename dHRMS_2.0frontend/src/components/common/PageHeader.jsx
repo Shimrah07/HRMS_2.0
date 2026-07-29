@@ -64,9 +64,19 @@ export default function PageHeader({ title, subtitle, breadcrumbs = [], actions,
       )}
 
       {/* Title row */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+      <div
+        className="hrms-page-header-row"
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
+          width: '100%',
+        }}
+      >
         {/* Title block with left accent */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, minWidth: 0, flex: '1 1 280px' }}>
           {/* Gold accent bar */}
           <div
             style={{
@@ -79,7 +89,7 @@ export default function PageHeader({ title, subtitle, breadcrumbs = [], actions,
               transition: 'height 0.2s ease',
             }}
           />
-          <div>
+          <div style={{ minWidth: 0 }}>
             {/* Title + optional badge */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <h1
@@ -88,8 +98,9 @@ export default function PageHeader({ title, subtitle, breadcrumbs = [], actions,
                   fontSize: 22,
                   fontWeight: 800,
                   color: isDarkMode ? '#F0F4FF' : '#10113F',
-                  letterSpacing: '-0.02em',
+                  letterSpacing: '-0.01em',
                   lineHeight: 1.25,
+                  wordBreak: 'break-word',
                   transition: 'color 0.2s ease',
                 }}
               >
@@ -135,7 +146,16 @@ export default function PageHeader({ title, subtitle, breadcrumbs = [], actions,
 
         {/* Actions */}
         {actionContent && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div
+            className="hrms-page-header-actions"
+            style={{
+              display: 'flex',
+              gap: 8,
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+            }}
+          >
             {actionContent}
           </div>
         )}

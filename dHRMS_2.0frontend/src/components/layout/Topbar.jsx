@@ -7,6 +7,7 @@ import {
   KeyOutlined,
   SunOutlined,
   MoonOutlined,
+  MenuOutlined,
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -18,11 +19,13 @@ import { notificationService } from '../../services/notificationService'
 
 const { Header } = Layout
 
-export default function Topbar() {
+export default function Topbar({ isMobile }) {
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
-  const { isDarkMode, toggleDarkMode, openCommandPalette, sidebarCollapsed } = useUIStore()
-  const sidebarWidth = sidebarCollapsed ? 64 : 256
+  const { isDarkMode, toggleDarkMode, openCommandPalette, sidebarCollapsed, toggleMobileDrawer } = useUIStore()
+  
+  const topbarLeft = isMobile ? 12 : (sidebarCollapsed ? 64 + 24 : 256 + 24)
+  const topbarRight = isMobile ? 12 : 24
 
   /* ── Notification count (unchanged logic) ── */
   const { data: countData } = useQuery({
@@ -63,14 +66,14 @@ export default function Topbar() {
       style={{
         position: 'fixed',
         top: 12,
-        right: 24,
-        left: sidebarWidth + 24,
+        right: topbarRight,
+        left: topbarLeft,
         zIndex: 100,
         height: 56,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 16px 0 20px',
+        padding: isMobile ? '0 10px 0 12px' : '0 16px 0 20px',
         background: isDarkMode ? 'rgba(14, 7, 38, 0.88)' : 'rgba(255, 255, 255, 0.88)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
@@ -79,58 +82,74 @@ export default function Topbar() {
         boxShadow: isDarkMode
           ? '0 8px 32px rgba(5,2,20,0.5), inset 0 0 0 1px rgba(160,90,255,0.08)'
           : '0 8px 32px rgba(16,17,63,0.05), inset 0 0 0 1px rgba(255,255,255,0.8)',
-        transition: 'left 0.25s cubic-bezier(0.16,1,0.3,1), background 0.2s ease, box-shadow 0.2s ease',
+        transition: 'left 0.25s cubic-bezier(0.16,1,0.3,1), right 0.25s cubic-bezier(0.16,1,0.3,1), background 0.2s ease, box-shadow 0.2s ease',
       }}
     >
-      {/* ── Left: Search trigger ── */}
-      <Button
-        aria-label="Open command palette (Cmd+K)"
-        onClick={openCommandPalette}
-        style={{
-          background: isDarkMode ? 'rgba(160,90,255,0.06)' : 'rgba(16,17,63,0.04)',
-          border: isDarkMode ? '1px solid rgba(160,90,255,0.18)' : '1px solid rgba(16,17,63,0.09)',
-          borderRadius: 9,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '0 14px',
-          height: 36,
-          color: isDarkMode ? 'rgba(255,255,255,0.4)' : 'rgba(16,17,63,0.4)',
-          cursor: 'pointer',
-          minWidth: 220,
-          justifyContent: 'space-between',
-          transition: 'all 0.15s ease',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = isDarkMode ? 'rgba(250,167,26,0.4)' : 'rgba(16,17,63,0.18)'
-          e.currentTarget.style.color = isDarkMode ? 'rgba(250,167,26,0.85)' : 'rgba(16,17,63,0.65)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = isDarkMode ? 'rgba(160,90,255,0.18)' : 'rgba(16,17,63,0.09)'
-          e.currentTarget.style.color = isDarkMode ? 'rgba(240,244,255,0.45)' : 'rgba(16,17,63,0.4)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <SearchOutlined style={{ fontSize: 13 }} />
-          <span style={{ fontSize: 13, fontWeight: 400 }}>Search anything...</span>
-        </div>
-        <kbd
+      {/* ── Left: Mobile Hamburger & Search trigger ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {isMobile && (
+          <Button
+            type="text"
+            aria-label="Toggle navigation drawer"
+            icon={<MenuOutlined style={{ fontSize: 18, color: isDarkMode ? '#FAA71A' : '#10113F' }} />}
+            onClick={toggleMobileDrawer}
+            style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}
+          />
+        )}
+
+        <Button
+          aria-label="Open command palette (Cmd+K)"
+          onClick={openCommandPalette}
           style={{
-            fontSize: 10.5,
-            background: isDarkMode ? 'rgba(160,90,255,0.1)' : 'rgba(16,17,63,0.06)',
-            padding: '1px 5px',
-            borderRadius: 5,
-            border: isDarkMode ? '1px solid rgba(160,90,255,0.2)' : '1px solid rgba(16,17,63,0.1)',
-            color: isDarkMode ? 'rgba(200,160,255,0.7)' : 'rgba(16,17,63,0.4)',
-            fontFamily: 'inherit',
+            background: isDarkMode ? 'rgba(160,90,255,0.06)' : 'rgba(16,17,63,0.04)',
+            border: isDarkMode ? '1px solid rgba(160,90,255,0.18)' : '1px solid rgba(16,17,63,0.09)',
+            borderRadius: 9,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: isMobile ? '0 10px' : '0 14px',
+            height: 36,
+            color: isDarkMode ? 'rgba(255,255,255,0.4)' : 'rgba(16,17,63,0.4)',
+            cursor: 'pointer',
+            minWidth: isMobile ? 'auto' : 220,
+            justifyContent: 'space-between',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = isDarkMode ? 'rgba(250,167,26,0.4)' : 'rgba(16,17,63,0.18)'
+            e.currentTarget.style.color = isDarkMode ? 'rgba(250,167,26,0.85)' : 'rgba(16,17,63,0.65)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = isDarkMode ? 'rgba(160,90,255,0.18)' : 'rgba(16,17,63,0.09)'
+            e.currentTarget.style.color = isDarkMode ? 'rgba(240,244,255,0.45)' : 'rgba(16,17,63,0.4)'
           }}
         >
-          ⌘K
-        </kbd>
-      </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <SearchOutlined style={{ fontSize: 13 }} />
+            <span style={{ fontSize: 13, fontWeight: 400 }} className={isMobile ? 'hidden sm:inline' : ''}>
+              {isMobile ? 'Search...' : 'Search anything...'}
+            </span>
+          </div>
+          {!isMobile && (
+            <kbd
+              style={{
+                fontSize: 10.5,
+                background: isDarkMode ? 'rgba(160,90,255,0.1)' : 'rgba(16,17,63,0.06)',
+                padding: '1px 5px',
+                borderRadius: 5,
+                border: isDarkMode ? '1px solid rgba(160,90,255,0.2)' : '1px solid rgba(16,17,63,0.1)',
+                color: isDarkMode ? 'rgba(200,160,255,0.7)' : 'rgba(16,17,63,0.4)',
+                fontFamily: 'inherit',
+              }}
+            >
+              ⌘K
+            </kbd>
+          )}
+        </Button>
+      </div>
 
       {/* ── Right: Actions ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
 
         {/* Dark mode toggle */}
         <Tooltip title={isDarkMode ? 'Light Mode' : 'Dark Mode'}>
@@ -202,11 +221,11 @@ export default function Topbar() {
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              padding: '4px 10px 4px 4px',
+              padding: isMobile ? '4px' : '4px 10px 4px 4px',
               borderRadius: 10,
               cursor: 'pointer',
               border: isDarkMode ? '1px solid rgba(160, 90, 255, 0.2)' : '1px solid rgba(16,17,63,0.09)',
-              marginLeft: 6,
+              marginLeft: 4,
               transition: 'border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease',
             }}
             onMouseEnter={(e) => {
@@ -236,14 +255,16 @@ export default function Topbar() {
             >
               {initials}
             </Avatar>
-            <div style={{ lineHeight: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: isDarkMode ? '#ffffff' : '#10113F', lineHeight: 1.25, transition: 'color 0.2s ease' }}>
-                {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.username}
+            {!isMobile && (
+              <div style={{ lineHeight: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: isDarkMode ? '#ffffff' : '#10113F', lineHeight: 1.25, transition: 'color 0.2s ease' }}>
+                  {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.username}
+                </div>
+                <div style={{ fontSize: 11, color: isDarkMode ? 'rgba(255,255,255,0.45)' : 'rgba(16,17,63,0.45)', lineHeight: 1.25, marginTop: 1, transition: 'color 0.2s ease' }}>
+                  {user?.email}
+                </div>
               </div>
-              <div style={{ fontSize: 11, color: isDarkMode ? 'rgba(255,255,255,0.45)' : 'rgba(16,17,63,0.45)', lineHeight: 1.25, marginTop: 1, transition: 'color 0.2s ease' }}>
-                {user?.email}
-              </div>
-            </div>
+            )}
           </motion.div>
         </Dropdown>
       </div>

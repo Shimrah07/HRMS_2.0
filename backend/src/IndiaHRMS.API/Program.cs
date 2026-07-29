@@ -104,6 +104,14 @@ try
     builder.Services.AddScoped<IndiaHRMS.Infrastructure.Services.OnboardingOrchestrator>();
     builder.Services.AddScoped<IApplicationService, IndiaHRMS.Infrastructure.Services.ApplicationService>();
     builder.Services.AddScoped<IHiringService, IndiaHRMS.Infrastructure.Services.HiringService>();
+    builder.Services.AddScoped<ILeavePolicyService, LeavePolicyService>();
+    builder.Services.AddScoped<ILeaveApplicationService, LeaveApplicationService>();
+    builder.Services.AddScoped<ILeaveEngineService, LeaveEngineService>();
+    builder.Services.AddScoped<IHolidayService, HolidayService>();
+    builder.Services.AddScoped<IStatutoryLeaveService, StatutoryLeaveService>();
+    builder.Services.AddScoped<ILeaveEncashmentService, LeaveEncashmentService>();
+    builder.Services.AddScoped<ISectorLeaveService, SectorLeaveService>();
+    builder.Services.AddScoped<ILeaveAnalyticsService, LeaveAnalyticsService>();
 
     // Register Background Services
     builder.Services.AddHostedService<IndiaHRMS.API.BackgroundServices.AttendanceBatchProcessor>();
