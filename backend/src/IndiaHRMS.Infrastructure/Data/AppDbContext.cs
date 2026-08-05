@@ -139,9 +139,10 @@ public class AppDbContext : DbContext
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
 
-    // ─── Asset Management ──────────────────────────────────────────────────────
+    // ─── Asset & Loan Management ──────────────────────────────────────────────
     public DbSet<AssetMaster> Assets => Set<AssetMaster>();
     public DbSet<AssetAssignment> AssetAssignments => Set<AssetAssignment>();
+    public DbSet<EmployeeLoan> EmployeeLoans => Set<EmployeeLoan>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

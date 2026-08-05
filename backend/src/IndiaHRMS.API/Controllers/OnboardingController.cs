@@ -514,7 +514,7 @@ public class OnboardingController : ControllerBase
             }
 
             // HRMS-013: Assign Salary Structure linked to Employee
-            decimal offeredCtc = offer != null && offer.OfferedCtc > 0 ? offer.OfferedCtc : 600000m;
+            decimal offeredCtc = offer != null && offer.OfferedCTC > 0 ? offer.OfferedCTC : 600000m;
             var empSalary = new EmployeeSalaryStructure
             {
                 StructureId = Guid.NewGuid(),
@@ -524,7 +524,7 @@ public class OnboardingController : ControllerBase
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
-            _context.EmployeeSalaries.Add(empSalary);
+            _context.EmployeeSalaryStructures.Add(empSalary);
 
             // Record transition history
             var history = System.Text.Json.JsonSerializer.Deserialize<List<object>>(process.TransitionHistoryJson) ?? new List<object>();

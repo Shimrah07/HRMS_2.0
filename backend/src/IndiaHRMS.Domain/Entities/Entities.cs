@@ -2071,4 +2071,18 @@ public class AssetAssignment : BaseEntity
     public Employee Employee { get; set; } = null!;
 }
 
+public class EmployeeLoan : BaseEntity
+{
+    public Guid LoanId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public decimal PrincipalAmount { get; set; }
+    public decimal MonthlyEMI { get; set; }
+    public decimal BalanceAmount { get; set; }
+    public string Status { get; set; } = "Active"; // Active, Closed, Defaulted
+    public DateOnly StartDate { get; set; }
+    public DateOnly EndDate { get; set; }
+
+    public Employee Employee { get; set; } = null!;
+}
+
 

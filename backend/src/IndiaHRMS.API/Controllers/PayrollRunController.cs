@@ -208,19 +208,19 @@ public class PayrollRunController : ControllerBase
                 GrossSalary: grossEarnings,
                 WorkState: "MH",
                 Month: run.Month,
-                PFHigherBasis: emp.PFHigherBasis
+                PFHigherBasis: false
             );
             var statResult = await _statCalc.CalculateAsync(statInput, ct);
 
             // HRMS-012: Active Loan EMI deduction
-            decimal loanEmiDeduction = await _ctx.EmployeeLoans
-                .Where(l => l.EmployeeId == emp.EmployeeId && l.Status == LoanStatus.Disbursed && l.RemainingBalance > 0)
-                .SumAsync(l => (decimal?)l.MonthlyEmi, ct) ?? 0m;
+            decimal loanEmiDeduction = await _context.EmployeeLoans
+                .Where(l => l.EmployeeId == emp.EmployeeId && l.Status == "Active" && l.BalanceAmount > 0)
+                .SumAsync(l => (decimal?)l.MonthlyEMI, ct) ?? 0m;
 
             // HRMS-032: Overdue Travel Advance recovery
-            decimal travelAdvanceDeduction = await _ctx.TravelAdvances
-                .Where(t => t.EmployeeId == emp.EmployeeId && t.Status == "Disbursed" && t.SettlementStatus == "Overdue")
-                .SumAsync(t => (decimal?)t.BalanceAmount, ct) ?? 0m;
+            decimal travelAdvanceDeduction = await _context.TravelAdvances
+                .Where(t => t.EmployeeId == emp.EmployeeId && (t.Status == "Disbursed" || t.Status == "OverdueRecovery"))
+                .SumAsync(t => (decimal?)t.AmountDisbursed, ct) ?? 0m;
 
             decimal totalDed = statResult.PFEmployee + statResult.ESIEmployee +
                                statResult.ProfessionalTax + statResult.LWFEmployee +
