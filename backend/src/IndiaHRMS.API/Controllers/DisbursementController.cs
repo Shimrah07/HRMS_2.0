@@ -159,6 +159,68 @@ public class DisbursementController : ControllerBase
         }));
     }
 
+    /// <summary>
+    /// POST /api/v1/payroll/disbursement/expense-batch/{batchId}/generate-batch-file
+    /// Generates a bank-formatted corporate CSV file for Travel & Expense reimbursement batch disbursement.
+    /// </summary>
+    [Filters.RequirePermission(PermissionCodes.Payroll.Disburse)]
+    [HttpPost("expense-batch/{batchId}/generate-batch-file")]
+    public async Task<IActionResult> GenerateExpenseBatchFile(Guid batchId, [FromQuery] string bankFormat = "HDFC", CancellationToken ct = default)
+    {
+        var batch = await _context.ReimbursementBatches.FirstOrDefaultAsync(b => b.BatchId == batchId, ct);
+        if (batch == null)
+            return NotFound(ApiResponse<object>.Fail("Reimbursement batch not found."));
+
+        var claims = await _context.ExpenseClaims
+            .Include(c => c.Employee)
+            .Where(c => c.Status == "Reimbursed")
+            .ToListAsync(ct);
+
+        if (!claims.Any())
+            return BadRequest(ApiResponse<object>.Fail("No expense claims found for this reimbursement batch."));
+
+        var empIds = claims.Select(c => c.EmployeeId).Distinct().ToList();
+        var bankDetails = await _context.EmployeeBankDetails
+            .Where(b => empIds.Contains(b.EmployeeId))
+            .ToDictionaryAsync(b => b.EmployeeId, b => b, ct);
+
+        var format = bankFormat.Trim().ToUpper();
+        var csvContent = new StringBuilder();
+        var valueDate = DateTime.UtcNow.ToString("dd/MM/yyyy");
+        var corporateAccNo = "999888777666";
+
+        if (format == "HDFC")
+        {
+            csvContent.AppendLine("Transaction Type,Beneficiary Code,Beneficiary Account Number,Amount,Beneficiary Name,Value Date,IFSC Code,Debit Account");
+            foreach (var item in claims)
+            {
+                bankDetails.TryGetValue(item.EmployeeId, out var bank);
+                var accNo = bank?.AccountNumber ?? "00000000000";
+                var ifsc = bank?.IFSCCode ?? "HDFC0000001";
+                var empName = item.Employee != null ? $"{item.Employee.FirstName} {item.Employee.LastName}" : "Employee";
+                var payType = item.NetPayable > 200000 ? "RTGS" : "NEFT";
+                csvContent.AppendLine($"{payType},{item.Employee?.EmployeeCode ?? "EMP"},{accNo},{item.NetPayable:F2},{EscapeCsv(empName)},{valueDate},{ifsc},{corporateAccNo}");
+            }
+        }
+        else
+        {
+            csvContent.AppendLine("Debit Account No,Beneficiary Name,Beneficiary Account No,IFSC Code,Amount,Currency,Value Date,Payment Mode");
+            foreach (var item in claims)
+            {
+                bankDetails.TryGetValue(item.EmployeeId, out var bank);
+                var accNo = bank?.AccountNumber ?? "00000000000";
+                var ifsc = bank?.IFSCCode ?? "ICIC0000001";
+                var empName = item.Employee != null ? $"{item.Employee.FirstName} {item.Employee.LastName}" : "Employee";
+                var payType = item.NetPayable > 200000 ? "RTGS" : "NEFT";
+                csvContent.AppendLine($"{corporateAccNo},{EscapeCsv(empName)},{accNo},{ifsc},{item.NetPayable:F2},INR,{valueDate},{payType}");
+            }
+        }
+
+        var fileName = $"Expense_Reimbursement_Batch_{format}_{batch.BatchCode}.csv";
+        var bytes = Encoding.UTF8.GetBytes(csvContent.ToString());
+        return File(bytes, "text/csv", fileName);
+    }
+
     private static string EscapeCsv(string str)
     {
         if (string.IsNullOrEmpty(str)) return "";

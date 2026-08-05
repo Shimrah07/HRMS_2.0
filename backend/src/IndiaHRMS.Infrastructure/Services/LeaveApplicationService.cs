@@ -86,7 +86,29 @@ public class LeaveApplicationService : ILeaveApplicationService
             }
         }
 
-        // 5. Create Application Record
+        // 5. Existing Active Leave Overlap Verification (HRMS-008)
+        var existingLeaves = await _context.LeaveApplications
+            .Where(l => l.EmployeeId == dto.EmployeeId &&
+                        (l.Status == LeaveStatus.Pending || l.Status == LeaveStatus.Approved) &&
+                        l.FromDate <= dto.ToDate && l.ToDate >= dto.FromDate)
+            .ToListAsync();
+
+        if (existingLeaves.Any())
+        {
+            foreach (var existing in existingLeaves)
+            {
+                if (!dto.IsHalfDay || !existing.IsHalfDay)
+                {
+                    throw new InvalidOperationException($"Leave application overlaps with an existing {existing.Status} leave application ({existing.FromDate:dd MMM} - {existing.ToDate:dd MMM}).");
+                }
+                else if (dto.FromDate == existing.FromDate && dto.HalfDayType == existing.HalfDayType)
+                {
+                    throw new InvalidOperationException($"Leave application overlaps with an existing half-day leave ({existing.HalfDayType}) on {dto.FromDate:dd MMM yyyy}.");
+                }
+            }
+        }
+
+        // 6. Create Application Record
         var application = new LeaveApplication
         {
             EmployeeId = dto.EmployeeId,

@@ -139,6 +139,10 @@ public class AppDbContext : DbContext
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
 
+    // ─── Asset Management ──────────────────────────────────────────────────────
+    public DbSet<AssetMaster> Assets => Set<AssetMaster>();
+    public DbSet<AssetAssignment> AssetAssignments => Set<AssetAssignment>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -464,6 +468,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.Encashed).HasColumnType("decimal(6,2)");
             e.Property(x => x.Lapsed).HasColumnType("decimal(6,2)");
             e.Property(x => x.ClosingBalance).HasColumnType("decimal(6,2)");
+            e.ToTable(t => t.HasCheckConstraint("CK_LeaveBalance_NonNegativeClosing", "[ClosingBalance] >= 0"));
             e.HasOne(x => x.Employee).WithMany(x => x.LeaveBalances).HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.LeaveType).WithMany(x => x.LeaveBalances).HasForeignKey(x => x.LeaveTypeId).OnDelete(DeleteBehavior.Restrict);
         });
@@ -475,7 +480,7 @@ public class AppDbContext : DbContext
             e.HasIndex(x => new { x.ApproverId, x.Status });
             e.Property(x => x.TotalDays).HasColumnType("decimal(5,2)");
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
-            e.HasOne(x => x.Employee).WithMany(x => x.LeaveApplications).HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Employee).WithMany(x => x.LeaveApplications).HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.LeaveType).WithMany(x => x.LeaveApplications).HasForeignKey(x => x.LeaveTypeId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.BackupEmployee).WithMany().HasForeignKey(x => x.BackupEmployeeId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Approver).WithMany().HasForeignKey(x => x.ApproverId).OnDelete(DeleteBehavior.Restrict);
@@ -569,6 +574,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<PayrollDetail>(e =>
         {
             e.HasKey(x => x.DetailId);
+            e.HasIndex(x => new { x.PayrollRunId, x.EmployeeId }).IsUnique();
             e.Property(x => x.PaidDays).HasColumnType("decimal(5,2)");
             e.Property(x => x.LWPDays).HasColumnType("decimal(5,2)");
             e.Property(x => x.GrossEarnings).HasColumnType("decimal(12,2)");

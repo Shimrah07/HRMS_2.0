@@ -169,7 +169,6 @@ const router = createBrowserRouter([
           { path: 'disbursement', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(DisbursementPage)}</ProtectedRoute> },
           { path: 'reimbursements', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(ReimbursementsPage)}</ProtectedRoute> },
           { path: 'loans', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(EmployeeLoansPage)}</ProtectedRoute> },
-          { path: 'legacy', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(PayrollPage)}</ProtectedRoute> },
         ]
       },
       { 

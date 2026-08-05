@@ -445,6 +445,11 @@ public class TravelExpenseService : ITravelExpenseService
 
         foreach (var item in dto.LineItems)
         {
+            if (item.Amount <= 0)
+            {
+                throw new InvalidOperationException($"Expense claim line item amount for category '{item.Category}' must be greater than zero.");
+            }
+
             var lineItem = new ExpenseLineItem
             {
                 LineItemId = Guid.NewGuid(),

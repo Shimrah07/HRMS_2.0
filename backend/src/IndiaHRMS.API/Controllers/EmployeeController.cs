@@ -795,6 +795,19 @@ public class EmployeeController : ControllerBase
         employee.EmploymentStatus = request.Status;
         employee.IsActive = request.Status == EmploymentStatus.Active;
         employee.UpdatedAt = DateTime.UtcNow;
+
+        if (!employee.IsActive)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.EmployeeId == id, ct);
+            if (user != null)
+            {
+                user.IsActive = false;
+                user.RefreshToken = null;
+                user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(-1);
+                user.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
         await _context.SaveChangesAsync(ct);
         return Ok(ApiResponse<object>.Ok(null, "Status updated."));
     }

@@ -57,8 +57,11 @@ try
         builder.Services.AddDistributedMemoryCache();
 
     // ─── JWT Authentication ───────────────────────────────────────────────────
-    var jwtKey = builder.Configuration["JwtSettings:SecretKey"]
-        ?? throw new InvalidOperationException("JWT SecretKey not configured.");
+    var jwtKey = builder.Configuration["JwtSettings:SecretKey"];
+    if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.Length < 32)
+    {
+        throw new InvalidOperationException("JWT SecretKey must be configured and contain at least 32 characters (256 bits).");
+    }
 
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>

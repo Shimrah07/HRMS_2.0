@@ -114,7 +114,7 @@ export default function EmployeeDetailPage() {
 
   const maskAadhar = (val) => {
     if (!val) return '—'
-    if (isAdmin) return val
+    if (isAdminOrHrAdmin) return val
     const cleaned = val.replace(/\D/g, '')
     if (cleaned.length >= 4) {
       return '********' + cleaned.slice(-4)
@@ -124,7 +124,7 @@ export default function EmployeeDetailPage() {
 
   const maskPAN = (val) => {
     if (!val) return '—'
-    if (isAdmin) return val
+    if (isAdminOrHrAdmin) return val
     if (val.length >= 6) {
       return val.slice(0, 5) + '****' + val.slice(-1)
     }
@@ -133,7 +133,7 @@ export default function EmployeeDetailPage() {
 
   const maskBankAcc = (val) => {
     if (!val) return '—'
-    if (isAdmin) return val
+    if (isAdminOrHrAdmin) return val
     const cleaned = val.replace(/\D/g, '')
     if (cleaned.length >= 4) {
       return '******' + cleaned.slice(-4)

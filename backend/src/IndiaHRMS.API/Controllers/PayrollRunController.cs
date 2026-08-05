@@ -157,12 +157,28 @@ public class PayrollRunController : ControllerBase
         {
             var emp = empStruct.Employee;
 
-            // Get LWP from attendance for this period (if available)
-            decimal lwpDays = await _ctx.AttendanceRecords
+            // HRMS-011: Get LWP from attendance (Absent = 1.0, HalfDay = 0.5) + Approved LWP Leave Applications
+            decimal absentDays = await _ctx.AttendanceRecords
                 .Where(a => a.EmployeeId == emp.EmployeeId &&
                             a.AttendanceDate.Year == run.Year && a.AttendanceDate.Month == run.Month &&
                             a.Status == AttendanceStatus.Absent)
                 .CountAsync(ct);
+
+            decimal halfDays = await _ctx.AttendanceRecords
+                .Where(a => a.EmployeeId == emp.EmployeeId &&
+                            a.AttendanceDate.Year == run.Year && a.AttendanceDate.Month == run.Month &&
+                            a.Status == AttendanceStatus.HalfDay)
+                .CountAsync(ct);
+
+            var monthStart = new DateOnly(run.Year, run.Month, 1);
+            var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+            decimal approvedLwpLeaveDays = await _ctx.LeaveApplications
+                .Where(l => l.EmployeeId == emp.EmployeeId && l.Status == LeaveStatus.Approved &&
+                            l.LeaveType.LeaveCode == "LWP" &&
+                            l.FromDate <= monthEnd && l.ToDate >= monthStart)
+                .SumAsync(l => l.TotalDays, ct);
+
+            decimal lwpDays = Math.Min(daysInMonth, absentDays + (halfDays * 0.5m) + approvedLwpLeaveDays);
 
             // Monthly salary breakdown from allocation
             decimal basicMonthly = 0m, grossMonthly = 0m;
@@ -184,21 +200,32 @@ public class PayrollRunController : ControllerBase
 
             decimal grossEarnings = adjustedGross + variablePay;
 
-            // Statutory deductions
+            // HRMS-010: Statutory deductions (pass PFHigherBasis)
             var statInput = new StatutoryInput(
                 EmployeeId: emp.EmployeeId,
                 CompanyId: companyId,
                 BasicPlusDA: basicMonthly,
                 GrossSalary: grossEarnings,
                 WorkState: "MH",
-                Month: run.Month
+                Month: run.Month,
+                PFHigherBasis: emp.PFHigherBasis
             );
             var statResult = await _statCalc.CalculateAsync(statInput, ct);
 
+            // HRMS-012: Active Loan EMI deduction
+            decimal loanEmiDeduction = await _ctx.EmployeeLoans
+                .Where(l => l.EmployeeId == emp.EmployeeId && l.Status == LoanStatus.Disbursed && l.RemainingBalance > 0)
+                .SumAsync(l => (decimal?)l.MonthlyEmi, ct) ?? 0m;
+
+            // HRMS-032: Overdue Travel Advance recovery
+            decimal travelAdvanceDeduction = await _ctx.TravelAdvances
+                .Where(t => t.EmployeeId == emp.EmployeeId && t.Status == "Disbursed" && t.SettlementStatus == "Overdue")
+                .SumAsync(t => (decimal?)t.BalanceAmount, ct) ?? 0m;
+
             decimal totalDed = statResult.PFEmployee + statResult.ESIEmployee +
                                statResult.ProfessionalTax + statResult.LWFEmployee +
-                               statResult.VPF;
-            decimal netPay = Math.Round(grossEarnings - totalDed, 2);
+                               statResult.VPF + loanEmiDeduction + travelAdvanceDeduction;
+            decimal netPay = Math.Max(0, Math.Round(grossEarnings - totalDed, 2));
 
             // Save or update PayrollDetail
             var existing = await _ctx.PayrollDetails.FirstOrDefaultAsync(

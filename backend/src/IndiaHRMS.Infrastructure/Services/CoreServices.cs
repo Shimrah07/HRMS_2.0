@@ -144,11 +144,13 @@ public class NotificationService : INotificationService
 {
     private readonly AppDbContext _context;
     private readonly IRealtimePush _realtime;
+    private readonly IEmailService? _emailService;
 
-    public NotificationService(AppDbContext context, IRealtimePush realtime)
+    public NotificationService(AppDbContext context, IRealtimePush realtime, IEmailService? emailService = null)
     {
         _context = context;
         _realtime = realtime;
+        _emailService = emailService;
     }
 
     public async Task SendToUserAsync(Guid userId, string title, string message, NotificationType type, string? referenceId = null, string? referenceType = null)
@@ -166,6 +168,26 @@ public class NotificationService : INotificationService
         await _context.SaveChangesAsync();
         await _realtime.PushToUserAsync(userId, "notification",
             new { notification.NotificationId, title, message, type = type.ToString() });
+
+        // HRMS-021: Background Email Dispatch Queue Task
+        if (_emailService != null)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user != null && !string.IsNullOrEmpty(user.Email))
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _emailService.SendAsync(user.Email, title, message);
+                    }
+                    catch
+                    {
+                        // Background dispatch resilient failure swallowing
+                    }
+                });
+            }
+        }
     }
 
     public async Task SendToRoleAsync(string roleCode, string title, string message, NotificationType type)

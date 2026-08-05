@@ -513,6 +513,19 @@ public class OnboardingController : ControllerBase
                 _context.ProbationReviews.Add(review);
             }
 
+            // HRMS-013: Assign Salary Structure linked to Employee
+            decimal offeredCtc = offer != null && offer.OfferedCtc > 0 ? offer.OfferedCtc : 600000m;
+            var empSalary = new EmployeeSalaryStructure
+            {
+                StructureId = Guid.NewGuid(),
+                EmployeeId = employee.EmployeeId,
+                AnnualCTC = offeredCtc,
+                EffectiveFrom = DateOnly.FromDateTime(DateTime.UtcNow),
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.EmployeeSalaries.Add(empSalary);
+
             // Record transition history
             var history = System.Text.Json.JsonSerializer.Deserialize<List<object>>(process.TransitionHistoryJson) ?? new List<object>();
             history.Add(new

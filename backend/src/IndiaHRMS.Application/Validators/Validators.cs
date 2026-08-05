@@ -88,6 +88,9 @@ public class CreateEmployeeRequestValidator : AbstractValidator<CreateEmployeeRe
             .Matches(@"^\d{12}$").WithMessage("Aadhar number must contain only digits.")
             .When(x => !string.IsNullOrEmpty(x.AadharNumber));
         RuleFor(x => x.ProbationPeriodDays).GreaterThanOrEqualTo(0).LessThanOrEqualTo(365);
+        RuleFor(x => x.DateOfBirth)
+            .Must(dob => !dob.HasValue || dob.Value <= DateOnly.FromDateTime(DateTime.Today.AddYears(-18)))
+            .WithMessage("Employee must be at least 18 years of age.");
     }
 }
 

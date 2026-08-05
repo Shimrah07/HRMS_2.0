@@ -2039,4 +2039,36 @@ public class SectorExitConfig : BaseEntity
     public Company Company { get; set; } = null!;
 }
 
+// ─── Asset Management (Module 9) ─────────────────────────────────────────────
+public class AssetMaster : BaseEntity
+{
+    public Guid AssetId { get; set; } = Guid.NewGuid();
+    public string AssetTag { get; set; } = string.Empty;
+    public string AssetName { get; set; } = string.Empty;
+    public string Category { get; set; } = "Laptop"; // Laptop, Desktop, Mobile, Monitor, Accessory
+    public string SerialNumber { get; set; } = string.Empty;
+    public decimal PurchaseValue { get; set; } = 0;
+    public DateTime PurchaseDate { get; set; } = DateTime.UtcNow;
+    public string Status { get; set; } = "Available"; // Available, Assigned, InRepair, Retired
+    public Guid? CompanyId { get; set; }
+    public bool IsActive { get; set; } = true;
+
+    public Company? Company { get; set; }
+    public ICollection<AssetAssignment> Assignments { get; set; } = new List<AssetAssignment>();
+}
+
+public class AssetAssignment : BaseEntity
+{
+    public Guid AssignmentId { get; set; } = Guid.NewGuid();
+    public Guid AssetId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public DateTime AssignedDate { get; set; } = DateTime.UtcNow;
+    public DateTime? ReturnedDate { get; set; }
+    public string Status { get; set; } = "Assigned"; // Assigned, Returned, Damaged, Lost
+    public string? Remarks { get; set; }
+
+    public AssetMaster Asset { get; set; } = null!;
+    public Employee Employee { get; set; } = null!;
+}
+
 

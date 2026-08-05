@@ -138,6 +138,19 @@ export default function AttendancePage() {
     }
   }, [user, currentMonthDate])
 
+  // HRMS-035: Cross-tab attendance synchronization via BroadcastChannel
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel('hrms_attendance_sync')
+      channel.onmessage = (event) => {
+        if (event.data?.type === 'ATTENDANCE_PUNCHED') {
+          loadAttendanceData()
+        }
+      }
+      return () => channel.close()
+    }
+  }, [])
+
   const handlePunch = async () => {
     setIsPunching(true)
     try {
@@ -148,6 +161,11 @@ export default function AttendancePage() {
           description: res.message || 'Operation completed successfully!',
           placement: 'topRight'
         })
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          const channel = new BroadcastChannel('hrms_attendance_sync')
+          channel.postMessage({ type: 'ATTENDANCE_PUNCHED' })
+          channel.close()
+        }
         loadAttendanceData()
       } else {
         notification.error({

@@ -26,6 +26,7 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("hr")]
+    [Filters.RequirePermission(Domain.Constants.PermissionCodes.Reports.View, Domain.Constants.PermissionCodes.Employee.View)]
     public async Task<ActionResult<ApiResponse<HRDashboardDto>>> GetHRDashboard(CancellationToken ct)
     {
         var companyId = _currentUser.CompanyId;

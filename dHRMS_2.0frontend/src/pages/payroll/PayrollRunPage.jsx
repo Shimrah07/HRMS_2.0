@@ -212,7 +212,7 @@ export default function PayrollRunPage() {
       />
 
       <Card style={{ borderRadius: 16, border: "var(--border-glass)", background: "var(--color-card-bg)" }}>
-        <Table dataSource={runs} columns={columns} rowKey="runId" loading={loading} pagination={{ pageSize: 10 }} />
+        <Table dataSource={runs} columns={columns} rowKey="runId" loading={loading} pagination={{ pageSize: 10 }} scroll={{ x: 'max-content' }} />
       </Card>
 
       {/* Drawer: Detailed State Machine Controller */}
@@ -254,7 +254,7 @@ export default function PayrollRunPage() {
 
             {/* Calculated Employee Details Table */}
             <Title level={5}>Employee Payout Breakdown ({details.length})</Title>
-            <Table dataSource={details} columns={detailColumns} rowKey="employeeId" pagination={{ pageSize: 8 }} size="small" />
+            <Table dataSource={details} columns={detailColumns} rowKey="employeeId" pagination={{ pageSize: 8 }} size="small" scroll={{ x: 'max-content' }} />
 
             {/* Audit Trail */}
             <Divider style={{ margin: "24px 0" }} />
