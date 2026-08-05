@@ -49,26 +49,30 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testMatch: /.*\.spec\.(js|ts)/,
       use: {
         ...devices['Desktop Chrome'],
       },
     },
 
-    // Enable these once your suite is stable
+    // API-only project (used in CI: --project=api)
+    {
+      name: 'api',
+      testDir: './tests/api',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:5110',
+      },
+    },
 
-    // {
-    //   name: 'firefox',
-    //   use: {
-    //     ...devices['Desktop Firefox'],
-    //   },
-    // },
-
-    // {
-    //   name: 'webkit',
-    //   use: {
-    //     ...devices['Desktop Safari'],
-    //   },
-    // },
+    // Smoke project
+    {
+      name: 'smoke',
+      testDir: './tests/smoke',
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
   ],
 
   webServer: {

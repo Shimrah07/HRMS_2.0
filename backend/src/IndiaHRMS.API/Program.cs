@@ -250,7 +250,7 @@ try
     app.UseMiddleware<RequestLoggingMiddleware>();
     app.UseSerilogRequestLogging();
 
-    if (app.Environment.IsDevelopment())
+    if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("CI"))
     {
         app.UseSwagger();
         app.UseSwaggerUI(c =>
