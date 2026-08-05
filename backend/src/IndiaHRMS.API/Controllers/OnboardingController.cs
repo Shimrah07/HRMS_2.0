@@ -277,7 +277,7 @@ public class OnboardingController : ControllerBase
 
     [HttpPost("{id:guid}/convert")]
     [Filters.RequirePermission(PermissionCodes.Recruitment.Edit)]
-    public async Task<ActionResult<ApiResponse<object>>> ConvertToEmployee(Guid id, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<object>>> ConvertToEmployee(Guid id, [FromBody] ConvertOnboardingRequest? request, CancellationToken ct)
     {
         using var transaction = await _context.Database.BeginTransactionAsync(ct);
         try
@@ -298,7 +298,17 @@ public class OnboardingController : ControllerBase
 
             var candidate = process.Candidate;
 
-            // Verify that candidate has an offer to map departments/designation
+            // 1. Duplicate Employee Detection
+            var matchingEmp = await _context.Employees.FirstOrDefaultAsync(e =>
+                (e.OfficialEmail == candidate.Email || e.PersonalEmail == candidate.Email) ||
+                (!string.IsNullOrEmpty(candidate.Phone) && (e.PersonalPhone == candidate.Phone || e.OfficialMobile == candidate.Phone)), ct);
+
+            if (matchingEmp != null && (request == null || !request.ForceConvert))
+            {
+                return BadRequest(ApiResponse<object>.Fail($"POTENTIAL_DUPLICATE: Candidate matches existing Employee Master record ({matchingEmp.EmployeeCode} - {matchingEmp.FirstName} {matchingEmp.LastName}). Send forceConvert=true to bypass."));
+            }
+
+            // Verify active job application
             var app = await _context.JobApplications
                 .Include(a => a.Requisition)
                 .FirstOrDefaultAsync(a => a.CandidateId == candidate.CandidateId && a.CurrentStage != ApplicationStage.Rejected, ct);
@@ -308,28 +318,43 @@ public class OnboardingController : ControllerBase
                 return BadRequest(ApiResponse<object>.Fail("Active Job Application or Requisition not found for candidate. Cannot onboard."));
             }
 
-            // Prevent duplicate onboarding
-            var empExists = await _context.Employees.AnyAsync(e => e.OfficialEmail == candidate.Email || e.PersonalEmail == candidate.Email, ct);
-            if (empExists)
+            // 2. Pre-flight Mapping Validation
+            var deptId = request?.DeptId ?? app.Requisition?.DeptId;
+            var designationId = request?.DesignationId ?? app.Requisition?.DesignationId;
+            var companyId = request?.CompanyId ?? app.Requisition?.CompanyId;
+            Guid? locationId = request?.LocationId ?? (await _context.Locations.Select(l => (Guid?)l.LocationId).FirstOrDefaultAsync(ct));
+            var reportingManagerId = request?.ReportingManagerId;
+
+            var missingFields = new List<string>();
+            if (!deptId.HasValue || deptId.Value == Guid.Empty) missingFields.Add("Department");
+            if (!designationId.HasValue || designationId.Value == Guid.Empty) missingFields.Add("Designation");
+            if (!companyId.HasValue || companyId.Value == Guid.Empty) missingFields.Add("Company");
+            if (!locationId.HasValue || locationId.Value == Guid.Empty) missingFields.Add("Location");
+
+            if (missingFields.Count > 0)
             {
-                return BadRequest(ApiResponse<object>.Fail("An employee record already exists with this candidate's email address."));
+                return BadRequest(ApiResponse<object>.Fail($"UNMAPPED_FIELDS: The following required mappings are missing: {string.Join(", ", missingFields)}."));
             }
 
-            // Find fallback LocationId
-            var locationId = await _context.Locations.Select(l => l.LocationId).FirstOrDefaultAsync(ct);
-            if (locationId == Guid.Empty)
-            {
-                return BadRequest(ApiResponse<object>.Fail("No locations are configured in the system. Cannot create employee."));
-            }
-
-            // Get Employee Code prefix
+            // 3. Sequential Employee Code Generator (EMP0001, EMP0002, EMP0003)
             var prefix = await _context.SystemSettings
                 .Where(s => s.SettingKey == SystemSettingKeys.EmployeeIdPrefix)
                 .Select(s => s.SettingValue)
-                .FirstOrDefaultAsync(ct) ?? "IND";
-            
-            var count = await _context.Employees.CountAsync(ct) + 1;
-            var empCode = $"{prefix}{count:D4}";
+                .FirstOrDefaultAsync(ct) ?? "EMP";
+
+            var lastCode = await _context.Employees
+                .Where(e => e.EmployeeCode.StartsWith(prefix))
+                .OrderByDescending(e => e.EmployeeCode)
+                .Select(e => e.EmployeeCode)
+                .FirstOrDefaultAsync(ct);
+
+            int nextSeq = 1;
+            if (!string.IsNullOrEmpty(lastCode))
+            {
+                var numPart = new string(lastCode.Where(char.IsDigit).ToArray());
+                if (int.TryParse(numPart, out var parsed)) nextSeq = parsed + 1;
+            }
+            var empCode = $"{prefix}{nextSeq:D4}";
 
             // Calculate corporate email
             var domain = "company.com";
@@ -353,11 +378,14 @@ public class OnboardingController : ControllerBase
                 probationDays = days;
             }
 
+            // Retrieve Joining Date from Offer Letter
+            var offer = await _context.OfferLetters.FirstOrDefaultAsync(o => o.AppId == app.AppId, ct);
+            var joiningDate = offer?.JoiningDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+
             // Create Employee
             var employee = new Employee
             {
                 EmployeeId = Guid.NewGuid(),
-                CompanyId = app.Requisition.CompanyId,
                 EmployeeCode = empCode,
                 FirstName = candidate.FirstName,
                 LastName = candidate.LastName ?? string.Empty,
@@ -365,17 +393,52 @@ public class OnboardingController : ControllerBase
                 OfficialEmail = officialEmail,
                 PersonalPhone = candidate.Phone,
                 OfficialMobile = candidate.Phone,
-                JoiningDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                DeptId = app.Requisition.DeptId.GetValueOrDefault(),
-                DesignationId = app.Requisition.DesignationId.GetValueOrDefault(),
-                LocationId = locationId,
+                CompanyId = companyId.Value,
+                DeptId = deptId.Value,
+                DesignationId = designationId.Value,
+                LocationId = locationId.Value,
+                ReportingManagerId = reportingManagerId,
                 EmploymentType = EmploymentType.Probationary,
                 EmploymentStatus = EmploymentStatus.Active,
                 ProbationEndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(probationDays)),
+                RecruitmentSource = candidate.Source?.ToString() ?? "CareerPortal",
                 IsActive = true
             };
 
             _context.Employees.Add(employee);
+
+            // Create corresponding User Login credentials
+            var salt = Guid.NewGuid().ToString("N");
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword("Demo@123", 12);
+            var user = new User
+            {
+                UserId = Guid.NewGuid(),
+                EmployeeId = employee.EmployeeId,
+                Username = officialEmail,
+                Email = officialEmail,
+                FirstName = employee.FirstName,
+                LastName = employee.LastName,
+                PasswordHash = passwordHash,
+                PasswordSalt = salt,
+                IsActive = true,
+                MustChangePassword = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Users.Add(user);
+
+            // Assign EMPLOYEE role to this user
+            var empRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleCode == RoleCodes.Employee, ct);
+            if (empRole != null)
+            {
+                _context.UserRoles.Add(new UserRole
+                {
+                    UserRoleId = Guid.NewGuid(),
+                    UserId = user.UserId,
+                    RoleId = empRole.RoleId,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
 
             // Map Resume as Employee Document if available
             if (!string.IsNullOrEmpty(candidate.ResumeFilePath))
@@ -393,9 +456,12 @@ public class OnboardingController : ControllerBase
                 _context.EmployeeDocuments.Add(doc);
             }
 
-            // Update onboarding status
+            // Update onboarding status and Candidate status
             process.Status = "Completed";
             app.CurrentStage = ApplicationStage.Joined;
+            candidate.CandidateStatus = CandidateStatus.Hired;
+
+            TimelineHelper.AddTimelineEvent(app, "Hired", $"Candidate successfully converted to Employee {employee.EmployeeCode} on Probation.");
 
             // Generate 30, 60, 90 day probation reviews
             var checkPoints = new[] { 30, 60, 90 };
@@ -460,4 +526,17 @@ public class OnboardingController : ControllerBase
             throw;
         }
     }
+}
+
+public class ConvertOnboardingRequest
+{
+    public Guid? CompanyId { get; set; }
+    public Guid? DeptId { get; set; }
+    public Guid? DesignationId { get; set; }
+    public Guid? LocationId { get; set; }
+    public Guid? ReportingManagerId { get; set; }
+    public string? EmploymentType { get; set; }
+    public DateOnly? JoiningDate { get; set; }
+    public string? CostCenter { get; set; }
+    public bool ForceConvert { get; set; } = false;
 }

@@ -200,10 +200,10 @@ public class DashboardController : ControllerBase
             .ToListAsync(ct);
 
         var totalPostings = postings.Count;
-        var published = postings.Count(p => p.Status == JobPostingStatus.Active);
+        var published = postings.Count(p => p.Status == JobPostingStatus.Published);
         var draft = postings.Count(p => p.Status == JobPostingStatus.Draft);
         var closed = postings.Count(p => p.Status == JobPostingStatus.Closed);
-        var expired = postings.Count(p => p.Status == JobPostingStatus.Expired);
+        var expired = 0; // Expired is retired in favor of Closed
 
         // Candidates
         var totalCandidates = await _context.Candidates.CountAsync(ct);
@@ -232,6 +232,7 @@ public class DashboardController : ControllerBase
         // Offers and Joined
         var offers = apps.Count(a => a.CurrentStage == ApplicationStage.Offer);
         var joined = apps.Count(a => a.CurrentStage == ApplicationStage.Joined);
+        var employeesHired = apps.Count(a => a.Status == "Completed");
 
         // Calculate Average Time To Hire
         double avgTimeToHire = 0;
@@ -268,6 +269,27 @@ public class DashboardController : ControllerBase
             offerAcceptanceRate = (double)joined / totalOffers * 100;
         }
 
+        // Query candidate source counts
+        var sourceCounts = await _context.Candidates
+            .GroupBy(c => c.Source)
+            .Select(g => new IndiaHRMS.Application.DTOs.Recruitment.ApplicationSourceCountDto
+            {
+                Source = g.Key.HasValue ? g.Key.Value.ToString() : "Other",
+                Count = g.Count()
+            })
+            .ToListAsync(ct);
+
+        var appliedCount = apps.Count(a => a.CurrentStage == ApplicationStage.Applied);
+        var screeningCount = apps.Count(a => a.CurrentStage == ApplicationStage.Screening);
+        var interviewCount = apps.Count(a => a.CurrentStage == ApplicationStage.InterviewL1 || 
+                                          a.CurrentStage == ApplicationStage.InterviewL2 || 
+                                          a.CurrentStage == ApplicationStage.ManagerReview || 
+                                          a.CurrentStage == ApplicationStage.HRInterview || 
+                                          a.CurrentStage == ApplicationStage.Shortlisted);
+        var offerCount = apps.Count(a => a.CurrentStage == ApplicationStage.Offer);
+        var rejectedCount = apps.Count(a => a.CurrentStage == ApplicationStage.Rejected);
+        var joinedCount = apps.Count(a => a.CurrentStage == ApplicationStage.Joined);
+
         return Ok(ApiResponse<IndiaHRMS.Application.DTOs.Recruitment.RecruitmentDashboardDto>.Ok(new IndiaHRMS.Application.DTOs.Recruitment.RecruitmentDashboardDto
         {
             TotalPostings = totalPostings,
@@ -280,10 +302,18 @@ public class DashboardController : ControllerBase
             AverageAiMatch = Math.Round(averageScore, 1),
             Offers = offers,
             Joined = joined,
+            EmployeesHired = employeesHired,
             AverageTimeToHire = Math.Round(avgTimeToHire, 1),
             OpenPositions = openPositions,
             CandidateConversionRate = Math.Round(conversionRate, 1),
-            OfferAcceptanceRate = Math.Round(offerAcceptanceRate, 1)
+            OfferAcceptanceRate = Math.Round(offerAcceptanceRate, 1),
+            AppliedCount = appliedCount,
+            ScreeningCount = screeningCount,
+            InterviewCount = interviewCount,
+            OfferCount = offerCount,
+            RejectedCount = rejectedCount,
+            JoinedCount = joinedCount,
+            SourceCounts = sourceCounts
         }));
     }
 

@@ -17,6 +17,8 @@ export function usePermission() {
 
   const isAnyRole = (...roleList) => hasAnyRole(...roleList)
 
+  const isAdminOrHrAdmin = isSuperAdmin() || hasAnyRole('SUPER_ADMIN', 'HR_ADMIN')
+
   return {
     permissions,
     roles,
@@ -25,5 +27,6 @@ export function usePermission() {
     isRole,
     isAnyRole,
     isSuperAdmin: isSuperAdmin(),
+    isAdminOrHrAdmin,
   }
 }

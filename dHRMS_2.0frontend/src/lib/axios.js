@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const apiClient = axios.create({
-  baseURL: '/api/v1',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5110/api/v1',
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000,
 })
@@ -88,6 +88,7 @@ function clearAuthAndRedirect() {
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
   localStorage.removeItem('user')
+  localStorage.removeItem('hrms-auth')
   window.location.href = '/login'
 }
 

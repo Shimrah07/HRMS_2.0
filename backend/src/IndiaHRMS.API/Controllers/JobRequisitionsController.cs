@@ -176,6 +176,7 @@ public class JobRequisitionsController : ControllerBase
         [FromQuery] Guid? deptId,
         [FromQuery] Guid? designationId,
         [FromQuery] RequisitionStatus? status,
+        [FromQuery] bool? excludePosted,
         CancellationToken ct)
     {
         var query = _context.JobRequisitions
@@ -190,7 +191,7 @@ public class JobRequisitionsController : ControllerBase
             query = query.Where(r => r.CompanyId == _currentUser.CompanyId.Value);
         }
 
-        var isHRAdminOrRecruitment = _currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin, RoleCodes.RecruitmentManager);
+        var isHRAdminOrRecruitment = _currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.HRExecutive, RoleCodes.SuperAdmin, RoleCodes.RecruitmentManager);
         if (!isHRAdminOrRecruitment)
         {
             if (_currentUser.UserId.HasValue)
@@ -210,6 +211,15 @@ public class JobRequisitionsController : ControllerBase
         if (status.HasValue)
         {
             query = query.Where(r => r.Status == status.Value);
+        }
+        else
+        {
+            query = query.Where(r => r.Status != RequisitionStatus.Cancelled);
+        }
+
+        if (excludePosted == true)
+        {
+            query = query.Where(r => !_context.JobPostings.Any(p => p.ReqId == r.ReqId));
         }
 
         var list = await query.OrderByDescending(r => r.CreatedAt).ToListAsync(ct);
@@ -240,9 +250,9 @@ public class JobRequisitionsController : ControllerBase
         }
 
         var isHRAdminOrRecruitment = _currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.SuperAdmin, RoleCodes.RecruitmentManager);
-        if (!isHRAdminOrRecruitment && (_currentUser.HasRole(RoleCodes.DeptManager) || _currentUser.HasRole(RoleCodes.ReportingManager)))
+        if (!isHRAdminOrRecruitment)
         {
-            if (requisition.RaisedBy != _currentUser.UserId)
+            if (requisition.RaisedBy != _currentUser.UserId && requisition.CurrentApproverId != _currentUser.UserId)
             {
                 return Forbid();
             }
@@ -288,19 +298,8 @@ public class JobRequisitionsController : ControllerBase
             {
                 return BadRequest(ApiResponse<JobRequisitionDto>.Fail("Selected designation does not exist."));
             }
-
-            // 5. CTC Band Limits Validation
-            if (desig.MinBasic > 1000)
-            {
-                if (request.MinSalary.HasValue && request.MinSalary.Value < desig.MinBasic * 12)
-                {
-                    return BadRequest(ApiResponse<JobRequisitionDto>.Fail($"Minimum Salary budget cannot be lower than the designation min basic limit (₹ {desig.MinBasic * 12:N0} per annum)."));
-                }
-                if (request.MaxSalary.HasValue && desig.MaxBasic > 0 && request.MaxSalary.Value > desig.MaxBasic * 12 * 2.5m)
-                {
-                    return BadRequest(ApiResponse<JobRequisitionDto>.Fail($"Maximum Salary budget exceeds the allowed designation grade band ceiling (₹ {desig.MaxBasic * 12 * 2.5m:N0} per annum)."));
-                }
-            }
+            // Note: CTC band validation is intentionally skipped on draft saves.
+            // It is enforced strictly at submission time in SubmitRequisition.
         }
 
         var canCreate = _currentUser.HasAnyRole(
@@ -437,8 +436,8 @@ public class JobRequisitionsController : ControllerBase
         }
         Console.WriteLine("[UpdateRequisition] Validation 4 PASS");
 
-        // Validation 5: Designation existence and CTC band check
-        Console.WriteLine("[UpdateRequisition] Validation 5 (Designation existence and CTC band check) START");
+        // Validation 5: Designation existence check only (CTC band validation skipped on draft saves)
+        Console.WriteLine("[UpdateRequisition] Validation 5 (Designation existence check) START");
         if (request.DesignationId.HasValue && request.DesignationId.Value != Guid.Empty)
         {
             var desig = await _context.Designations.FirstOrDefaultAsync(d => d.DesignationId == request.DesignationId.Value, ct);
@@ -447,21 +446,8 @@ public class JobRequisitionsController : ControllerBase
                 Console.WriteLine($"[UpdateRequisition] Validation 5 FAILED. Reason: Selected designation {request.DesignationId} does not exist.");
                 return BadRequest(ApiResponse<JobRequisitionDto>.Fail("Selected designation does not exist."));
             }
-
-            // CTC Band Limits Validation
-            if (desig.MinBasic > 1000)
-            {
-                if (request.MinSalary.HasValue && request.MinSalary.Value < desig.MinBasic * 12)
-                {
-                    Console.WriteLine($"[UpdateRequisition] Validation 5 FAILED. Reason: Minimum Salary budget {request.MinSalary} is lower than designation min basic limit ₹ {desig.MinBasic * 12}.");
-                    return BadRequest(ApiResponse<JobRequisitionDto>.Fail($"Minimum Salary budget cannot be lower than the designation min basic limit (₹ {desig.MinBasic * 12:N0} per annum)."));
-                }
-                if (request.MaxSalary.HasValue && desig.MaxBasic > 0 && request.MaxSalary.Value > desig.MaxBasic * 12 * 2.5m)
-                {
-                    Console.WriteLine($"[UpdateRequisition] Validation 5 FAILED. Reason: Maximum Salary budget {request.MaxSalary} exceeds designation max basic ceiling ₹ {desig.MaxBasic * 12 * 2.5m}.");
-                    return BadRequest(ApiResponse<JobRequisitionDto>.Fail($"Maximum Salary budget exceeds the allowed designation grade band ceiling (₹ {desig.MaxBasic * 12 * 2.5m:N0} per annum)."));
-                }
-            }
+            // Note: CTC band salary validation is intentionally skipped on draft saves.
+            // It is enforced strictly at submission time in SubmitRequisition.
         }
         Console.WriteLine("[UpdateRequisition] Validation 5 PASS");
 
@@ -517,6 +503,8 @@ public class JobRequisitionsController : ControllerBase
             requisition.SourcingPreference = request.SourcingPreference;
 
         requisition.Status = RequisitionStatus.Draft;
+        requisition.CurrentApproverId = null;
+        requisition.CurrentApprovalLevel = 0;
         requisition.UpdatedAt = DateTime.UtcNow;
         requisition.UpdatedBy = _currentUser.UserId ?? Guid.Empty;
 
@@ -603,14 +591,22 @@ public class JobRequisitionsController : ControllerBase
             }
         }
 
+        Serilog.Log.Information("[SubmitRequisition] START - RequisitionId: {ReqId}, CompanyId: {CompanyId}", requisition.ReqId, requisition.CompanyId);
+
         // Route dynamically via ApprovalWorkflowConfigs configuration
         var routed = await RouteToWorkflowStepAsync(requisition, 1, ct);
         if (!routed)
         {
+            Serilog.Log.Information("[SubmitRequisition] RouteToWorkflowStepAsync returned false. Reverting to Fallback.");
             // Fallback status if no config is found
             requisition.Status = RequisitionStatus.InternalReview;
         }
+
+        Serilog.Log.Information("[SubmitRequisition] BEFORE SaveChanges - RequisitionId: {ReqId}, Workflow Step (CurrentApprovalLevel): {CurrentApprovalLevel}, CurrentApproverId: {CurrentApproverId}", requisition.ReqId, requisition.CurrentApprovalLevel, requisition.CurrentApproverId);
+
         await _context.SaveChangesAsync(ct);
+
+        Serilog.Log.Information("[SubmitRequisition] AFTER SaveChanges - RequisitionId: {ReqId}, CurrentApproverId: {CurrentApproverId}", requisition.ReqId, requisition.CurrentApproverId);
 
         await LogAuditTrailAsync(requisition.ReqId, "Submitted", $"Requisition submitted and routed. Status: {requisition.Status}");
 
@@ -663,8 +659,7 @@ public class JobRequisitionsController : ControllerBase
         }
 
         // Designated approver security check
-        var isAdmin = _currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.SuperAdmin);
-        if (!isAdmin && requisition.CurrentApproverId.HasValue && requisition.CurrentApproverId.Value != _currentUser.UserId)
+        if (requisition.CurrentApproverId.HasValue && requisition.CurrentApproverId.Value != _currentUser.UserId)
         {
             return StatusCode(403, ApiResponse<JobRequisitionDto>.Fail("You are not the designated approver for this workflow step."));
         }
@@ -767,16 +762,23 @@ public class JobRequisitionsController : ControllerBase
 
     [HttpPost("{id:guid}/cancel")]
     [Filters.RequirePermission(PermissionCodes.Recruitment.Edit)]
-    public async Task<ActionResult<ApiResponse<JobRequisitionDto>>> CancelRequisition(Guid id, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<JobRequisitionDto>>> CancelRequisition(Guid id, [FromQuery] string? reason, CancellationToken ct)
     {
         var requisition = await _context.JobRequisitions.FirstOrDefaultAsync(r => r.ReqId == id, ct);
         if (requisition == null)
             return NotFound(ApiResponse<JobRequisitionDto>.Fail("Job requisition not found."));
 
+        if (_currentUser.CompanyId.HasValue && requisition.CompanyId != _currentUser.CompanyId.Value)
+            return Forbid();
+
         requisition.Status = RequisitionStatus.Cancelled;
+        requisition.CancelledBy = _currentUser.UserId ?? Guid.Empty;
+        requisition.CancelledOn = DateTime.UtcNow;
+        requisition.CancelReason = reason;
+
         await _context.SaveChangesAsync(ct);
 
-        await LogAuditTrailAsync(requisition.ReqId, "Cancelled", "MRF has been cancelled.");
+        await LogAuditTrailAsync(requisition.ReqId, "Cancelled", $"MRF has been cancelled. Reason: {reason}");
 
         var savedReq = await _context.JobRequisitions
             .Include(r => r.Department)
@@ -789,6 +791,26 @@ public class JobRequisitionsController : ControllerBase
         var list = new List<JobRequisitionDto> { dto };
         await PopulateDtoNamesAsync(list, ct);
         return Ok(ApiResponse<JobRequisitionDto>.Ok(list[0], "Requisition successfully cancelled."));
+    }
+
+    [HttpDelete("{id:guid}")]
+    [Filters.RequirePermission(PermissionCodes.Recruitment.Edit)]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteRequisition(Guid id, CancellationToken ct)
+    {
+        var requisition = await _context.JobRequisitions.FirstOrDefaultAsync(r => r.ReqId == id, ct);
+        if (requisition == null)
+            return NotFound(ApiResponse<object>.Fail("Job requisition not found."));
+
+        if (_currentUser.CompanyId.HasValue && requisition.CompanyId != _currentUser.CompanyId.Value)
+            return Forbid();
+
+        if (requisition.Status != RequisitionStatus.Draft)
+            return BadRequest(ApiResponse<object>.Fail("Only draft requisitions can be permanently deleted."));
+
+        _context.JobRequisitions.Remove(requisition);
+        await _context.SaveChangesAsync(ct);
+
+        return Ok(ApiResponse<object>.Ok(null, "Draft requisition deleted successfully."));
     }
 
     [HttpPost("{id:guid}/internal-action")]
@@ -814,7 +836,6 @@ public class JobRequisitionsController : ControllerBase
             {
                 return BadRequest(ApiResponse<JobRequisitionDto>.Fail("Business justification is mandatory to continue external sourcing."));
             }
-            requisition.Status = RequisitionStatus.PendingHOD; // Begin HOD -> HR -> Finance workflow path
             requisition.InternalHiringJustification = request.Justification;
             requisition.InternalHiringRemarks = request.Remarks;
             await LogAuditTrailAsync(requisition.ReqId, "Continue External Sourcing", request.Justification);
@@ -908,18 +929,64 @@ public class JobRequisitionsController : ControllerBase
         }));
     }
 
+    [HttpGet("{id:guid}/audit-trail")]
+    [Filters.RequirePermission(PermissionCodes.Recruitment.View)]
+    public async Task<ActionResult<ApiResponse<List<object>>>> GetAuditTrail(Guid id, CancellationToken ct)
+    {
+        var requisition = await _context.JobRequisitions.FirstOrDefaultAsync(r => r.ReqId == id, ct);
+        if (requisition == null)
+            return NotFound(ApiResponse<List<object>>.Fail("Job requisition not found."));
+
+        if (_currentUser.CompanyId.HasValue && requisition.CompanyId != _currentUser.CompanyId.Value)
+            return Forbid();
+
+        var trails = await _context.RequisitionAuditTrails
+            .Where(t => t.ReqId == id)
+            .OrderBy(t => t.Timestamp)
+            .ToListAsync(ct);
+
+        var actorIds = trails.Select(t => t.ActionBy).Distinct().ToList();
+        var users = await _context.Users
+            .Where(u => actorIds.Contains(u.UserId))
+            .ToDictionaryAsync(u => u.UserId, u => new { FullName = u.FirstName + " " + u.LastName, u.Username }, ct);
+
+        var result = trails.Select(t =>
+        {
+            users.TryGetValue(t.ActionBy, out var actor);
+            return (object)new
+            {
+                auditId = t.AuditId,
+                action = t.Action,
+                actionBy = t.ActionBy,
+                actionByName = actor?.FullName ?? "System",
+                actionByUsername = actor?.Username ?? "-",
+                timestamp = t.Timestamp,
+                remarks = t.Remarks
+            };
+        }).ToList();
+
+        return Ok(ApiResponse<List<object>>.Ok(result));
+    }
+
     private async Task<bool> RouteToWorkflowStepAsync(JobRequisition requisition, int sequence, CancellationToken ct)
     {
         var config = await _context.ApprovalWorkflowConfigs
             .FirstOrDefaultAsync(c => c.CompanyId == requisition.CompanyId, ct);
         
+        Serilog.Log.Information("[RouteToWorkflowStepAsync] RequisitionId: {ReqId}, Sequence: {Sequence}", requisition.ReqId, sequence);
+        
         if (config == null || string.IsNullOrEmpty(config.ApproverRolesJson))
         {
+            Serilog.Log.Information("[RouteToWorkflowStepAsync] No workflow config found.");
             return false;
         }
 
         var steps = System.Text.Json.JsonSerializer.Deserialize<List<WorkflowStep>>(config.ApproverRolesJson);
-        if (steps == null) return false;
+        if (steps == null)
+        {
+            Serilog.Log.Information("[RouteToWorkflowStepAsync] Deserialization of ApproverRolesJson failed.");
+            return false;
+        }
 
         var step = steps.FirstOrDefault(s => s.Sequence == sequence);
         if (step == null)
@@ -929,11 +996,14 @@ public class JobRequisitionsController : ControllerBase
             requisition.CurrentApproverId = null;
             requisition.CurrentApprovalLevel = sequence - 1;
             requisition.ApprovedBy = _currentUser.UserId;
+            Serilog.Log.Information("[RouteToWorkflowStepAsync] No further steps. Requisition marked as Approved.");
             return true;
         }
 
-        // Map to status enum value
-        if (Enum.TryParse<RequisitionStatus>(step.Status, out var nextStatus))
+        Serilog.Log.Information("[RouteToWorkflowStepAsync] Current Workflow Step: Sequence={Sequence}, RoleCode={RoleCode}, ExpectedStatus={Status}", step.Sequence, step.RoleCode, step.Status);
+
+        // Map to status enum value (case-insensitive)
+        if (Enum.TryParse<RequisitionStatus>(step.Status, true, out var nextStatus))
         {
             requisition.Status = nextStatus;
         }
@@ -952,20 +1022,48 @@ public class JobRequisitionsController : ControllerBase
         requisition.CurrentApprovalLevel = step.Sequence;
 
         // Resolve user by role code
-        var approverUser = await _context.UserRoles
-            .Include(ur => ur.User)
-            .Include(ur => ur.Role)
-            .Where(ur => ur.Role.RoleCode == step.RoleCode && ur.IsActive)
-            .Select(ur => ur.User)
-            .FirstOrDefaultAsync(ct);
+        User? approverUser = null;
+        if (step.RoleCode == RoleCodes.DeptManager)
+        {
+            var dept = await _context.Departments.FirstOrDefaultAsync(d => d.DeptId == requisition.DeptId, ct);
+            if (dept != null && dept.HODEmployeeId.HasValue)
+            {
+                approverUser = await _context.Users.FirstOrDefaultAsync(u => u.EmployeeId == dept.HODEmployeeId.Value, ct);
+                Serilog.Log.Information("[RouteToWorkflowStepAsync] Resolved DeptManager HOD user: {Username} (UserId: {UserId})", approverUser?.Username, approverUser?.UserId);
+            }
+        }
+
+        if (approverUser == null)
+        {
+            approverUser = await _context.UserRoles
+                .Include(ur => ur.User)
+                .Include(ur => ur.Role)
+                .Where(ur => ur.Role.RoleCode == step.RoleCode && ur.IsActive)
+                .Select(ur => ur.User)
+                .FirstOrDefaultAsync(ct);
+            Serilog.Log.Information("[RouteToWorkflowStepAsync] Resolved Role {RoleCode} user: {Username} (UserId: {UserId})", step.RoleCode, approverUser?.Username, approverUser?.UserId);
+        }
 
         if (approverUser != null)
         {
+            // Auto-advance if resolved approver is the submitter/creator
+            var isSubmitter = approverUser.UserId == requisition.RaisedBy || 
+                              approverUser.UserId == _currentUser.UserId || 
+                              (requisition.RaisedBy == Guid.Empty && _currentUser.UserId.HasValue && approverUser.UserId == _currentUser.UserId.Value);
+            
+            if (isSubmitter)
+            {
+                Serilog.Log.Information("[RouteToWorkflowStepAsync] Auto-advancing from step {Sequence} ({RoleCode}) because resolved approver is the submitter.", sequence, step.RoleCode);
+                return await RouteToWorkflowStepAsync(requisition, sequence + 1, ct);
+            }
+
             requisition.CurrentApproverId = approverUser.UserId;
+            Serilog.Log.Information("[RouteToWorkflowStepAsync] Selected Approver Role: {RoleCode}, Selected Approver UserId: {UserId}", step.RoleCode, approverUser.UserId);
         }
         else
         {
             requisition.CurrentApproverId = null;
+            Serilog.Log.Information("[RouteToWorkflowStepAsync] Selected Approver Role: {RoleCode}, Selected Approver UserId: null", step.RoleCode);
         }
 
         return true;

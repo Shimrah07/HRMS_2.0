@@ -1,0 +1,66 @@
+# Implementation Plan: Internal Job Posting (IJP) Pipeline
+
+This plan outlines the architecture and changes required to support Internal Job Postings, enabling existing employees to apply for new roles within the company, while still strictly enforcing the rule that blocks them from applying via the external candidate portal.
+
+## User Review Required
+> [!IMPORTANT]
+> **Database Changes**: This requires adding an `IsInternal` flag to the `JobApplication` entity and creating a new EF Core migration.
+> **UI Location**: I plan to add an "Internal Jobs" tab inside the **Employee Self-Service (ESS) Dashboard** where logged-in employees can browse open jobs. Is this the right location?
+
+## Open Questions
+> [!WARNING]
+> 1. **Approval Workflow**: When an employee applies for an IJP, does it require their current Manager's approval before it hits the recruiter ATS pipeline?
+> 2. **Offer Stage**: If selected, does the employee get a standard Offer Letter, or is it treated as an internal transfer/promotion letter?
+> 3. **Visibility**: Should *all* published jobs be visible internally, or do we need an `IsInternalOnly` flag on `JobRequisition` to restrict certain jobs to employees only?
+
+## Proposed Changes
+
+---
+
+### Backend Components
+
+#### [MODIFY] `Entities.cs` (Domain Layer)
+- Add `public bool IsInternal { get; set; } = false;` to `JobApplication`.
+- Add `public bool IsInternalOnly { get; set; } = false;` to `JobPosting` (optional, based on feedback).
+
+#### [NEW] Database Migration
+- Generate and apply a new EF Core migration for the `IsInternal` fields.
+
+#### [MODIFY] `JobApplicationsController.cs` & `ApplicationService.cs`
+- Add a new endpoint `POST /api/v1/job-applications/internal-apply` secured with `[Authorize(Roles = "Employee")]`.
+- The new `ApplyToInternalJobAsync` method will:
+  1. Read the `EmployeeId` from the authenticated user's JWT claim.
+  2. Look up the `CandidateId` linked to that Employee.
+  3. Create a new `JobApplication` with `IsInternal = true`.
+  4. **Bypass** the strict "Employees cannot apply" block that we added to the external application flow.
+
+#### [MODIFY] ATS Pipeline API (`InterviewsController.cs`, `JobApplicationsController.cs`)
+- When fetching applications for the Kanban board, return the `IsInternal` flag so recruiters can distinguish internal vs external candidates visually.
+- Relax the conflict validation specifically for internal applications (i.e. allow them to be in the "Joined" stage for their *current* role, but still prevent them from being in *multiple* active IJP interview pipelines simultaneously).
+
+---
+
+### Frontend Components
+
+#### [NEW] `EmployeeInternalJobsPage.jsx`
+- Create a new page accessible to employees in their portal.
+- Displays all published jobs.
+- Allows employees to apply with a single click (since we already have their data in the system).
+
+#### [MODIFY] `AtsPipelinePage.jsx` & `ApplicationsPage.jsx`
+- Add an `Internal` badge to Kanban cards where `IsInternal === true`.
+- This clearly highlights to HR/Recruiters that the candidate is an existing employee.
+
+## Verification Plan
+
+### Automated Tests
+- Run `dotnet build` to ensure the entity updates compile.
+- Run `dotnet ef migrations add AddIsInternalJobFlag` and `dotnet ef database update`.
+
+### Manual Verification
+1. Log in as an Employee.
+2. Navigate to the new Internal Jobs page.
+3. Apply for a job and verify success.
+4. Log in as HR and view the ATS Kanban board.
+5. Verify the employee's application appears in "Applied" with an "Internal" badge.
+6. Verify the employee can be moved through the interview rounds without hitting the "Candidate has already Joined" conflict error.

@@ -87,6 +87,11 @@ public class EmployeeController : ControllerBase
             }
         }
 
+        if (!_currentUser.HasAnyRole(RoleCodes.SuperAdmin, RoleCodes.HRAdmin, RoleCodes.HRManager, RoleCodes.HRExecutive, RoleCodes.DeptManager, RoleCodes.ReportingManager, RoleCodes.PayrollAdmin, RoleCodes.RecruitmentManager, RoleCodes.Auditor))
+        {
+            query = query.Where(e => e.EmployeeId == _currentUser.EmployeeId);
+        }
+
         if (_currentUser.CompanyId.HasValue)
             query = query.Where(e => e.CompanyId == _currentUser.CompanyId);
 
@@ -132,11 +137,23 @@ public class EmployeeController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> GetEmployee(Guid id, CancellationToken ct)
     {
-        var isSelf = _currentUser.EmployeeId == id;
-        var hasViewPermission = _currentUser.HasPermission(PermissionCodes.Employee.View);
-        if (!isSelf && !hasViewPermission)
+        var myEmpId = _currentUser.EmployeeId;
+        var isSelf = myEmpId == id;
+        var isHr = _currentUser.HasRole(RoleCodes.SuperAdmin) || _currentUser.HasRole(RoleCodes.HRAdmin) || _currentUser.HasRole(RoleCodes.HRManager);
+        var isManager = false;
+
+        if (myEmpId.HasValue && !isSelf && !isHr)
         {
-            return StatusCode(403, ApiResponse<EmployeeDetailDto>.Fail("Access Denied. You do not have permission to view these details."));
+            var empCheck = await _context.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.EmployeeId == id, ct);
+            if (empCheck != null && (empCheck.ReportingManagerId == myEmpId.Value || empCheck.L2ReportingManagerId == myEmpId.Value))
+            {
+                isManager = true;
+            }
+        }
+
+        if (!isSelf && !isHr && !isManager)
+        {
+            return StatusCode(403, ApiResponse<EmployeeDetailDto>.Fail("Access Denied. You can only view your own profile or direct reports' profiles."));
         }
 
         var employee = await _context.Employees
@@ -253,6 +270,17 @@ public class EmployeeController : ControllerBase
         return Ok(ApiResponse<EmployeeDetailDto>.Ok(dto));
     }
 
+    [HttpGet("{id:guid}/employment-history")]
+    public async Task<ActionResult<ApiResponse<List<EmployeeEmploymentHistory>>>> GetEmploymentHistory(Guid id, CancellationToken ct)
+    {
+        var history = await _context.EmployeeEmploymentHistories
+            .Where(h => h.EmployeeId == id)
+            .OrderBy(h => h.EffectiveFrom)
+            .ToListAsync(ct);
+
+        return Ok(ApiResponse<List<EmployeeEmploymentHistory>>.Ok(history));
+    }
+
     [HttpGet("{id:guid}/summary")]
     [Filters.RequirePermission(PermissionCodes.Employee.View)]
     public async Task<ActionResult<ApiResponse<EmployeeSummaryDto>>> GetEmployeeSummary(Guid id, CancellationToken ct)
@@ -294,6 +322,24 @@ public class EmployeeController : ControllerBase
                 return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Circular reporting detected for L2 Reporting Manager."));
             var active = await _context.Employees.AnyAsync(e => e.EmployeeId == request.L2ReportingManagerId.Value && e.IsActive, ct);
             if (!active) return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("L2 Reporting Manager must be an active employee."));
+        }
+        if (request.L3ReportingManagerId.HasValue)
+        {
+            if (request.L3ReportingManagerId.Value == empId)
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Cannot assign self as L3 Reporting Manager."));
+            if (await IsCircularReportingAsync(empId, request.L3ReportingManagerId.Value, ct))
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Circular reporting detected for L3 Reporting Manager."));
+            var active = await _context.Employees.AnyAsync(e => e.EmployeeId == request.L3ReportingManagerId.Value && e.IsActive, ct);
+            if (!active) return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("L3 Reporting Manager must be an active employee."));
+        }
+        if (request.L4ReportingManagerId.HasValue)
+        {
+            if (request.L4ReportingManagerId.Value == empId)
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Cannot assign self as L4 Reporting Manager."));
+            if (await IsCircularReportingAsync(empId, request.L4ReportingManagerId.Value, ct))
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Circular reporting detected for L4 Reporting Manager."));
+            var active = await _context.Employees.AnyAsync(e => e.EmployeeId == request.L4ReportingManagerId.Value && e.IsActive, ct);
+            if (!active) return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("L4 Reporting Manager must be an active employee."));
         }
         if (request.FunctionalManagerId.HasValue)
         {
@@ -390,6 +436,27 @@ public class EmployeeController : ControllerBase
 
         _context.Employees.Add(employee);
 
+        var initialHistory = new EmployeeEmploymentHistory
+        {
+            Id = Guid.NewGuid(),
+            EmployeeId = employee.EmployeeId,
+            DeptId = employee.DeptId,
+            DesignationId = employee.DesignationId,
+            GradeId = employee.GradeId,
+            LocationId = employee.LocationId,
+            CostCenterId = employee.CostCenterId,
+            ReportingManagerId = employee.ReportingManagerId,
+            L2ReportingManagerId = employee.L2ReportingManagerId,
+            EmploymentType = employee.EmploymentType.ToString(),
+            ShiftId = employee.ShiftId,
+            PayrollGroup = employee.PayrollGroup,
+            NoticePeriodDays = employee.NoticePeriodDays,
+            EffectiveFrom = employee.JoiningDate,
+            EffectiveTo = null,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.EmployeeEmploymentHistories.Add(initialHistory);
+
         if (request.CreateUserAccount)
         {
             var baseUsername = string.IsNullOrEmpty(request.OfficialEmail)
@@ -479,7 +546,10 @@ public class EmployeeController : ControllerBase
         }
 
         // Notify the HR Admin / Creator
-        if (_currentUser.UserId.HasValue)
+        // Guard: only insert if the creator's UserId actually exists in the Users table
+        // (avoids FK_Notifications_Users_UserId violation if JWT token refers to a stale/re-seeded user)
+        if (_currentUser.UserId.HasValue &&
+            await _context.Users.AnyAsync(u => u.UserId == _currentUser.UserId.Value, ct))
         {
             var creatorNotif = new Notification
             {
@@ -537,6 +607,8 @@ public class EmployeeController : ControllerBase
                 request.ProfitCenterId != employee.ProfitCenterId ||
                 request.ReportingManagerId != employee.ReportingManagerId ||
                 request.L2ReportingManagerId != employee.L2ReportingManagerId ||
+                request.L3ReportingManagerId != employee.L3ReportingManagerId ||
+                request.L4ReportingManagerId != employee.L4ReportingManagerId ||
                 request.FunctionalManagerId != employee.FunctionalManagerId ||
                 request.EmploymentType != employee.EmploymentType)
             {
@@ -562,6 +634,24 @@ public class EmployeeController : ControllerBase
                 return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Circular reporting detected for L2 Reporting Manager."));
             var active = await _context.Employees.AnyAsync(e => e.EmployeeId == request.L2ReportingManagerId.Value && e.IsActive, ct);
             if (!active) return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("L2 Reporting Manager must be an active employee."));
+        }
+        if (request.L3ReportingManagerId.HasValue)
+        {
+            if (request.L3ReportingManagerId.Value == id)
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Cannot assign self as L3 Reporting Manager."));
+            if (await IsCircularReportingAsync(id, request.L3ReportingManagerId.Value, ct))
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Circular reporting detected for L3 Reporting Manager."));
+            var active = await _context.Employees.AnyAsync(e => e.EmployeeId == request.L3ReportingManagerId.Value && e.IsActive, ct);
+            if (!active) return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("L3 Reporting Manager must be an active employee."));
+        }
+        if (request.L4ReportingManagerId.HasValue)
+        {
+            if (request.L4ReportingManagerId.Value == id)
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Cannot assign self as L4 Reporting Manager."));
+            if (await IsCircularReportingAsync(id, request.L4ReportingManagerId.Value, ct))
+                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Circular reporting detected for L4 Reporting Manager."));
+            var active = await _context.Employees.AnyAsync(e => e.EmployeeId == request.L4ReportingManagerId.Value && e.IsActive, ct);
+            if (!active) return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("L4 Reporting Manager must be an active employee."));
         }
         if (request.FunctionalManagerId.HasValue)
         {
@@ -589,15 +679,104 @@ public class EmployeeController : ControllerBase
                 return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Internship duration is required for Intern employment type."));
         }
 
-        // ─── Mandatory Enterprise Checks ───────────────────────────────────────
-        if (!request.ShiftId.HasValue)
-            return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Shift assignment is required."));
-        if (!request.PayrollGroup.HasValue)
-            return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Payroll Group mapping is required."));
-        if (!request.GradeId.HasValue)
-            return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Grade is required."));
-        if (!request.CostCenterId.HasValue)
-            return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Cost Center mapping is required."));
+        // ─── Mandatory Enterprise Checks (Fallback to existing values if not specified) ───
+        request.ShiftId ??= employee.ShiftId;
+        request.PayrollGroup ??= employee.PayrollGroup;
+        request.GradeId ??= employee.GradeId;
+        request.CostCenterId ??= employee.CostCenterId;
+        if (!request.DeptId.HasValue || request.DeptId == Guid.Empty) request.DeptId = employee.DeptId;
+        if (!request.DesignationId.HasValue || request.DesignationId == Guid.Empty) request.DesignationId = employee.DesignationId;
+        if (!request.LocationId.HasValue || request.LocationId == Guid.Empty) request.LocationId = employee.LocationId;
+        if (string.IsNullOrWhiteSpace(request.FirstName)) request.FirstName = employee.FirstName;
+        if (string.IsNullOrWhiteSpace(request.LastName)) request.LastName = employee.LastName;
+
+        // ─── Maker-Checker Interception for Sensitive Identity Fields ──────────
+        // Non-HR-Admin/SuperAdmin users cannot directly change PAN or Aadhaar —
+        // they must submit a change request that an approver must explicitly action.
+        if (!isHrAdminOrSuper)
+        {
+            var sensitiveChanges = new List<PendingEmployeeChange>();
+
+            if (!string.IsNullOrWhiteSpace(request.PANNumber) && request.PANNumber != employee.PANNumber)
+            {
+                sensitiveChanges.Add(new PendingEmployeeChange
+                {
+                    ChangeId = Guid.NewGuid(),
+                    EmployeeId = id,
+                    FieldCategory = "Identity",
+                    FieldName = "PANNumber",
+                    OldValue = employee.PANNumber ?? "",
+                    NewValue = request.PANNumber,
+                    RequestedBy = _currentUser.UserId ?? Guid.Empty,
+                    RequestedAt = DateTime.UtcNow,
+                    Status = "Pending"
+                });
+                // Do NOT update PANNumber on the employee entity
+                request.PANNumber = employee.PANNumber;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.AadharNumber) && request.AadharNumber != employee.AadharNumber)
+            {
+                sensitiveChanges.Add(new PendingEmployeeChange
+                {
+                    ChangeId = Guid.NewGuid(),
+                    EmployeeId = id,
+                    FieldCategory = "Identity",
+                    FieldName = "AadharNumber",
+                    OldValue = employee.AadharNumber ?? "",
+                    NewValue = request.AadharNumber,
+                    RequestedBy = _currentUser.UserId ?? Guid.Empty,
+                    RequestedAt = DateTime.UtcNow,
+                    Status = "Pending"
+                });
+                request.AadharNumber = employee.AadharNumber;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.UANNumber) && request.UANNumber != employee.UANNumber)
+            {
+                sensitiveChanges.Add(new PendingEmployeeChange
+                {
+                    ChangeId = Guid.NewGuid(),
+                    EmployeeId = id,
+                    FieldCategory = "Identity",
+                    FieldName = "UANNumber",
+                    OldValue = employee.UANNumber ?? "",
+                    NewValue = request.UANNumber,
+                    RequestedBy = _currentUser.UserId ?? Guid.Empty,
+                    RequestedAt = DateTime.UtcNow,
+                    Status = "Pending"
+                });
+                request.UANNumber = employee.UANNumber;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.ESINumber) && request.ESINumber != employee.ESINumber)
+            {
+                sensitiveChanges.Add(new PendingEmployeeChange
+                {
+                    ChangeId = Guid.NewGuid(),
+                    EmployeeId = id,
+                    FieldCategory = "Identity",
+                    FieldName = "ESINumber",
+                    OldValue = employee.ESINumber ?? "",
+                    NewValue = request.ESINumber,
+                    RequestedBy = _currentUser.UserId ?? Guid.Empty,
+                    RequestedAt = DateTime.UtcNow,
+                    Status = "Pending"
+                });
+                request.ESINumber = employee.ESINumber;
+            }
+
+            if (sensitiveChanges.Any())
+            {
+                _context.PendingEmployeeChanges.AddRange(sensitiveChanges);
+                await _context.SaveChangesAsync(ct);
+                var fieldNames = string.Join(", ", sensitiveChanges.Select(c => c.FieldName));
+                return Accepted(ApiResponse<object>.Ok(
+                    new { pendingFields = sensitiveChanges.Select(c => c.FieldName) },
+                    $"Change request submitted for approval: {fieldNames}. Other non-sensitive fields in this request have also been queued and will NOT be applied until the sensitive fields are reviewed. Please resubmit without the sensitive fields to apply other changes immediately."
+                ));
+            }
+        }
 
         // Preserve existing identity fields before mapping to handle missing/empty values correctly
         var existingAadharNumber = employee.AadharNumber;
@@ -606,90 +785,65 @@ public class EmployeeController : ControllerBase
         var existingPANHash = employee.PANHash;
         var existingEmployeeCode = employee.EmployeeCode;
 
+        // ─── SCD Type 2 Employment History Versioning ──────────────────────────
+        var oldDeptId = employee.DeptId;
+        var oldDesignationId = employee.DesignationId;
+        var oldGradeId = employee.GradeId;
+        var oldLocationId = employee.LocationId;
+        var oldCostCenterId = employee.CostCenterId;
+        var oldReportingManagerId = employee.ReportingManagerId;
+        var oldL2ReportingManagerId = employee.L2ReportingManagerId;
+        var oldEmploymentType = employee.EmploymentType;
+        var oldShiftId = employee.ShiftId;
+        var oldPayrollGroup = employee.PayrollGroup;
+        var oldNoticePeriodDays = employee.NoticePeriodDays;
+
         _mapper.Map(request, employee);
 
-        // Employee ID update logic based on Category
-        if (request.EmployeeCategory == "TCS Employee")
+        bool hasEmploymentChange = oldDeptId != employee.DeptId ||
+            oldDesignationId != employee.DesignationId ||
+            oldGradeId != employee.GradeId ||
+            oldLocationId != employee.LocationId ||
+            oldCostCenterId != employee.CostCenterId ||
+            oldReportingManagerId != employee.ReportingManagerId ||
+            oldL2ReportingManagerId != employee.L2ReportingManagerId ||
+            oldEmploymentType != employee.EmploymentType ||
+            oldShiftId != employee.ShiftId ||
+            oldPayrollGroup != employee.PayrollGroup ||
+            oldNoticePeriodDays != employee.NoticePeriodDays;
+
+        if (hasEmploymentChange)
         {
-            if (string.IsNullOrWhiteSpace(request.EmployeeCode))
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var activeHistory = await _context.EmployeeEmploymentHistories
+                .FirstOrDefaultAsync(h => h.EmployeeId == id && h.EffectiveTo == null, ct);
+
+            if (activeHistory != null)
             {
-                return BadRequest(ApiResponse<EmployeeDetailDto>.Fail("Employee ID is required for TCS Employees."));
+                activeHistory.EffectiveTo = today;
             }
 
-            if (request.EmployeeCode.Trim() != existingEmployeeCode)
+            var newHistory = new EmployeeEmploymentHistory
             {
-                var codeExists = await _context.Employees.AnyAsync(e => e.EmployeeId != id && e.EmployeeCode == request.EmployeeCode.Trim(), ct);
-                if (codeExists)
-                {
-                    return Conflict(ApiResponse<EmployeeDetailDto>.Fail("Employee ID already exists."));
-                }
-                employee.EmployeeCode = request.EmployeeCode.Trim();
-            }
-            employee.EmployeeCategory = "TCS Employee";
-        }
-        else
-        {
-            // For MPOnline Employee or other categories, do not allow modifying the EmployeeCode
-            employee.EmployeeCode = existingEmployeeCode;
-            employee.EmployeeCategory = "MPOnline Employee";
-        }
+                Id = Guid.NewGuid(),
+                EmployeeId = id,
+                DeptId = employee.DeptId,
+                DesignationId = employee.DesignationId,
+                GradeId = employee.GradeId,
+                LocationId = employee.LocationId,
+                CostCenterId = employee.CostCenterId,
+                ReportingManagerId = employee.ReportingManagerId,
+                L2ReportingManagerId = employee.L2ReportingManagerId,
+                EmploymentType = employee.EmploymentType.ToString(),
+                ShiftId = employee.ShiftId,
+                PayrollGroup = employee.PayrollGroup,
+                NoticePeriodDays = employee.NoticePeriodDays,
+                EffectiveFrom = today,
+                EffectiveTo = null,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        // Personal Mobile uniqueness check
-        if (!string.IsNullOrEmpty(request.PersonalPhone))
-        {
-            var phoneExists = await _context.Employees.AnyAsync(e => e.EmployeeId != id && e.PersonalPhone == request.PersonalPhone.Trim(), ct);
-            if (phoneExists)
-                return Conflict(ApiResponse<EmployeeDetailDto>.Fail("Personal mobile number already exists."));
-        }
-
-        // Aadhaar logic
-        if (!string.IsNullOrEmpty(request.AadharNumber))
-        {
-            var cleanInput = request.AadharNumber.Trim();
-            if (cleanInput.Contains('*'))
-            {
-                employee.AadharNumber = existingAadharNumber;
-                employee.AadharHash = existingAadharHash;
-            }
-            else
-            {
-                var newHash = _encryption.HashValue(cleanInput);
-                if (await _context.Employees.AnyAsync(e => e.EmployeeId != id && e.AadharHash == newHash, ct))
-                    return Conflict(ApiResponse<EmployeeDetailDto>.Fail("An employee with this Aadhaar number already exists."));
-                
-                employee.AadharHash = newHash;
-                employee.AadharNumber = _encryption.Encrypt(cleanInput);
-            }
-        }
-        else
-        {
-            employee.AadharNumber = existingAadharNumber;
-            employee.AadharHash = existingAadharHash;
-        }
-
-        // PAN logic
-        if (!string.IsNullOrEmpty(request.PANNumber))
-        {
-            var cleanInput = request.PANNumber.Trim().ToUpper();
-            if (cleanInput.Contains('*'))
-            {
-                employee.PANNumber = existingPANNumber;
-                employee.PANHash = existingPANHash;
-            }
-            else
-            {
-                var newHash = _encryption.HashValue(cleanInput);
-                if (await _context.Employees.AnyAsync(e => e.EmployeeId != id && e.PANHash == newHash, ct))
-                    return Conflict(ApiResponse<EmployeeDetailDto>.Fail("An employee with this PAN number already exists."));
-                
-                employee.PANHash = newHash;
-                employee.PANNumber = _encryption.Encrypt(cleanInput);
-            }
-        }
-        else
-        {
-            employee.PANNumber = existingPANNumber;
-            employee.PANHash = existingPANHash;
+            _context.EmployeeEmploymentHistories.Add(newHistory);
         }
 
         employee.UpdatedAt = DateTime.UtcNow;
@@ -879,6 +1033,11 @@ public class EmployeeController : ControllerBase
     [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
     public async Task<ActionResult<ApiResponse<BankDetailDto>>> AddBankDetail(Guid id, [FromBody] AddBankDetailRequest request, CancellationToken ct)
     {
+        if (!_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.SuperAdmin))
+        {
+            return StatusCode(403, ApiResponse<BankDetailDto>.Fail("Access Denied. Only HR Admin and Super Admin can manage bank details."));
+        }
+
         var employee = await _context.Employees.FindAsync(new object[] { id }, ct);
         if (employee == null) return NotFound(ApiResponse<BankDetailDto>.Fail("Employee not found."));
 
@@ -906,10 +1065,51 @@ public class EmployeeController : ControllerBase
         return Ok(ApiResponse<BankDetailDto>.Ok(dto));
     }
 
+    [HttpPut("{id:guid}/bank-details/{bankId:guid}")]
+    [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
+    public async Task<ActionResult<ApiResponse<BankDetailDto>>> UpdateBankDetail(Guid id, Guid bankId, [FromBody] AddBankDetailRequest request, CancellationToken ct)
+    {
+        if (!_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.SuperAdmin))
+        {
+            return StatusCode(403, ApiResponse<BankDetailDto>.Fail("Access Denied. Only HR Admin and Super Admin can manage bank details."));
+        }
+
+        var bank = await _context.EmployeeBankDetails.FirstOrDefaultAsync(b => b.BankDetailId == bankId && b.EmployeeId == id, ct);
+        if (bank == null) return NotFound(ApiResponse<BankDetailDto>.Fail("Bank detail not found."));
+
+        if (request.IsPrimary)
+        {
+            var existing = await _context.EmployeeBankDetails.Where(b => b.EmployeeId == id && b.IsPrimary && b.BankDetailId != bankId).ToListAsync(ct);
+            existing.ForEach(b => b.IsPrimary = false);
+        }
+
+        bank.BankName = request.BankName;
+        if (!string.IsNullOrWhiteSpace(request.AccountNumber) && !request.AccountNumber.Contains("*"))
+        {
+            bank.AccountNumber = _encryption.Encrypt(request.AccountNumber);
+        }
+        bank.IFSCCode = request.IFSCCode.ToUpper();
+        bank.AccountType = request.AccountType;
+        bank.IsPrimary = request.IsPrimary;
+        bank.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(ct);
+
+        var hasSensitivePermission = _currentUser.HasPermission(PermissionCodes.Security.ViewSensitiveData);
+        var dto = _mapper.Map<BankDetailDto>(bank);
+        dto.MaskedAccountNumber = hasSensitivePermission ? request.AccountNumber : _encryption.MaskValue(request.AccountNumber);
+        return Ok(ApiResponse<BankDetailDto>.Ok(dto, "Bank detail updated successfully."));
+    }
+
     [HttpDelete("{id:guid}/bank-details/{bankId:guid}")]
     [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
     public async Task<ActionResult<ApiResponse<object>>> DeleteBankDetail(Guid id, Guid bankId, CancellationToken ct)
     {
+        if (!_currentUser.HasAnyRole(RoleCodes.HRAdmin, RoleCodes.SuperAdmin))
+        {
+            return StatusCode(403, ApiResponse<object>.Fail("Access Denied. Only HR Admin and Super Admin can manage bank details."));
+        }
+
         var bank = await _context.EmployeeBankDetails.FirstOrDefaultAsync(b => b.BankDetailId == bankId && b.EmployeeId == id, ct);
         if (bank == null) return NotFound(ApiResponse<object>.Fail("Bank detail not found."));
         bank.IsActive = false;
@@ -1308,11 +1508,21 @@ public class EmployeeController : ControllerBase
             .Select(s => s.SettingValue)
             .FirstOrDefaultAsync(ct) ?? "EMP";
 
-        var maxCode = await _context.Employees
+        var dbMaxCode = await _context.Employees
             .Where(e => e.CompanyId == companyId && e.EmployeeCode.StartsWith(prefix))
             .Select(e => e.EmployeeCode)
             .OrderByDescending(c => c)
             .FirstOrDefaultAsync(ct);
+
+        var allCodes = new List<string>();
+        if (dbMaxCode != null) allCodes.Add(dbMaxCode);
+        foreach (var e in _context.Employees.Local)
+        {
+            if (e.CompanyId == companyId && e.EmployeeCode != null && e.EmployeeCode.StartsWith(prefix))
+                allCodes.Add(e.EmployeeCode);
+        }
+
+        var maxCode = allCodes.OrderByDescending(c => c).FirstOrDefault();
 
         var nextNum = 1;
         if (maxCode != null && int.TryParse(maxCode[prefix.Length..], out var current))
@@ -1351,6 +1561,326 @@ public class EmployeeController : ControllerBase
     }
 
     private IFileService fileService => _fileService;
+
+    // ─── Ticket 2.2: Document Expiry Endpoint ──────────────────────────────────
+    [HttpGet("documents/expiring")]
+    [Filters.RequirePermission(PermissionCodes.Employee.View)]
+    public async Task<ActionResult<ApiResponse<object>>> GetExpiringDocuments([FromQuery] int days = 30, CancellationToken ct = default)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var targetDate = today.AddDays(days);
+
+        var expiringDocs = await _context.EmployeeDocuments
+            .Include(d => d.Employee)
+            .Where(d => d.ExpiryDate.HasValue && d.ExpiryDate.Value >= today && d.ExpiryDate.Value <= targetDate)
+            .OrderBy(d => d.ExpiryDate)
+            .Select(d => new
+            {
+                DocId = d.DocId,
+                EmployeeId = d.EmployeeId,
+                EmployeeCode = d.Employee.EmployeeCode,
+                EmployeeName = (d.Employee.FirstName + " " + d.Employee.LastName).Trim(),
+                DocType = d.DocType.ToString(),
+                DocName = d.DocName,
+                DocumentNumber = d.DocumentNumber,
+                ExpiryDate = d.ExpiryDate,
+                DaysRemaining = d.ExpiryDate.Value.DayNumber - today.DayNumber,
+                IsVerified = d.IsVerified
+            })
+            .ToListAsync(ct);
+
+        return Ok(ApiResponse<object>.Ok(expiringDocs, $"Found {expiringDocs.Count} expiring document(s) within next {days} days."));
+    }
+
+    // ─── Ticket 2.1: Bulk Employee Import Endpoints ────────────────────────────
+    [HttpGet("bulk/template")]
+    [Filters.RequirePermission(PermissionCodes.Employee.View)]
+    public IActionResult DownloadBulkEmployeeTemplate()
+    {
+        var headers = "FirstName,LastName,OfficialEmail,PersonalPhone,DateOfBirth,Gender,JoiningDate,DeptCode,DesignationCode,GradeCode,LocationCode,ShiftCode,PayrollGroup,EmploymentType,NoticePeriodDays,PANNumber,AadhaarNumber\n" +
+                      "John,Doe,john.doe@example.com,9876543210,1990-05-15,Male,2024-01-01,ENG,SE,G1,BLR,SHIFT_GEN,Group1,FullTime,30,ABCDE1234F,123456789012\n";
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(headers);
+        return File(bytes, "text/csv", "employee_bulk_import_template.csv");
+    }
+
+    public class BulkImportRowError
+    {
+        public int RowNumber { get; set; }
+        public string Field { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+    }
+
+    public class BulkImportResponse
+    {
+        public int TotalRows { get; set; }
+        public int SuccessCount { get; set; }
+        public int FailureCount { get; set; }
+        public List<BulkImportRowError> Errors { get; set; } = new List<BulkImportRowError>();
+    }
+
+    [HttpPost("bulk")]
+    [Filters.RequirePermission(PermissionCodes.Employee.Create)]
+    public async Task<ActionResult<ApiResponse<BulkImportResponse>>> ImportBulkEmployees(IFormFile file, CancellationToken ct)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(ApiResponse<BulkImportResponse>.Fail("CSV file is required."));
+
+        var response = new BulkImportResponse();
+        var company = await _context.Companies.FirstOrDefaultAsync(ct);
+        if (company == null) return BadRequest(ApiResponse<BulkImportResponse>.Fail("Company not configured."));
+
+        var defaultShift = await _context.ShiftMasters.FirstOrDefaultAsync(s => s.IsActive, ct);
+        var defaultDept = await _context.Departments.FirstOrDefaultAsync(d => d.IsActive, ct);
+        var defaultDesignation = await _context.Designations.FirstOrDefaultAsync(d => d.IsActive, ct);
+        var defaultLocation = await _context.Locations.FirstOrDefaultAsync(l => l.IsActive, ct);
+
+        if (defaultDept == null || defaultDesignation == null || defaultLocation == null || defaultShift == null)
+            return BadRequest(ApiResponse<BulkImportResponse>.Fail("Organization setup (Department, Designation, Location, Shift) is incomplete for bulk import."));
+
+        // Sprint 2.1 fix: pre-load master data for lookups (case-insensitive)
+        var deptsByCode       = await _context.Departments.Where(d => d.IsActive)
+            .ToDictionaryAsync(d => d.DeptCode.ToUpperInvariant(), d => d, ct);
+        var desigsByTitle     = await _context.Designations.Where(d => d.IsActive)
+            .ToDictionaryAsync(d => d.Title.ToUpperInvariant(), d => d, ct);
+        var gradesByCode      = await _context.GradeMasters.Where(g => g.IsActive)
+            .ToDictionaryAsync(g => g.Code.ToUpperInvariant(), g => g, ct);
+        var locationsByName   = await _context.Locations.Where(l => l.IsActive)
+            .ToDictionaryAsync(l => l.LocationName.ToUpperInvariant(), l => l, ct);
+        var shiftsByCode      = await _context.ShiftMasters.Where(s => s.IsActive)
+            .ToDictionaryAsync(s => s.ShiftCode.ToUpperInvariant(), s => s, ct);
+
+        using var reader = new System.IO.StreamReader(file.OpenReadStream());
+        string? headerLine = await reader.ReadLineAsync(ct);
+        if (string.IsNullOrWhiteSpace(headerLine))
+            return BadRequest(ApiResponse<BulkImportResponse>.Fail("File is empty."));
+
+        int rowNumber = 1;
+        while (!reader.EndOfStream)
+        {
+            rowNumber++;
+            var line = await reader.ReadLineAsync(ct);
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            response.TotalRows++;
+            var parts = line.Split(',');
+            if (parts.Length < 7)
+            {
+                response.FailureCount++;
+                response.Errors.Add(new BulkImportRowError { RowNumber = rowNumber, Field = "Row", Message = "Insufficient columns." });
+                continue;
+            }
+
+            // Columns: 0=FirstName 1=LastName 2=OfficialEmail 3=PersonalPhone 4=DateOfBirth
+            //          5=Gender 6=JoiningDate 7=DeptCode 8=DesignationCode 9=GradeCode
+            //          10=LocationCode 11=ShiftCode 12=PayrollGroup 13=EmploymentType
+            //          14=NoticePeriodDays 15=PANNumber 16=AadhaarNumber
+            var firstName     = parts[0].Trim();
+            var lastName      = parts[1].Trim();
+            var email         = parts[2].Trim();
+            var phone         = parts[3].Trim();
+            var genderRaw     = parts.Length > 5  ? parts[5].Trim()  : string.Empty;
+            var deptCodeRaw   = parts.Length > 7  ? parts[7].Trim()  : string.Empty;
+            var desigCodeRaw  = parts.Length > 8  ? parts[8].Trim()  : string.Empty;
+            var gradeCodeRaw  = parts.Length > 9  ? parts[9].Trim()  : string.Empty;
+            var locCodeRaw    = parts.Length > 10 ? parts[10].Trim() : string.Empty;
+            var shiftCodeRaw  = parts.Length > 11 ? parts[11].Trim() : string.Empty;
+            var payrollGroup  = parts.Length > 12 ? parts[12].Trim() : string.Empty;
+            var empTypeRaw    = parts.Length > 13 ? parts[13].Trim() : string.Empty;
+            var noticeDaysRaw = parts.Length > 14 ? parts[14].Trim() : string.Empty;
+
+            if (string.IsNullOrWhiteSpace(firstName))
+            {
+                response.FailureCount++;
+                response.Errors.Add(new BulkImportRowError { RowNumber = rowNumber, Field = "FirstName", Message = "First Name is required." });
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+            {
+                response.FailureCount++;
+                response.Errors.Add(new BulkImportRowError { RowNumber = rowNumber, Field = "OfficialEmail", Message = "Valid official email is required." });
+                continue;
+            }
+
+            if (await _context.Employees.AnyAsync(e => e.OfficialEmail == email, ct))
+            {
+                response.FailureCount++;
+                response.Errors.Add(new BulkImportRowError { RowNumber = rowNumber, Field = "OfficialEmail", Message = $"Email '{email}' already exists." });
+                continue;
+            }
+
+            DateOnly.TryParse(parts[4].Trim(), out var dob);
+            DateOnly.TryParse(parts[6].Trim(), out var joiningDate);
+            if (joiningDate == default) joiningDate = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            // Resolve master data: use value from CSV if found, else fall back to default
+            var resolvedDept  = (!string.IsNullOrWhiteSpace(deptCodeRaw)  && deptsByCode.TryGetValue(deptCodeRaw.ToUpperInvariant(), out var d)) ? d : defaultDept;
+            var resolvedDesig = (!string.IsNullOrWhiteSpace(desigCodeRaw) && desigsByTitle.TryGetValue(desigCodeRaw.ToUpperInvariant(), out var dsg)) ? dsg : defaultDesignation;
+            var resolvedGrade = (!string.IsNullOrWhiteSpace(gradeCodeRaw) && gradesByCode.TryGetValue(gradeCodeRaw.ToUpperInvariant(), out var g)) ? g : null;
+            var resolvedLoc   = (!string.IsNullOrWhiteSpace(locCodeRaw)   && locationsByName.TryGetValue(locCodeRaw.ToUpperInvariant(), out var l)) ? l : defaultLocation;
+            var resolvedShift = (!string.IsNullOrWhiteSpace(shiftCodeRaw) && shiftsByCode.TryGetValue(shiftCodeRaw.ToUpperInvariant(), out var sh)) ? sh : defaultShift;
+
+            // Parse optional fields with safe fallbacks
+            var empType = Enum.TryParse<EmploymentType>(empTypeRaw, true, out var parsedEmpType)
+                ? parsedEmpType : EmploymentType.FullTime;
+            var pgEnum = Enum.TryParse<PayrollGroup>(payrollGroup, true, out var parsedPg)
+                ? parsedPg : (PayrollGroup?)null;
+            int.TryParse(noticeDaysRaw, out var noticePeriodDays);
+
+            var empId = Guid.NewGuid();
+            var empCode = await GenerateEmployeeCodeAsync(company.CompanyId, ct);
+
+            var newEmp = new Employee
+            {
+                EmployeeId       = empId,
+                CompanyId        = company.CompanyId,
+                EmployeeCode     = empCode,
+                FirstName        = firstName,
+                LastName         = lastName,
+                OfficialEmail    = email,
+                PersonalPhone    = phone,
+                DateOfBirth      = dob != default ? dob : null,
+                JoiningDate      = joiningDate,
+                DeptId           = resolvedDept.DeptId,
+                DesignationId    = resolvedDesig.DesignationId,
+                GradeId          = resolvedGrade?.GradeId,
+                LocationId       = resolvedLoc.LocationId,
+                ShiftId          = resolvedShift.ShiftId,
+                PayrollGroup     = pgEnum,
+                EmploymentType   = empType,
+                NoticePeriodDays = noticePeriodDays,
+                IsActive         = true,
+                CreatedAt        = DateTime.UtcNow
+            };
+
+            _context.Employees.Add(newEmp);
+
+            var initialHistory = new EmployeeEmploymentHistory
+            {
+                Id               = Guid.NewGuid(),
+                EmployeeId       = empId,
+                DeptId           = newEmp.DeptId,
+                DesignationId    = newEmp.DesignationId,
+                GradeId          = newEmp.GradeId,
+                LocationId       = newEmp.LocationId,
+                ShiftId          = newEmp.ShiftId,
+                PayrollGroup     = newEmp.PayrollGroup,
+                EmploymentType   = newEmp.EmploymentType.ToString(),
+                NoticePeriodDays = newEmp.NoticePeriodDays,
+                EffectiveFrom    = joiningDate,
+                EffectiveTo      = null,
+                CreatedAt        = DateTime.UtcNow
+            };
+            _context.EmployeeEmploymentHistories.Add(initialHistory);
+
+            response.SuccessCount++;
+        }
+
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<BulkImportResponse>.Ok(response, $"Bulk import completed: {response.SuccessCount} imported, {response.FailureCount} failed."));
+    }
+
+    // ─── Ticket 3.1: Maker-Checker Change Request Queue Endpoints ───────────────
+    [HttpGet("changes/pending")]
+    [Filters.RequirePermission(PermissionCodes.Employee.View)]
+    public async Task<ActionResult<ApiResponse<object>>> GetPendingChangeRequests(CancellationToken ct = default)
+    {
+        if (!_currentUser.HasRole(RoleCodes.HRAdmin) && !_currentUser.HasRole(RoleCodes.SuperAdmin))
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Only HR Admin can review maker-checker requests."));
+
+        var pendingChanges = await _context.PendingEmployeeChanges
+            .Include(c => c.Employee)
+            .Where(c => c.Status == "Pending")
+            .OrderByDescending(c => c.RequestedAt)
+            .Select(c => new
+            {
+                c.ChangeId,
+                c.EmployeeId,
+                EmployeeCode = c.Employee.EmployeeCode,
+                EmployeeName = (c.Employee.FirstName + " " + c.Employee.LastName).Trim(),
+                c.FieldCategory,
+                c.FieldName,
+                c.OldValue,
+                c.NewValue,
+                c.RequestedAt,
+                c.Status
+            })
+            .ToListAsync(ct);
+
+        return Ok(ApiResponse<object>.Ok(pendingChanges, $"Found {pendingChanges.Count} pending change request(s)."));
+    }
+
+    public class RejectChangeRequestDto
+    {
+        public string Reason { get; set; } = string.Empty;
+    }
+
+    [HttpPost("changes/{id:guid}/approve")]
+    [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
+    public async Task<ActionResult<ApiResponse<object>>> ApproveChangeRequest(Guid id, CancellationToken ct = default)
+    {
+        if (!_currentUser.HasRole(RoleCodes.HRAdmin) && !_currentUser.HasRole(RoleCodes.SuperAdmin))
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Only HR Admin can approve maker-checker requests."));
+
+        var change = await _context.PendingEmployeeChanges.Include(c => c.Employee).FirstOrDefaultAsync(c => c.ChangeId == id, ct);
+        if (change == null) return NotFound(ApiResponse<object>.Fail("Change request not found."));
+        if (change.Status != "Pending") return BadRequest(ApiResponse<object>.Fail("Request is no longer pending."));
+
+        change.Status = "Approved";
+        change.ReviewedBy = _currentUser.UserId;
+        change.ReviewedAt = DateTime.UtcNow;
+
+        // Apply the field change to the Employee record
+        switch (change.FieldName)
+        {
+            case "PersonalPhone": change.Employee.PersonalPhone = change.NewValue; break;
+            case "OfficialEmail": change.Employee.OfficialEmail = change.NewValue ?? change.Employee.OfficialEmail; break;
+            case "PANNumber":
+                change.Employee.PANNumber = change.NewValue;
+                // Also update PAN hash for search consistency
+                if (!string.IsNullOrWhiteSpace(change.NewValue))
+                    change.Employee.PANHash = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(change.NewValue.ToUpper())));
+                break;
+            case "AadharNumber":
+                change.Employee.AadharNumber = change.NewValue;
+                if (!string.IsNullOrWhiteSpace(change.NewValue))
+                    change.Employee.AadharHash = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(change.NewValue)));
+                break;
+            case "UANNumber":
+                change.Employee.UANNumber = change.NewValue;
+                break;
+            case "ESINumber":
+                change.Employee.ESINumber = change.NewValue;
+                break;
+            default:
+                break;
+        }
+
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<object>.Ok(null, $"Change request for '{change.FieldName}' approved and applied to Employee record."));
+    }
+
+    [HttpPost("changes/{id:guid}/reject")]
+    [Filters.RequirePermission(PermissionCodes.Employee.Edit)]
+    public async Task<ActionResult<ApiResponse<object>>> RejectChangeRequest(Guid id, [FromBody] RejectChangeRequestDto dto, CancellationToken ct = default)
+    {
+        if (!_currentUser.HasRole(RoleCodes.HRAdmin) && !_currentUser.HasRole(RoleCodes.SuperAdmin))
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Only HR Admin can reject maker-checker requests."));
+
+        if (string.IsNullOrWhiteSpace(dto.Reason)) return BadRequest(ApiResponse<object>.Fail("Rejection reason is required."));
+
+        var change = await _context.PendingEmployeeChanges.FirstOrDefaultAsync(c => c.ChangeId == id, ct);
+        if (change == null) return NotFound(ApiResponse<object>.Fail("Change request not found."));
+
+        change.Status = "Rejected";
+        change.RejectionReason = dto.Reason;
+        change.ReviewedBy = _currentUser.UserId;
+        change.ReviewedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(ct);
+        return Ok(ApiResponse<object>.Ok(null, "Change request rejected."));
+    }
 }
 
 public record UpdateEmployeeStatusRequest(EmploymentStatus Status);

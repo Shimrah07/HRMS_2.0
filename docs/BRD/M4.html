@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRMS - Module 4: Leave Management System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(17,153,142,0.4);
+            z-index: 9999;
+            transition: all 0.3s;
+        }
+        .print-btn:hover { transform: translateY(-2px); }
+
+        .container { max-width: 1300px; margin: 0 auto; padding: 20px; }
+
+        /* Cover */
+        .cover {
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: white;
+            padding: 60px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .cover::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(17,153,142,0.15) 0%, transparent 70%);
+        }
+        .cover h1 { font-size: 42px; font-weight: 800; background: linear-gradient(90deg,#38ef7d,#11998e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; position: relative; }
+        .cover p { color: #a0aec0; font-size: 18px; margin-top: 10px; position: relative; }
+        .cover-badges { display: flex; justify-content: center; gap: 12px; margin-top: 25px; flex-wrap: wrap; position: relative; }
+        .cover-badge { background: rgba(255,255,255,0.1); padding: 8px 18px; border-radius: 30px; font-size: 12px; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* Section */
+        .section { background: white; border-radius: 16px; margin-bottom: 25px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .section-header { padding: 22px 30px; color: white; display: flex; align-items: center; gap: 15px; }
+        .section-header h2 { font-size: 21px; font-weight: 700; }
+        .section-header p { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+        .section-body { padding: 25px 30px; }
+
+        /* Gradients */
+        .g-green  { background: linear-gradient(135deg,#11998e,#38ef7d); }
+        .g-blue   { background: linear-gradient(135deg,#667eea,#764ba2); }
+        .g-orange { background: linear-gradient(135deg,#f7971e,#ffd200); }
+        .g-red    { background: linear-gradient(135deg,#ff416c,#ff4b2b); }
+        .g-purple { background: linear-gradient(135deg,#4776e6,#8e54e9); }
+        .g-teal   { background: linear-gradient(135deg,#0f2027,#203a43,#2c5364); }
+        .g-pink   { background: linear-gradient(135deg,#ee0979,#ff6a00); }
+        .g-dark   { background: linear-gradient(135deg,#2c3e50,#3498db); }
+        .g-maroon { background: linear-gradient(135deg,#8e0e00,#1f1c18); }
+        .g-lime   { background: linear-gradient(135deg,#56ab2f,#a8e063); }
+        .g-cyan   { background: linear-gradient(135deg,#00b4db,#0083b0); }
+
+        /* Stats */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 12px; margin: 15px 0; }
+        .stat-box { background: white; border-radius: 10px; padding: 15px; text-align: center; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stat-box .num { font-size: 28px; font-weight: 800; background: linear-gradient(135deg,#11998e,#38ef7d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-box .lbl { font-size: 11px; color: #718096; margin-top: 3px; }
+
+        /* Field Table */
+        .field-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 15px 0; }
+        .field-table th { background: #f7fafc; padding: 10px 12px; text-align: left; font-weight: 700; color: #2d3748; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+        .field-table td { padding: 9px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+        .field-table tr:nth-child(even) { background: #fafafa; }
+        .field-table tr:hover { background: #f0fff4; }
+
+        /* Badges */
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+        .b-required    { background: #fed7d7; color: #c53030; }
+        .b-optional    { background: #c6f6d5; color: #276749; }
+        .b-conditional { background: #feebc8; color: #c05621; }
+        .b-text        { background: #e9d8fd; color: #553c9a; }
+        .b-number      { background: #bee3f8; color: #2b6cb0; }
+        .b-date        { background: #fefcbf; color: #744210; }
+        .b-dropdown    { background: #fed7e2; color: #97266d; }
+        .b-file        { background: #c6f6d5; color: #22543d; }
+        .b-radio       { background: #e9d8fd; color: #44337a; }
+        .b-checkbox    { background: #b2f5ea; color: #234e52; }
+        .b-email       { background: #bee3f8; color: #1a365d; }
+        .b-mobile      { background: #feebc8; color: #7b341e; }
+        .b-textarea    { background: #e2e8f0; color: #4a5568; }
+        .b-readonly    { background: #e2e8f0; color: #4a5568; }
+        .b-auto        { background: #c6f6d5; color: #1c4532; }
+        .b-rich        { background: #fef3c7; color: #92400e; }
+        .b-critical    { background: #fc8181; color: #7b0000; }
+        .b-high        { background: #f6ad55; color: #7b341e; }
+        .b-medium      { background: #76e4f7; color: #065666; }
+        .b-low         { background: #9ae6b4; color: #1c4532; }
+        .b-toggle      { background: #d6bcfa; color: #44337a; }
+        .b-rating      { background: #fbd38d; color: #7b341e; }
+
+        /* Form Preview */
+        .form-preview { background: #f8fafc; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; }
+        .form-row { display: grid; gap: 15px; margin-bottom: 15px; }
+        .form-row.col-1 { grid-template-columns: 1fr; }
+        .form-row.col-2 { grid-template-columns: 1fr 1fr; }
+        .form-row.col-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .form-row.col-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        .form-field { display: flex; flex-direction: column; gap: 4px; }
+        .form-field label { font-size: 11px; font-weight: 700; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-field label .req { color: #e53e3e; }
+        .form-field input, .form-field select, .form-field textarea {
+            padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+            font-size: 13px; color: #2d3748; background: white;
+        }
+        .form-field textarea { resize: vertical; min-height: 80px; }
+        .form-field .hint { font-size: 10px; color: #a0aec0; }
+        .form-field .error-msg { font-size: 10px; color: #e53e3e; }
+        .form-section-title {
+            font-size: 13px; font-weight: 800; color: #11998e;
+            padding: 8px 12px; background: linear-gradient(135deg,#e6fffa,#c6f6d5);
+            border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #11998e;
+        }
+
+        /* Flow */
+        .flow-container { overflow-x: auto; padding: 10px 0; }
+        .flow-steps { display: flex; align-items: flex-start; gap: 0; min-width: max-content; }
+        .flow-step {
+            background: white; border: 2px solid #11998e; border-radius: 10px;
+            padding: 12px 14px; text-align: center; min-width: 130px;
+        }
+        .flow-step .step-num {
+            background: #11998e; color: white; width: 22px; height: 22px;
+            border-radius: 50%; font-size: 11px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; margin: 0 auto 6px;
+        }
+        .flow-step .step-title { font-size: 11px; font-weight: 700; color: #2d3748; }
+        .flow-step .step-role  { font-size: 9px; color: #11998e; font-weight: 600; margin-top: 2px; }
+        .flow-step .step-desc  { font-size: 10px; color: #718096; margin-top: 3px; }
+        .flow-arrow { color: #11998e; font-size: 22px; padding: 0 4px; margin-top: 22px; }
+        .flow-step.decision { border-color: #ed8936; background: #fffaf0; }
+        .flow-step.decision .step-num { background: #ed8936; }
+        .flow-step.decision .step-role { color: #ed8936; }
+        .flow-step.success  { border-color: #48bb78; background: #f0fff4; }
+        .flow-step.success  .step-num { background: #48bb78; }
+        .flow-step.error    { border-color: #e53e3e; background: #fff5f5; }
+        .flow-step.error    .step-num { background: #e53e3e; }
+        .flow-step.rejected { border-color: #718096; background: #f7fafc; }
+        .flow-step.rejected .step-num { background: #718096; }
+
+        /* Info / Warning / Validation boxes */
+        .info-box    { background: #e6fffa; border: 1px solid #81e6d9; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .info-box h4 { color: #234e52; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .info-box p, .info-box li { font-size: 12px; color: #234e52; }
+        .info-box ul { padding-left: 16px; }
+
+        .warning-box    { background: #fffbeb; border: 1px solid #f6e05e; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .warning-box h4 { color: #b7791f; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .warning-box p, .warning-box li { font-size: 12px; color: #7b341e; }
+        .warning-box ul { padding-left: 16px; }
+
+        .validation-box    { background: #fff5f5; border: 1px solid #fed7d7; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .validation-box h4 { color: #c53030; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .validation-box li  { font-size: 12px; color: #742a2a; padding: 2px 0; }
+        .validation-box ul  { padding-left: 16px; }
+
+        .success-box    { background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .success-box h4 { color: #276749; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .success-box li  { font-size: 12px; color: #1c4532; padding: 2px 0; }
+        .success-box ul  { padding-left: 16px; }
+
+        /* RBAC */
+        .rbac-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 15px 0; }
+        .rbac-table th { background: #2d3748; color: white; padding: 10px 10px; text-align: center; font-size: 11px; }
+        .rbac-table td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 11px; }
+        .rbac-table tr:nth-child(even) { background: #f7fafc; }
+        .rbac-table .field-name { text-align: left; font-weight: 600; color: #2d3748; font-size: 12px; }
+        .can       { color: #276749; font-size: 15px; }
+        .cannot    { color: #c53030; font-size: 15px; }
+        .view-only { color: #2b6cb0; font-size: 13px; font-weight: 700; }
+        .masked    { color: #b7791f; font-size: 10px; font-weight: 700; }
+
+        /* Kanban Board */
+        .kanban { display: flex; gap: 12px; overflow-x: auto; padding: 10px 0; }
+        .kanban-col {
+            min-width: 160px; background: #f8fafc; border-radius: 12px;
+            padding: 12px; border: 1px solid #e2e8f0; flex-shrink: 0;
+        }
+        .kanban-col-title { font-size: 12px; font-weight: 700; color: white; padding: 6px 12px; border-radius: 8px; text-align: center; margin-bottom: 10px; }
+        .kanban-card { background: white; border-radius: 8px; padding: 10px; margin-bottom: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); font-size: 11px; border-left: 3px solid; }
+        .kanban-card .kc-title { font-weight: 700; color: #2d3748; margin-bottom: 3px; }
+        .kanban-card .kc-meta { color: #718096; font-size: 10px; }
+
+        /* Pipeline Stage */
+        .pipeline { display: flex; gap: 0; margin: 15px 0; overflow-x: auto; }
+        .pipe-stage {
+            flex: 1; min-width: 100px; text-align: center; padding: 12px 8px;
+            position: relative; background: #f8fafc;
+            border-top: 3px solid #e2e8f0; border-bottom: 3px solid #e2e8f0;
+        }
+        .pipe-stage:first-child { border-radius: 10px 0 0 10px; border-left: 3px solid #e2e8f0; }
+        .pipe-stage:last-child  { border-radius: 0 10px 10px 0; border-right: 3px solid #e2e8f0; }
+        .pipe-stage.active { background: linear-gradient(135deg,#e6fffa,#c6f6d5); border-color: #11998e; }
+        .pipe-stage .ps-count { font-size: 22px; font-weight: 800; color: #11998e; }
+        .pipe-stage .ps-label { font-size: 10px; color: #718096; margin-top: 3px; font-weight: 600; }
+        .pipe-stage .ps-arrow { position: absolute; right: -8px; top: 50%; transform: translateY(-50%); background: white; border-radius: 50%; border: 2px solid #e2e8f0; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 9px; z-index: 1; }
+
+        /* Timeline */
+        .timeline { position: relative; padding: 10px 0; }
+        .timeline::before { content: ''; position: absolute; left: 18px; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom,#11998e,#38ef7d); border-radius: 2px; }
+        .tl-item { display: flex; gap: 15px; margin-bottom: 18px; padding-left: 10px; }
+        .tl-dot { width: 18px; height: 18px; border-radius: 50%; background: #11998e; flex-shrink: 0; border: 2px solid white; box-shadow: 0 0 0 2px #11998e; margin-top: 2px; }
+        .tl-content { background: white; border-radius: 10px; padding: 12px 15px; flex: 1; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .tl-content h4 { font-size: 13px; font-weight: 700; color: #2d3748; margin-bottom: 4px; }
+        .tl-content p  { font-size: 12px; color: #718096; }
+        .tl-content .tl-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .tl-tag { background: #e6fffa; color: #234e52; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+
+        /* API box */
+        .api-box { background: #1a202c; border-radius: 10px; padding: 15px; margin: 10px 0; font-family: 'Courier New', monospace; font-size: 11px; color: #68d391; overflow-x: auto; }
+        .api-method { color: #f6ad55; font-weight: 700; }
+        .api-url    { color: #90cdf4; }
+        .api-key    { color: #fc8181; }
+        .api-value  { color: #68d391; }
+
+        /* Grid */
+        .two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .four-col  { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+
+        .sub-section { background: #f8fafc; border-radius: 12px; padding: 20px; margin: 15px 0; }
+        .sub-section h3 { font-size: 16px; font-weight: 700; color: #2d3748; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+
+        /* Checklist */
+        .checklist { list-style: none; padding: 0; }
+        .checklist li { padding: 5px 0; font-size: 12px; color: #4a5568; display: flex; align-items: flex-start; gap: 8px; border-bottom: 1px solid #f0f0f0; }
+        .checklist li:last-child { border: none; }
+        .checklist li .check { color: #48bb78; font-weight: 700; flex-shrink: 0; }
+        .checklist li .cross { color: #e53e3e; font-weight: 700; flex-shrink: 0; }
+        .checklist li .warn  { color: #ed8936; font-weight: 700; flex-shrink: 0; }
+
+        /* Score card */
+        .score-card { background: white; border-radius: 12px; padding: 15px; border: 1px solid #e2e8f0; }
+        .score-row  { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+        .score-row .sc-label { color: #4a5568; }
+        .score-row .sc-score { font-weight: 700; color: #11998e; }
+        .score-bar  { height: 6px; background: #e2e8f0; border-radius: 3px; margin-top: 3px; }
+        .score-fill { height: 100%; background: linear-gradient(90deg,#11998e,#38ef7d); border-radius: 3px; }
+
+        /* Status badge */
+        .status { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .s-new        { background: #bee3f8; color: #2b6cb0; }
+        .s-screen     { background: #feebc8; color: #c05621; }
+        .s-interview  { background: #e9d8fd; color: #553c9a; }
+        .s-offer      { background: #c6f6d5; color: #276749; }
+        .s-joined     { background: #9ae6b4; color: #1c4532; }
+        .s-rejected   { background: #fed7d7; color: #c53030; }
+        .s-hold       { background: #e2e8f0; color: #4a5568; }
+        .s-withdrawn  { background: #fef3c7; color: #92400e; }
+
+        /* Print */
+        @media print {
+            body { background: white; font-size: 11px; }
+            .print-btn { display: none !important; }
+            .container { max-width: 100%; padding: 0; }
+            .section { box-shadow: none; border: 1px solid #e2e8f0; break-inside: avoid; }
+            .section-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .api-box { background: #f0f0f0 !important; color: #333 !important; }
+            @page { margin: 12mm; size: A4; }
+        }
+
+        @media (max-width: 768px) {
+            .two-col, .three-col, .four-col { grid-template-columns: 1fr; }
+            .form-row.col-2, .form-row.col-3, .form-row.col-4 { grid-template-columns: 1fr; }
+            .cover { padding: 30px 20px; }
+            .cover h1 { font-size: 26px; }
+        }
+    </style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ PDF Save Karein</button>
+
+<div class="container">
+
+    <!-- ===== COVER ===== -->
+    <div class="cover">
+        <div style="font-size:64px;margin-bottom:15px;position:relative;">🌴</div>
+        <h1>Module 4: Leave Management System</h1>
+        <p>HRMS System — Deep Level Requirements Document</p>
+        <div class="cover-badges">
+            <span class="cover-badge">📋 110+ Fields Documented</span>
+            <span class="cover-badge">🔐 RBAC - 6 Roles</span>
+            <span class="cover-badge">🔄 8 Sub-Modules</span>
+            <span class="cover-badge">✅ Full Validations</span>
+            <span class="cover-badge">📅 14 Leave Types</span>
+            <span class="cover-badge">⚖️ Indian Labour Law Compliant</span>
+            <span class="cover-badge">🔗 13 API Endpoints</span>
+            <span class="cover-badge">📈 Leave Analytics</span>
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+        <div class="stat-box"><div class="num">8</div><div class="lbl">Sub-Modules</div></div>
+        <div class="stat-box"><div class="num">110+</div><div class="lbl">Input Fields</div></div>
+        <div class="stat-box"><div class="num">14</div><div class="lbl">Leave Types</div></div>
+        <div class="stat-box"><div class="num">6</div><div class="lbl">User Roles</div></div>
+        <div class="stat-box"><div class="num">16</div><div class="lbl">Workflow Steps</div></div>
+        <div class="stat-box"><div class="num">15</div><div class="lbl">Reports</div></div>
+        <div class="stat-box"><div class="num">18+</div><div class="lbl">Notifications</div></div>
+        <div class="stat-box"><div class="num">8</div><div class="lbl">Sector Configs</div></div>
+    </div>
+
+    <!-- ===== 1. OVERVIEW ===== -->
+    <div class="section">
+        <div class="section-header g-purple">
+            <span style="font-size:28px">📌</span>
+            <div>
+                <h2>1.0 Module Overview & Sub-Module List</h2>
+                <p>Leave — Policy configuration se balance settlement tak ka poora process</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="info-box">
+                        <h4>🎯 Module Purpose</h4>
+                        <p>Leave Management module employee ke sabhi leave types — Earned, Casual, Sick, Maternity, Paternity — ko policy-based accrue, apply, approve aur settle karta hai. Indian labour law (Factories Act, Shops & Establishment Act, Maternity Benefit Act) ke hisaab se state-wise aur sector-wise configurable, aur Attendance (Module 3) & Payroll (Module 5) ke saath fully synced.</p>
+                    </div>
+                    <div class="info-box" style="margin-top:12px;">
+                        <h4>📦 8 Sub-Modules</h4>
+                        <ul>
+                            <li><strong>4.1</strong> Leave Type Master & Policy Configuration</li>
+                            <li><strong>4.2</strong> Leave Application & Approval Workflow</li>
+                            <li><strong>4.3</strong> Leave Balance & Accrual Engine</li>
+                            <li><strong>4.4</strong> Holiday Calendar Management</li>
+                            <li><strong>4.5</strong> Maternity, Paternity & Statutory Leaves</li>
+                            <li><strong>4.6</strong> Leave Encashment & Carry Forward</li>
+                            <li><strong>4.7</strong> Sector-Specific Leave Configuration</li>
+                            <li><strong>4.8</strong> Leave Dashboard & Analytics</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Key Business Rules</h4>
+                        <ul>
+                            <li>Leave balance se zyada apply nahi ho sakta, unless policy negative balance allow kare</li>
+                            <li>Sandwich leave rule: weekly-off/holiday leave ke beech aaye to woh bhi leave count hoga (policy-based)</li>
+                            <li>CL aur SL ko clubbed nahi kar sakte 3 din se zyada (company policy dependent)</li>
+                            <li>Maternity leave sirf confirmed female employee ko, max 2 surviving children tak full benefit</li>
+                            <li>Leave application minimum prior notice ke bina auto-reject (except sick/emergency leave)</li>
+                            <li>Approved leave attendance module mein auto-reflect hoga, double deduction nahi hoga</li>
+                            <li>Carry-forward leave ki max limit aur expiry date policy se bound hai</li>
+                            <li>LOP (Loss of Pay) auto-trigger hota hai jab balance khatam ho jaye aur employee phir bhi absent rahe</li>
+                        </ul>
+                    </div>
+                    <div class="success-box" style="margin-top:12px;">
+                        <h4>✅ Key Metrics System Track Karega</h4>
+                        <ul>
+                            <li>Leave Utilization % by type & department</li>
+                            <li>Average Leave Balance per Employee</li>
+                            <li>Leave Approval TAT (Turnaround Time)</li>
+                            <li>Absenteeism Pattern (Monday/Friday leaves)</li>
+                            <li>Carry Forward vs Encashment Ratio</li>
+                            <li>Maternity/Paternity Leave Compliance</li>
+                            <li>LOP Days & Cost Impact</li>
+                            <li>Team Coverage Risk (overlapping leaves)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 2. MASTER FLOW ===== -->
+    <div class="section">
+        <div class="section-header g-dark">
+            <span style="font-size:28px">🔄</span>
+            <div>
+                <h2>2.0 Master Leave Flow — End to End</h2>
+                <p>Policy setup se leave settlement tak — poora lifecycle</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:#2d3748;">🔵 Phase 1: Policy Setup & Accrual</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">1</div>
+                        <div class="step-title">HR Configures Policy</div>
+                        <div class="step-role">👤 HR Admin</div>
+                        <div class="step-desc">Leave types, quota, rules</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">2</div>
+                        <div class="step-title">Employee Joins</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">From Module 1 trigger</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">3</div>
+                        <div class="step-title">Pro-rata Calculation</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Based on DOJ month</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">4</div>
+                        <div class="step-title">✅ Opening Balance Set</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Leave ledger initialized</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">5</div>
+                        <div class="step-title">Monthly Accrual</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">1st of every month</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🟠 Phase 2: Application to Approval</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">6</div>
+                        <div class="step-title">Employee Applies</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Type, dates, reason</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">7</div>
+                        <div class="step-title">Balance & Rule Check</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Sandwich, prior-notice, club rules</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">8</div>
+                        <div class="step-title">Alternate Arrangement</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Backup person tagged</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">9</div>
+                        <div class="step-title">Manager Approval</div>
+                        <div class="step-role">👤 Reporting Manager</div>
+                        <div class="step-desc">Approve / Reject / Query</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">10</div>
+                        <div class="step-title">Second-Level (if &gt;5 days)</div>
+                        <div class="step-role">👤 HOD</div>
+                        <div class="step-desc">Escalated for long leaves</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">11</div>
+                        <div class="step-title">✅ Leave Approved</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Balance deducted, calendar updated</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step rejected">
+                        <div class="step-num">11b</div>
+                        <div class="step-title">❌ Rejected</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Reason mandatory, employee notified</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🟢 Phase 3: Consumption to Year-End Settlement</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">12</div>
+                        <div class="step-title">Attendance Sync</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Leave days marked in Module 3</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">13</div>
+                        <div class="step-title">Cancellation (if needed)</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Before leave start date</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">14</div>
+                        <div class="step-title">Year-End Check</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Balance vs max carry-forward</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">15</div>
+                        <div class="step-title">Carry Forward / Lapse</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">As per policy cap</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">16</div>
+                        <div class="step-title">✅ Encashment Processed</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Payroll payout for eligible days</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pipeline View -->
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">📊 Today's Leave Status — Live View</h3>
+            <div class="pipeline">
+                <div class="pipe-stage">
+                    <div class="ps-count">14</div>
+                    <div class="ps-label">Pending Approval</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage active">
+                    <div class="ps-count">38</div>
+                    <div class="ps-label">On Leave Today</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">6</div>
+                    <div class="ps-label">On Maternity/Paternity</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">3</div>
+                    <div class="ps-label">Cancelled This Week</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">4</div>
+                    <div class="ps-label">Rejected This Week</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">210</div>
+                    <div class="ps-label">Approved This Month</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 3. LEAVE TYPE MASTER ===== -->
+    <div class="section">
+        <div class="section-header g-blue">
+            <span style="font-size:28px">📅</span>
+            <div>
+                <h2>3.0 Sub-Module 4.1 — Leave Type Master & Policy Configuration</h2>
+                <p>14 leave types — Indian standard, fully configurable per company/grade</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="stats-row">
+                <div class="stat-box"><div class="num">14</div><div class="lbl">Leave Types</div></div>
+                <div class="stat-box"><div class="num">3</div><div class="lbl">Accrual Modes</div></div>
+                <div class="stat-box"><div class="num">26</div><div class="lbl">Wks Maternity</div></div>
+                <div class="stat-box"><div class="num">20</div><div class="lbl">Days Worked/EL (Factory)</div></div>
+            </div>
+
+            <div class="sub-section">
+                <h3>📋 Leave Type Master</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Leave Type</th><th>Code</th><th>Default Quota / Year</th><th>Accrual</th><th>Carry Forward</th><th>Encashable</th></tr>
+                        <tr><td><strong>Earned Leave / Privilege Leave</strong></td><td>EL/PL</td><td>15-18 days</td><td>Monthly (1.25-1.5/mo)</td><td>Yes, max 45 days</td><td>Yes</td></tr>
+                        <tr><td><strong>Casual Leave</strong></td><td>CL</td><td>7-12 days</td><td>Yearly (upfront)</td><td>No (lapses)</td><td>No</td></tr>
+                        <tr><td><strong>Sick Leave / Medical Leave</strong></td><td>SL</td><td>7-12 days</td><td>Yearly (upfront)</td><td>No (or max 5 days)</td><td>No</td></tr>
+                        <tr><td><strong>Maternity Leave</strong></td><td>ML</td><td>26 weeks (first 2 kids)</td><td>Event-based</td><td>N/A</td><td>No</td></tr>
+                        <tr><td><strong>Paternity Leave</strong></td><td>PTL</td><td>5-15 days (company policy)</td><td>Event-based</td><td>N/A</td><td>No</td></tr>
+                        <tr><td><strong>Bereavement Leave</strong></td><td>BL</td><td>3-5 days</td><td>Event-based</td><td>N/A</td><td>No</td></tr>
+                        <tr><td><strong>Marriage Leave</strong></td><td>MRL</td><td>3-7 days (once)</td><td>Event-based</td><td>N/A</td><td>No</td></tr>
+                        <tr><td><strong>Study / Exam Leave</strong></td><td>STL</td><td>Policy-based</td><td>On approval</td><td>No</td><td>No</td></tr>
+                        <tr><td><strong>Compensatory Off</strong></td><td>CO</td><td>Earned (Module 3 sync)</td><td>Event-based</td><td>90 days validity</td><td>Policy-based</td></tr>
+                        <tr><td><strong>Loss of Pay</strong></td><td>LOP</td><td>Unlimited (deduction)</td><td>N/A</td><td>N/A</td><td>N/A</td></tr>
+                        <tr><td><strong>Half Day Leave</strong></td><td>HD</td><td>Deducted from base type</td><td>N/A</td><td>N/A</td><td>N/A</td></tr>
+                        <tr><td><strong>Optional Holiday</strong></td><td>OH</td><td>2-3 days (choose from list)</td><td>Yearly</td><td>No</td><td>No</td></tr>
+                        <tr><td><strong>Child Adoption Leave</strong></td><td>CAL</td><td>12 weeks (as per policy)</td><td>Event-based</td><td>N/A</td><td>No</td></tr>
+                        <tr><td><strong>Miscarriage Leave</strong></td><td>MSL</td><td>6 weeks (statutory)</td><td>Event-based</td><td>N/A</td><td>No</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-preview">
+                <div class="form-section-title">⚙️ Leave Policy Configuration Form</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Leave Type <span class="req">*</span></label>
+                        <select><option>Earned Leave (EL)</option><option>Casual Leave (CL)</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Applicable To <span class="req">*</span></label>
+                        <select><option>All Employees</option><option>Confirmed Employees Only</option><option>Grade-wise</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Annual Quota (days) <span class="req">*</span></label>
+                        <input type="number" value="18">
+                    </div>
+                    <div class="form-field">
+                        <label>Accrual Frequency <span class="req">*</span></label>
+                        <select><option>Monthly</option><option>Quarterly</option><option>Yearly (upfront)</option></select>
+                    </div>
+                </div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Pro-rata for Mid-Year Joiners</label>
+                        <select><option>Yes</option><option>No</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Max Carry Forward (days)</label>
+                        <input type="number" value="45">
+                    </div>
+                    <div class="form-field">
+                        <label>Encashment Allowed?</label>
+                        <select><option>Yes - on year end</option><option>Yes - on exit only</option><option>No</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Min Prior Notice (days)</label>
+                        <input type="number" value="3">
+                    </div>
+                </div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Max Consecutive Days</label>
+                        <input type="number" value="15">
+                    </div>
+                    <div class="form-field">
+                        <label>Sandwich Rule Applicable?</label>
+                        <select><option>Yes</option><option>No</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Club Restriction (with)</label>
+                        <select><option>None</option><option>Cannot club with SL</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Gender Specific</label>
+                        <select><option>All</option><option>Female Only</option><option>Male Only</option></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="warning-box" style="margin-top:15px;">
+                <h4>⚠️ Policy Validation Rules</h4>
+                <ul>
+                    <li>Annual quota grade/department override company default policy hai to woh apply hoga</li>
+                    <li>Sandwich leave rule: leave dates ke beech aane wala weekly-off/holiday bhi leave count hoga</li>
+                    <li>CL+SL clubbing restriction: consecutive 3+ days ke liye combined type allowed nahi (configurable)</li>
+                    <li>Encashment ki rate = (Basic+DA)/26 × eligible days, max cap policy se bound</li>
+                    <li>Probation period employees ko sirf Casual/Sick Leave milegi, EL confirmation ke baad activate</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 4. APPLICATION & APPROVAL ===== -->
+    <div class="section">
+        <div class="section-header g-orange">
+            <span style="font-size:28px">✅</span>
+            <div>
+                <h2>4.0 Sub-Module 4.2 — Leave Application & Approval Workflow</h2>
+                <p>Self-service application se multi-level approval tak</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="form-preview">
+                <div class="form-section-title">📝 Leave Application Form</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Leave Type <span class="req">*</span></label>
+                        <select><option>Earned Leave</option><option>Casual Leave</option><option>Sick Leave</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>From Date <span class="req">*</span></label>
+                        <input type="date" value="2024-02-12">
+                    </div>
+                    <div class="form-field">
+                        <label>To Date <span class="req">*</span></label>
+                        <input type="date" value="2024-02-14">
+                    </div>
+                </div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>No. of Days</label>
+                        <input type="text" value="3" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Half Day?</label>
+                        <select><option>No</option><option>Yes - First Half</option><option>Yes - Second Half</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Available Balance</label>
+                        <input type="text" value="12.5 days" readonly style="background:#f0fff4;color:#276749;font-weight:700;">
+                    </div>
+                </div>
+                <div class="form-row col-1">
+                    <div class="form-field">
+                        <label>Reason <span class="req">*</span></label>
+                        <textarea placeholder="E.g. Family function, out of station"></textarea>
+                    </div>
+                </div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Alternate / Backup Person <span class="req">*</span></label>
+                        <select><option>Priya Sharma - Team Member</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Contact During Leave</label>
+                        <input type="text" placeholder="Mobile number (optional)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-container" style="margin-top:15px;">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">1</div>
+                        <div class="step-title">Employee Submits</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Via portal / mobile app</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">2</div>
+                        <div class="step-title">Auto-Rule Check</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Balance, notice, overlap</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">3</div>
+                        <div class="step-title">Auto-Approve? (≤1 day)</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Policy-based short leave</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">4</div>
+                        <div class="step-title">Manager Review</div>
+                        <div class="step-role">👤 Reporting Manager</div>
+                        <div class="step-desc">Team coverage check</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">5</div>
+                        <div class="step-title">HOD Escalation (&gt;5 days)</div>
+                        <div class="step-role">👤 HOD</div>
+                        <div class="step-desc">Long leave second approval</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">6</div>
+                        <div class="step-title">✅ Approved</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Balance deducted, calendar blocked</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col" style="margin-top:15px;">
+                <div>
+                    <div class="info-box">
+                        <h4>📆 Team Calendar View (Manager)</h4>
+                        <ul>
+                            <li>Month-view showing all team members' approved/pending leaves</li>
+                            <li>Colour-coded by leave type</li>
+                            <li>Overlap warning when &gt;30% team on leave same day</li>
+                            <li>Critical role coverage alert (single point of failure flag)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="validation-box">
+                        <h4>🚫 Application Rejection Scenarios</h4>
+                        <ul>
+                            <li>Insufficient leave balance (unless negative balance allowed)</li>
+                            <li>Prior notice period not met (except emergency/sick)</li>
+                            <li>Overlapping with already-approved leave dates</li>
+                            <li>Blackout period (e.g. month-end close, audit week) — policy configured</li>
+                            <li>Max consecutive days exceeded for that leave type</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-box" style="margin-top:12px;">
+                <h4>❌ Leave Cancellation Workflow</h4>
+                <ul>
+                    <li>Employee can cancel own approved leave before start date (auto-credit balance back)</li>
+                    <li>Cancellation after leave has started requires manager approval</li>
+                    <li>Manager can force-cancel in exceptional business need (with notification to employee)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 5. BALANCE & ACCRUAL ENGINE ===== -->
+    <div class="section">
+        <div class="section-header g-purple">
+            <span style="font-size:28px">⚙️</span>
+            <div>
+                <h2>5.0 Sub-Module 4.3 — Leave Balance & Accrual Engine</h2>
+                <p>Monthly accrual, pro-rata calculation, ledger management</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="sub-section">
+                <h3>📐 Accrual Calculation Logic</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Scenario</th><th>Rule</th><th>Example</th></tr>
+                        <tr><td>Full year employee, monthly accrual</td><td>Annual Quota ÷ 12, credited 1st of month</td><td>18 EL/yr → 1.5 days credited every month</td></tr>
+                        <tr><td>Mid-year joiner (Pro-rata)</td><td>(Annual Quota ÷ 12) × remaining months</td><td>Joins July → 18/12 × 6 = 9 days for the year</td></tr>
+                        <tr><td>Factories Act EL calculation</td><td>1 day EL for every 20 days worked</td><td>240 days worked → 12 EL earned</td></tr>
+                        <tr><td>Yearly upfront (CL/SL)</td><td>Full quota credited on Jan 1 / policy year start</td><td>10 CL credited on Jan 1st</td></tr>
+                        <tr><td>Comp-off accrual</td><td>Event-based from Attendance Module (Module 3)</td><td>1 comp-off day per holiday worked</td></tr>
+                        <tr><td>Confirmation-based unlock</td><td>EL unlocked only after probation confirmation</td><td>EL balance = 0 until confirmed, then back-dated credit</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-preview">
+                <div class="form-section-title">📒 Employee Leave Ledger (Sample View)</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Leave Type</label>
+                        <input type="text" value="Earned Leave (EL)" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Opening Balance</label>
+                        <input type="text" value="9.0" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Accrued (This Year)</label>
+                        <input type="text" value="+9.0" readonly style="background:#f0fff4;color:#276749;">
+                    </div>
+                    <div class="form-field">
+                        <label>Availed</label>
+                        <input type="text" value="-5.5" readonly style="background:#fff5f5;color:#c53030;">
+                    </div>
+                </div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Current Balance</label>
+                        <input type="text" value="12.5" readonly style="background:#e6fffa;color:#234e52;font-weight:700;">
+                    </div>
+                    <div class="form-field">
+                        <label>Encashed</label>
+                        <input type="text" value="0.0" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Lapsed (Year End)</label>
+                        <input type="text" value="0.0" readonly style="background:#f7fafc;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col" style="margin-top:15px;">
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Ledger Integrity Rules</h4>
+                        <ul>
+                            <li>Every balance change (accrual/availed/encashed/lapsed) logged as separate ledger entry — no direct balance overwrite</li>
+                            <li>Negative balance allowed only if policy flag enabled (advance leave)</li>
+                            <li>Ledger entries immutable post-payroll-freeze for that month</li>
+                            <li>Balance recalculation trigger on retrospective leave cancellation</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="success-box">
+                        <h4>✅ Balance Visibility</h4>
+                        <ul>
+                            <li>Employee self-service — real-time balance across all leave types</li>
+                            <li>Manager — team balance summary view</li>
+                            <li>Projected balance (including future accruals) for planning</li>
+                            <li>Downloadable leave statement (PDF/Excel)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 6. HOLIDAY CALENDAR ===== -->
+    <div class="section">
+        <div class="section-header g-red">
+            <span style="font-size:28px">🗓️</span>
+            <div>
+                <h2>6.0 Sub-Module 4.4 — Holiday Calendar Management</h2>
+                <p>National, state, region aur company holidays — location-wise configurable</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="form-preview">
+                <div class="form-section-title">🗓️ Holiday Master Configuration</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Holiday Name <span class="req">*</span></label>
+                        <input type="text" value="Republic Day" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Date <span class="req">*</span></label>
+                        <input type="date" value="2024-01-26" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Holiday Type <span class="req">*</span></label>
+                        <select><option>National (Mandatory)</option><option>State/Regional</option><option>Company Declared</option><option>Optional</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Applicable Location <span class="req">*</span></label>
+                        <select><option>All India</option><option>Maharashtra Only</option><option>Mumbai Office Only</option></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sub-section" style="margin-top:15px;">
+                <h3>📋 Holiday Calendar Types</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Type</th><th>Examples</th><th>Applicability</th><th>Employee Choice</th></tr>
+                        <tr><td><strong>National Holidays</strong></td><td>Republic Day (26 Jan), Independence Day (15 Aug), Gandhi Jayanti (2 Oct)</td><td>All locations mandatory</td><td>No</td></tr>
+                        <tr><td><strong>State-wise Public Holidays</strong></td><td>Maharashtra Day, Gudi Padwa, Pongal, Onam</td><td>State-specific offices</td><td>No</td></tr>
+                        <tr><td><strong>Festival Holidays (Region)</strong></td><td>Diwali, Holi, Eid, Christmas, Durga Puja</td><td>Region/community based</td><td>No</td></tr>
+                        <tr><td><strong>Company Declared</strong></td><td>Founders' Day, Annual Day</td><td>All employees</td><td>No</td></tr>
+                        <tr><td><strong>Optional / Restricted Holidays</strong></td><td>Choose 2 out of 6 regional festivals</td><td>Employee selects from list</td><td>Yes - pick from options</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <div class="info-box">
+                        <h4>🌍 Location-wise Calendar Features</h4>
+                        <ul>
+                            <li>Separate calendar per office location / state</li>
+                            <li>Auto-assign calendar based on employee's work location</li>
+                            <li>Multi-location employees see combined view</li>
+                            <li>Calendar approval workflow (HR draft → CHRO sign-off)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="success-box">
+                        <h4>✅ Integration & Export</h4>
+                        <ul>
+                            <li>Calendar export in iCal format for Outlook/Google Calendar sync</li>
+                            <li>Auto-block leave application on mandatory holidays</li>
+                            <li>Shift-adjusted holiday rules for 24x7 operations (compensatory off instead)</li>
+                            <li>Holiday falling on weekly-off — policy-based compensatory day</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 7. MATERNITY/PATERNITY & STATUTORY ===== -->
+    <div class="section">
+        <div class="section-header g-teal">
+            <span style="font-size:28px">👶</span>
+            <div>
+                <h2>7.0 Sub-Module 4.5 — Maternity, Paternity & Statutory Leaves</h2>
+                <p>Indian labour law compliant — Maternity Benefit Act, ESIC, special leave events</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="sub-section">
+                <h3>⚖️ Indian Labour Law Compliance — Leave Rules</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Law / Act</th><th>Provision</th><th>System Configuration</th></tr>
+                        <tr><td><strong>Maternity Benefit (Amendment) Act, 2017</strong></td><td>26 weeks paid leave for first 2 children; 12 weeks for 3rd+</td><td>Auto-calculates based on child order flag in employee record</td></tr>
+                        <tr><td><strong>Factories Act, 1948</strong></td><td>1 Earned Leave for every 20 days worked (adult workers)</td><td>Attendance-linked EL accrual formula for factory workers</td></tr>
+                        <tr><td><strong>Shops & Establishment Acts</strong></td><td>State-wise leave rules (CL/SL quota varies by state)</td><td>State-wise policy templates (Maharashtra, Karnataka, Delhi, etc.)</td></tr>
+                        <tr><td><strong>ESIC Sickness Benefit</strong></td><td>91 days per year at 70% of wages (for ESIC-covered employees)</td><td>Separate ESIC leave tracking, linked to ESIC eligibility flag</td></tr>
+                        <tr><td><strong>Inter-State Migrant Workmen Act</strong></td><td>Leave with wages for migrant workers</td><td>Migrant worker tagging with special leave entitlement</td></tr>
+                        <tr><td><strong>Paternity Leave (Company Policy)</strong></td><td>No central statute; company policy typically 5-15 days</td><td>Configurable, event-linked to child birth date</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-preview">
+                <div class="form-section-title">👶 Maternity Leave Application</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Expected Delivery Date <span class="req">*</span></label>
+                        <input type="date" value="2024-04-15">
+                    </div>
+                    <div class="form-field">
+                        <label>Child Order (1st/2nd/3rd+) <span class="req">*</span></label>
+                        <select><option>1st Child</option><option>2nd Child</option><option>3rd Child or more</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Entitlement (auto-calculated)</label>
+                        <input type="text" value="26 Weeks" readonly style="background:#f0fff4;color:#276749;font-weight:700;">
+                    </div>
+                </div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Leave Start Date <span class="req">*</span></label>
+                        <input type="date" placeholder="Max 8 weeks before EDD">
+                    </div>
+                    <div class="form-field">
+                        <label>Medical Certificate <span class="req">*</span></label>
+                        <input type="text" value="📎 Upload Required" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Work From Home (post-return option)</label>
+                        <select><option>Not Applicable</option><option>Requested</option></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col" style="margin-top:15px;">
+                <div>
+                    <div class="info-box">
+                        <h4>👨‍👩‍👧 Related Statutory Leave Events</h4>
+                        <ul>
+                            <li>Paternity Leave — triggered by child birth/adoption event linked to employee's spouse record</li>
+                            <li>Child Adoption Leave — 12 weeks (policy), proof of adoption required</li>
+                            <li>Miscarriage/Medical Termination Leave — 6 weeks statutory, medical certificate mandatory</li>
+                            <li>Crèche facility eligibility flag (50+ women employees — Maternity Act requirement)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Compliance Safeguards</h4>
+                        <ul>
+                            <li>System blocks termination/non-renewal action during maternity leave period (legal protection)</li>
+                            <li>Nursing break entitlement auto-flagged for 15 months post-return (2 breaks/day)</li>
+                            <li>Maternity leave cannot be adjusted against other leave types</li>
+                            <li>State-specific variations auto-applied based on work location</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 8. ENCASHMENT & CARRY FORWARD ===== -->
+    <div class="section">
+        <div class="section-header g-maroon">
+            <span style="font-size:28px">💰</span>
+            <div>
+                <h2>8.0 Sub-Module 4.6 — Leave Encashment & Carry Forward</h2>
+                <p>Year-end settlement — carry forward, lapse, ya encash</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">1</div>
+                        <div class="step-title">Policy Year Ends</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">31 March / 31 Dec (config)</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">2</div>
+                        <div class="step-title">Balance vs Cap Check</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Compare with max carry-forward limit</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">3</div>
+                        <div class="step-title">Within Cap → Carry Forward</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Balance rolls to next year</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">4</div>
+                        <div class="step-title">Above Cap → Employee Choice</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Encash or forfeit excess</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">5</div>
+                        <div class="step-title">✅ Encashment to Payroll</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Payout in next salary cycle</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sub-section" style="margin-top:15px;">
+                <h3>🧮 Encashment Calculation</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Component</th><th>Formula</th><th>Example</th></tr>
+                        <tr><td>Daily Rate</td><td>(Basic + DA) ÷ 26</td><td>(₹40,000 + ₹5,000) ÷ 26 = ₹1,731/day</td></tr>
+                        <tr><td>Encashable Days</td><td>Balance above carry-forward cap, or on exit</td><td>Balance 50, Cap 45 → 5 days encashable</td></tr>
+                        <tr><td>Encashment Amount</td><td>Daily Rate × Encashable Days</td><td>₹1,731 × 5 = ₹8,655</td></tr>
+                        <tr><td>Tax Treatment</td><td>Exempt up to limit u/s 10(10AA); balance taxable</td><td>As per current IT slab rules</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Full & Final Settlement (Exit)</h4>
+                        <ul>
+                            <li>All unutilized encashable leave balance auto-calculated on exit</li>
+                            <li>Full EL balance (not just above-cap) typically encashable at exit — policy dependent</li>
+                            <li>CL/SL generally lapse on exit (not encashable, unless state law mandates)</li>
+                            <li>Linked to Exit Management module (Module 10) for F&F processing</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="success-box">
+                        <h4>✅ Carry Forward Rules Summary</h4>
+                        <ul>
+                            <li>EL: Max 45 days carry forward (configurable per company policy)</li>
+                            <li>CL/SL: Typically lapse at year-end, no carry forward</li>
+                            <li>Comp-off: 90-day rolling validity, not tied to leave policy year</li>
+                            <li>Optional Holiday: Unused choices lapse, no carry forward</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 9. SECTOR-SPECIFIC ===== -->
+    <div class="section">
+        <div class="section-header g-pink">
+            <span style="font-size:28px">🏭</span>
+            <div>
+                <h2>9.0 Sub-Module 4.7 — Sector-Specific Leave Configuration</h2>
+                <p>Har industry ki alag leave zaroorat — configurable policy templates</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="sub-section">
+                <h3>🏭 Sector-Wise Leave Policy Matrix</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Sector</th><th>Special Requirement</th><th>Configuration</th><th>Priority</th></tr>
+                        <tr><td>Manufacturing / Factory</td><td>Factories Act EL formula (1/20 days worked)</td><td>Attendance-linked accrual, 12-15 EL/yr avg</td><td><span class="badge b-critical">Critical</span></td></tr>
+                        <tr><td>IT / Software</td><td>Flexible leave policy, unlimited PTO (some cos)</td><td>Self-certify short leaves, no medical cert &lt;3 days</td><td><span class="badge b-medium">Medium</span></td></tr>
+                        <tr><td>Retail / FMCG</td><td>Store-wise leave blackout during peak season</td><td>Blackout calendar (Diwali, sale season)</td><td><span class="badge b-high">High</span></td></tr>
+                        <tr><td>Healthcare / Hospital</td><td>Critical staffing — leave approval linked to roster coverage</td><td>Min staffing ratio check before approval</td><td><span class="badge b-critical">Critical</span></td></tr>
+                        <tr><td>Construction / Site</td><td>Contract labour — daily wage, no paid leave typically</td><td>Separate policy for contract vs permanent staff</td><td><span class="badge b-high">High</span></td></tr>
+                        <tr><td>Transport / Logistics</td><td>Driver leave linked to vehicle/route assignment</td><td>Backup driver mandatory before approval</td><td><span class="badge b-medium">Medium</span></td></tr>
+                        <tr><td>Education</td><td>Academic calendar aligned leave (summer/winter break)</td><td>Block leave during term, open during vacation</td><td><span class="badge b-medium">Medium</span></td></tr>
+                        <tr><td>Government / PSU</td><td>Extensive leave rules — LTC, HPL (Half Pay Leave), EOL</td><td>CCS Leave Rules templates, LTC block-year tracking</td><td><span class="badge b-critical">Critical</span></td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <div class="info-box">
+                        <h4>🏛️ Government / PSU Specific Leave Types</h4>
+                        <ul>
+                            <li>Half Pay Leave (HPL) — 20 days/year, accumulates without limit</li>
+                            <li>Leave Travel Concession (LTC) — block year tracking (2-year cycle)</li>
+                            <li>Extraordinary Leave (EOL) — unpaid, for exceptional circumstances</li>
+                            <li>Commuted Leave — HPL converted to full pay against medical certificate</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="info-box">
+                        <h4>🏥 Healthcare Specific Rules</h4>
+                        <ul>
+                            <li>Leave approval blocked if it drops shift below minimum nurse-patient ratio</li>
+                            <li>Emergency leave override with mandatory backup arrangement</li>
+                            <li>On-call staff leave requires 2-week advance notice minimum</li>
+                            <li>Cross-department float pool for leave coverage</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 10. RBAC ===== -->
+    <div class="section">
+        <div class="section-header g-maroon">
+            <span style="font-size:28px">🔐</span>
+            <div>
+                <h2>10.0 RBAC — Leave Module Access Control</h2>
+                <p>Kaun kya kar sakta hai — field level aur action level permissions</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="sub-section">
+                <h3>👥 Leave Module — Role Definitions</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Role</th><th>Who</th><th>Scope</th><th>Key Permissions</th></tr>
+                        <tr><td><strong>R01 - HR Admin</strong></td><td>Central HR Head / CHRO</td><td>All employees, all leave types</td><td>Full CRUD. Configure policy, override balance, approve escalations</td></tr>
+                        <tr><td><strong>R02 - Reporting Manager</strong></td><td>Team lead / Department Head</td><td>Own team only</td><td>Approve/reject leave, view team calendar</td></tr>
+                        <tr><td><strong>R03 - HOD</strong></td><td>Department Head</td><td>Own department</td><td>Second-level approval for long leaves</td></tr>
+                        <tr><td><strong>R04 - Employee</strong></td><td>Any employee</td><td>Own record only</td><td>Apply leave, view own balance, cancel own request</td></tr>
+                        <tr><td><strong>R05 - Payroll Admin</strong></td><td>Payroll team</td><td>Encashment & LOP data only</td><td>View leave-linked payroll impact, process encashment</td></tr>
+                        <tr><td><strong>R06 - Compliance / Legal</strong></td><td>Statutory compliance team</td><td>Read-only statutory leave records</td><td>Audit maternity/statutory leave compliance</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🔑 RBAC Matrix — Leave Actions</h3>
+            <div style="overflow-x:auto;">
+                <table class="rbac-table">
+                    <tr>
+                        <th style="text-align:left;min-width:200px;">Action / Feature</th>
+                        <th>HR<br>Admin</th>
+                        <th>Manager</th>
+                        <th>HOD</th>
+                        <th>Employee</th>
+                        <th>Payroll</th>
+                        <th>Compliance</th>
+                    </tr>
+                    <tr style="background:#eef2ff;">
+                        <td class="field-name" colspan="7" style="font-size:11px;font-weight:800;color:#667eea;padding:6px 10px;">⚙️ POLICY CONFIGURATION</td>
+                    </tr>
+                    <tr><td class="field-name">Configure Leave Types/Policy</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Configure Holiday Calendar</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr style="background:#f0fff4;">
+                        <td class="field-name" colspan="7" style="font-size:11px;font-weight:800;color:#276749;padding:6px 10px;">📝 APPLICATION & APPROVAL</td>
+                    </tr>
+                    <tr><td class="field-name">Apply Leave (Own)</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Approve/Reject (Level 1)</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Approve (Level 2 - long leave)</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Cancel Own Leave</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr style="background:#fff5f5;">
+                        <td class="field-name" colspan="7" style="font-size:11px;font-weight:800;color:#c53030;padding:6px 10px;">💰 BALANCE & ENCASHMENT</td>
+                    </tr>
+                    <tr><td class="field-name">View Own Balance</td><td><span class="can">✏️</span></td><td><span class="view-only">Team</span></td><td><span class="view-only">Dept</span></td><td><span class="view-only">Own</span></td><td><span class="view-only">V</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Override Balance</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Process Encashment</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">View Maternity/Statutory Records</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">Own</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">V</span></td></tr>
+                </table>
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:15px;flex-wrap:wrap;font-size:12px;">
+                <div style="display:flex;align-items:center;gap:6px;"><span class="can">✏️</span> = Full Access (Create, Edit, Delete)</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="view-only">V</span> = View Only</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="cannot">🔒</span> = No Access</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="view-only">Own</span> = Only own data</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 11. API SPECS ===== -->
+    <div class="section">
+        <div class="section-header g-teal">
+            <span style="font-size:28px">🔗</span>
+            <div>
+                <h2>11.0 API Specifications — Leave Module</h2>
+                <p>REST API endpoints for frontend, mobile app and integrations</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">// Leave Type & Policy APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/leave-types</span>
+<span style="color:#a0aec0;">// Create/configure leave type</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/leave-policy?grade=B&location=Mumbai</span>
+<span style="color:#a0aec0;">// Get applicable policy</span>
+
+<span style="color:#f6ad55;">// Application APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/leave/apply</span>
+<span style="color:#a0aec0;">// Submit leave application</span>
+<span class="api-key">Body:</span> <span class="api-value">{ emp_id, leave_type, from_date, to_date, reason }</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/leave/{emp_id}/balance</span>
+<span style="color:#a0aec0;">// Real-time balance across types</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/leave/{id}/approve</span>
+<span style="color:#a0aec0;">// Manager/HOD approve</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/leave/{id}/reject</span>
+<span style="color:#a0aec0;">// Reject with reason</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/leave/{id}/cancel</span>
+<span style="color:#a0aec0;">// Cancel approved leave</span>
+
+<span style="color:#f6ad55;">// Team Calendar APIs</span>
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/leave/team-calendar?manager_id=EMP045&month=2024-02</span>
+<span style="color:#a0aec0;">// Team leave calendar view</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">// Accrual APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/leave/process-monthly-accrual</span>
+<span style="color:#a0aec0;">// Trigger monthly accrual (internal/cron)</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/leave/{emp_id}/ledger?leave_type=EL</span>
+<span style="color:#a0aec0;">// Full ledger history</span>
+
+<span style="color:#f6ad55;">// Holiday Calendar APIs</span>
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/holidays?location=Mumbai&year=2024</span>
+<span style="color:#a0aec0;">// Location-wise holiday list</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/holidays/export/ical?location=Mumbai</span>
+<span style="color:#a0aec0;">// iCal export</span>
+
+<span style="color:#f6ad55;">// Statutory Leave APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/leave/maternity/apply</span>
+<span style="color:#a0aec0;">// Maternity leave with auto-entitlement calc</span>
+<span class="api-key">Body:</span> <span class="api-value">{ emp_id, edd, child_order, medical_cert }</span>
+
+<span style="color:#f6ad55;">// Encashment APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/leave/encashment/calculate</span>
+<span style="color:#a0aec0;">// Calculate encashment amount</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/leave/encashment/process</span>
+<span style="color:#a0aec0;">// Send to payroll for payout</span>
+<span class="api-key">Trigger:</span> <span class="api-value">Module 5 - Payroll pull</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 12. NOTIFICATIONS ===== -->
+    <div class="section">
+        <div class="section-header g-green">
+            <span style="font-size:28px">🔔</span>
+            <div>
+                <h2>12.0 Notifications & Triggers — Leave Module</h2>
+                <p>Every event ka auto notification — email, SMS, portal</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div style="overflow-x:auto;">
+                <table class="field-table">
+                    <tr><th>Event</th><th>To Whom</th><th>Channel</th><th>Timing</th><th>Auto Action</th></tr>
+                    <tr><td><strong>Leave Applied</strong></td><td>Reporting Manager</td><td>Email + Portal</td><td>Immediately</td><td>Approval task created</td></tr>
+                    <tr><td><strong>Leave Auto-Approved (short leave)</strong></td><td>Employee, Manager (FYI)</td><td>Push + Email</td><td>Immediately</td><td>Balance deducted, calendar updated</td></tr>
+                    <tr><td><strong>Approval Pending &gt; 24hrs</strong></td><td>Manager, HR Admin (escalation)</td><td>Email</td><td>+24 hrs</td><td>Escalation flag raised</td></tr>
+                    <tr><td><strong>Leave Approved</strong></td><td>Employee, Backup person</td><td>Push + Email + SMS</td><td>Immediately</td><td>Attendance calendar auto-blocked</td></tr>
+                    <tr><td><strong>Leave Rejected</strong></td><td>Employee</td><td>Push + Email</td><td>Immediately</td><td>Reason shown, balance unchanged</td></tr>
+                    <tr><td><strong>Leave Cancelled</strong></td><td>Manager, HR Admin</td><td>Email + Portal</td><td>Immediately</td><td>Balance credited back</td></tr>
+                    <tr><td><strong>Low Balance Warning</strong></td><td>Employee</td><td>Push + Email</td><td>When balance &lt; 2 days</td><td>—</td></tr>
+                    <tr><td><strong>Team Overlap Alert</strong></td><td>Manager</td><td>Portal</td><td>On application, if &gt;30% team overlap</td><td>Warning shown before approval</td></tr>
+                    <tr><td><strong>Maternity Leave Milestone</strong></td><td>Employee, HR Admin</td><td>Email</td><td>8 weeks before EDD, and return date</td><td>Compliance checklist triggered</td></tr>
+                    <tr><td><strong>Year-End Balance Reminder</strong></td><td>Employee</td><td>Email + Portal Banner</td><td>60 / 30 / 7 days before year-end</td><td>Utilize/encash prompt</td></tr>
+                    <tr><td><strong>Leave Lapsed (Year-End)</strong></td><td>Employee, HR Admin</td><td>Email</td><td>On policy year-end</td><td>Ledger entry recorded</td></tr>
+                    <tr><td><strong>Encashment Processed</strong></td><td>Employee, Payroll Admin</td><td>Email + Portal</td><td>On processing</td><td>Included in next payroll cycle</td></tr>
+                    <tr><td><strong>Holiday Calendar Published</strong></td><td>All employees (location-specific)</td><td>Email + Portal</td><td>On publish (start of year)</td><td>—</td></tr>
+                    <tr><td><strong>Comp-off Expiring Soon</strong></td><td>Employee</td><td>Push + Email</td><td>15 / 7 / 1 days before expiry</td><td>—</td></tr>
+                    <tr><td><strong>LOP Triggered</strong></td><td>Employee, Manager, Payroll Admin</td><td>Email</td><td>On balance exhaustion + continued absence</td><td>Payroll deduction flagged</td></tr>
+                    <tr><td><strong>Leave Policy Updated</strong></td><td>All employees</td><td>Email + Portal Banner</td><td>On policy change</td><td>Revised policy document linked</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 13. REPORTS ===== -->
+    <div class="section">
+        <div class="section-header g-dark">
+            <span style="font-size:28px">📊</span>
+            <div>
+                <h2>13.0 Reports & Analytics — Leave Module</h2>
+                <p>Leave metrics aur analytics — compliance aur workforce visibility</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div style="overflow-x:auto;">
+                <table class="field-table">
+                    <tr><th>#</th><th>Report Name</th><th>Filters</th><th>Key Metrics</th><th>Format</th><th>Access</th><th>Frequency</th></tr>
+                    <tr><td>1</td><td><strong>Leave Balance Summary</strong></td><td>Employee, Dept, Leave Type</td><td>Opening, accrued, availed, closing balance</td><td>Excel, PDF</td><td>HR Admin, Manager</td><td>Real-time</td></tr>
+                    <tr><td>2</td><td><strong>Leave Application Register</strong></td><td>Date range, Dept, Status</td><td>All applications with status & approver</td><td>Excel</td><td>HR Admin</td><td>Weekly</td></tr>
+                    <tr><td>3</td><td><strong>Leave Utilization Report</strong></td><td>Month, Dept, Leave Type</td><td>Utilization % vs entitlement</td><td>Excel, Chart</td><td>HR Admin, CHRO</td><td>Monthly</td></tr>
+                    <tr><td>4</td><td><strong>Absenteeism Pattern Report</strong></td><td>Employee, Date range</td><td>Monday/Friday leave trend, frequent short leaves</td><td>Excel, Chart</td><td>HR Admin, Manager</td><td>Monthly</td></tr>
+                    <tr><td>5</td><td><strong>Approval TAT Report</strong></td><td>Manager, Dept</td><td>Avg time to approve/reject</td><td>Excel</td><td>HR Admin</td><td>Monthly</td></tr>
+                    <tr><td>6</td><td><strong>Team Coverage / Overlap Report</strong></td><td>Dept, Date range</td><td>Days with high team leave concentration</td><td>Excel, Chart</td><td>Manager, HR Admin</td><td>Weekly</td></tr>
+                    <tr><td>7</td><td><strong>Maternity/Paternity Compliance Report</strong></td><td>Date range, Location</td><td>Entitlement vs availed, statutory adherence</td><td>Excel</td><td>HR Admin, Compliance</td><td>Quarterly</td></tr>
+                    <tr><td>8</td><td><strong>Carry Forward & Lapse Report</strong></td><td>Year, Dept</td><td>Days carried forward vs lapsed</td><td>Excel</td><td>HR Admin</td><td>Yearly</td></tr>
+                    <tr><td>9</td><td><strong>Leave Encashment Report</strong></td><td>Year, Employee, Dept</td><td>Encashed days, amount, tax treatment</td><td>Excel</td><td>HR Admin, Finance</td><td>Yearly</td></tr>
+                    <tr><td>10</td><td><strong>LOP (Loss of Pay) Report</strong></td><td>Month, Dept, Employee</td><td>LOP days & cost impact</td><td>Excel</td><td>HR Admin, Payroll</td><td>Monthly</td></tr>
+                    <tr><td>11</td><td><strong>Comp-off Ledger Report</strong></td><td>Employee, Status</td><td>Earned, utilized, expiring, expired</td><td>Excel</td><td>HR Admin</td><td>Monthly</td></tr>
+                    <tr><td>12</td><td><strong>Holiday Calendar Compliance</strong></td><td>Location, Year</td><td>Published vs statutory required holidays</td><td>Excel</td><td>HR Admin, Compliance</td><td>Yearly</td></tr>
+                    <tr><td>13</td><td><strong>Leave Cancellation Report</strong></td><td>Date range, Dept</td><td>Cancellation rate & reasons</td><td>Excel</td><td>HR Admin</td><td>Monthly</td></tr>
+                    <tr><td>14</td><td><strong>Sector/State-wise Policy Compliance</strong></td><td>Location, Sector</td><td>Actual policy vs statutory minimum</td><td>Excel</td><td>Compliance</td><td>Yearly</td></tr>
+                    <tr><td>15</td><td><strong>Leave-Linked Payroll Impact Report</strong></td><td>Month, Employee</td><td>LOP + encashment feed to payroll</td><td>Excel, API</td><td>Payroll Admin</td><td>Monthly</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 14. DATABASE ===== -->
+    <div class="section">
+        <div class="section-header g-purple">
+            <span style="font-size:28px">🗄️</span>
+            <div>
+                <h2>14.0 Database Design — Leave Module</h2>
+                <p>Key tables aur relationships</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">-- Leave Type Master</span>
+CREATE TABLE <span class="api-url">leave_type_master</span> (
+  <span class="api-key">leave_type_id</span>     VARCHAR(20) PK,
+  <span class="api-key">leave_code</span>        VARCHAR(10) UNIQUE,
+  <span class="api-key">leave_name</span>        VARCHAR(50),
+  <span class="api-key">annual_quota</span>      DECIMAL(5,2),
+  <span class="api-key">accrual_frequency</span> ENUM('Monthly','Quarterly',
+                       'Yearly','Event'),
+  <span class="api-key">max_carry_forward</span> DECIMAL(5,2),
+  <span class="api-key">is_encashable</span>     BOOLEAN DEFAULT FALSE,
+  <span class="api-key">gender_specific</span>   ENUM('All','Male','Female'),
+  <span class="api-key">is_active</span>         BOOLEAN DEFAULT TRUE
+);
+
+<span style="color:#f6ad55;">-- Leave Policy (Grade/Location Override)</span>
+CREATE TABLE <span class="api-url">leave_policy_rules</span> (
+  <span class="api-key">policy_id</span>         BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">leave_type_id</span>     VARCHAR(20) FK,
+  <span class="api-key">grade_code</span>        VARCHAR(20),
+  <span class="api-key">location_id</span>       INT FK,
+  <span class="api-key">quota_override</span>    DECIMAL(5,2),
+  <span class="api-key">min_notice_days</span>   SMALLINT,
+  <span class="api-key">max_consecutive_days</span> SMALLINT,
+  <span class="api-key">sandwich_rule</span>     BOOLEAN DEFAULT FALSE
+);
+
+<span style="color:#f6ad55;">-- Holiday Master</span>
+CREATE TABLE <span class="api-url">holiday_master</span> (
+  <span class="api-key">holiday_id</span>        BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">holiday_name</span>      VARCHAR(100),
+  <span class="api-key">holiday_date</span>      DATE,
+  <span class="api-key">holiday_type</span>      ENUM('National','State',
+                       'Company','Optional'),
+  <span class="api-key">location_id</span>       INT FK
+);
+                    </div>
+                </div>
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">-- Leave Applications</span>
+CREATE TABLE <span class="api-url">leave_applications</span> (
+  <span class="api-key">application_id</span>    VARCHAR(20) PK,
+  <span class="api-key">emp_id</span>            VARCHAR(20) FK (employees),
+  <span class="api-key">leave_type_id</span>     VARCHAR(20) FK,
+  <span class="api-key">from_date</span>         DATE,
+  <span class="api-key">to_date</span>           DATE,
+  <span class="api-key">no_of_days</span>        DECIMAL(4,2),
+  <span class="api-key">is_half_day</span>       BOOLEAN DEFAULT FALSE,
+  <span class="api-key">reason</span>            TEXT,
+  <span class="api-key">backup_emp_id</span>     VARCHAR(20) FK,
+  <span class="api-key">status</span>            ENUM('Pending','Approved',
+                       'Rejected','Cancelled'),
+  <span class="api-key">approved_by</span>       VARCHAR(20) FK,
+  <span class="api-key">applied_at</span>        TIMESTAMP DEFAULT NOW()
+);
+
+<span style="color:#f6ad55;">-- Leave Ledger (Balance History)</span>
+CREATE TABLE <span class="api-url">leave_ledger</span> (
+  <span class="api-key">ledger_id</span>         BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">emp_id</span>            VARCHAR(20) FK,
+  <span class="api-key">leave_type_id</span>     VARCHAR(20) FK,
+  <span class="api-key">txn_type</span>          ENUM('Accrual','Availed',
+                       'Encashed','Lapsed','CarriedForward','Adjustment'),
+  <span class="api-key">txn_date</span>          DATE,
+  <span class="api-key">days</span>              DECIMAL(5,2),
+  <span class="api-key">running_balance</span>   DECIMAL(5,2),
+  <span class="api-key">reference_id</span>      VARCHAR(20)
+);
+
+<span style="color:#f6ad55;">-- Statutory Leave Events (Maternity etc)</span>
+CREATE TABLE <span class="api-url">statutory_leave_events</span> (
+  <span class="api-key">event_id</span>          BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">emp_id</span>            VARCHAR(20) FK,
+  <span class="api-key">event_type</span>        ENUM('Maternity','Paternity',
+                       'Adoption','Miscarriage'),
+  <span class="api-key">event_date</span>        DATE,
+  <span class="api-key">child_order</span>       TINYINT,
+  <span class="api-key">entitlement_days</span>  SMALLINT,
+  <span class="api-key">medical_cert_path</span> VARCHAR(500)
+);
+
+<span style="color:#f6ad55;">-- Leave Encashment</span>
+CREATE TABLE <span class="api-url">leave_encashment</span> (
+  <span class="api-key">encashment_id</span>     BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">emp_id</span>            VARCHAR(20) FK,
+  <span class="api-key">leave_type_id</span>     VARCHAR(20) FK,
+  <span class="api-key">days_encashed</span>     DECIMAL(5,2),
+  <span class="api-key">amount</span>            DECIMAL(10,2),
+  <span class="api-key">processed_month</span>   VARCHAR(7)
+);
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="background:linear-gradient(135deg,#0f2027,#2c5364);color:white;padding:30px;border-radius:16px;text-align:center;margin-bottom:20px;">
+        <div style="font-size:28px;margin-bottom:10px;">✅ Module 4 Complete</div>
+        <div style="font-size:16px;font-weight:700;background:linear-gradient(90deg,#4776e6,#8e54e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+            Leave Management System — Full Deep Level Documentation
+        </div>
+        <div style="font-size:13px;color:#a0aec0;margin-top:8px;">
+            110+ Fields | 8 Sub-Modules | Complete RBAC | 14 Leave Types | Holiday Calendar | Statutory Compliance | API Specs | 15 Reports
+        </div>
+        <div style="margin-top:20px;padding:15px;background:rgba(255,255,255,0.1);border-radius:10px;display:inline-block;">
+            <div style="font-size:13px;color:#e2e8f0;">📌 Agle Module Ke Liye Ready:</div>
+            <div style="font-size:15px;font-weight:700;color:white;margin-top:5px;">Module 5: Payroll Management System 💰</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.querySelector('.print-btn').addEventListener('click', () => window.print());
+</script>
+</body>
+</html>

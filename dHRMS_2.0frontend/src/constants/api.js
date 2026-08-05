@@ -89,7 +89,14 @@ export const API = {
     JOB_FUNCTION: (id) => `${API_BASE}/organization/job-functions/${id}`,
     PROFIT_CENTERS: `${API_BASE}/organization/profit-centers`,
     PROFIT_CENTER: (id) => `${API_BASE}/organization/profit-centers/${id}`,
-    SHIFTS: `${API_BASE}/organization/shifts`,
+  },
+
+  // Shifts
+  SHIFTS: {
+    LIST: `${API_BASE}/shifts`,
+    CREATE: `${API_BASE}/shifts`,
+    UPDATE: (id) => `${API_BASE}/shifts/${id}`,
+    DELETE: (id) => `${API_BASE}/shifts/${id}`,
   },
 
   // Users
@@ -130,6 +137,13 @@ export const API = {
     HISTORY: `${API_BASE}/attendance/history`,
     REGULARIZE: `${API_BASE}/attendance/regularize`,
     REGULARIZATIONS: `${API_BASE}/attendance/regularizations`,
+    REGULARIZATIONS_QUEUE: `${API_BASE}/attendance/regularizations/queue`,
+    REGULARIZATION_APPROVE: (id) => `${API_BASE}/attendance/regularizations/${id}/approve`,
+    REGULARIZATION_REJECT: (id) => `${API_BASE}/attendance/regularizations/${id}/reject`,
+    OVERTIME: `${API_BASE}/attendance/overtime`,
+    MUSTER: `${API_BASE}/attendance/muster`,
+    FREEZE: `${API_BASE}/attendance/freeze`,
+    LOCK_STATUS: `${API_BASE}/attendance/lock-status`,
   },
 
   // Performance

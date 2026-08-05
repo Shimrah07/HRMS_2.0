@@ -186,3 +186,30 @@ public class NotificationService : INotificationService
             new { title, message, type = type.ToString() });
     }
 }
+
+public class ReportingScopeService : IReportingScopeService
+{
+    private readonly AppDbContext _context;
+
+    public ReportingScopeService(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<List<Guid>> GetDirectReportIdsAsync(Guid managerId, CancellationToken ct = default)
+    {
+        return await _context.Employees
+            .Where(e => e.ReportingManagerId == managerId && e.IsActive)
+            .Select(e => e.EmployeeId)
+            .ToListAsync(ct);
+    }
+
+    public async Task<bool> IsDirectReportAsync(Guid managerId, Guid employeeId, CancellationToken ct = default)
+    {
+        return await _context.Employees.AnyAsync(e =>
+            e.EmployeeId == employeeId &&
+            e.ReportingManagerId == managerId &&
+            e.IsActive, ct);
+    }
+}
+

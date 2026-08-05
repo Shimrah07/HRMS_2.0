@@ -13,9 +13,11 @@ import useUIStore from '../../store/uiStore'
  *   actions     {ReactNode} Right-side action buttons
  *   tag         {string}    Optional pill badge beside the title
  */
-export default function PageHeader({ title, subtitle, breadcrumbs = [], actions, tag }) {
+export default function PageHeader({ title, subtitle, breadcrumbs = [], actions, extra, tag }) {
   const navigate = useNavigate()
   const { isDarkMode } = useUIStore()
+
+  const actionContent = extra || actions
 
   return (
     <motion.div
@@ -132,9 +134,9 @@ export default function PageHeader({ title, subtitle, breadcrumbs = [], actions,
         </div>
 
         {/* Actions */}
-        {actions && (
+        {actionContent && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            {actions}
+            {actionContent}
           </div>
         )}
       </div>

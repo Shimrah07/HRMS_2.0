@@ -4,13 +4,13 @@ import { useNavigate } from 'react-router-dom'
 import {
   Tabs, Table, Button, Tag, Modal, Form, Input, Select, DatePicker,
   InputNumber, message, Space, Card, Row, Col, Statistic, Tooltip,
-  Drawer, Descriptions, Divider, Popconfirm, notification, Switch, Alert, List, Avatar, Badge, Typography
+  Drawer, Descriptions, Divider, Popconfirm, notification, Switch, Alert, List, Avatar, Badge, Typography, Timeline
 } from 'antd'
 import {
   PlusOutlined, EditOutlined, CheckOutlined, CloseOutlined,
   SendOutlined, EyeOutlined, StopOutlined, FileTextOutlined,
   FieldTimeOutlined, TeamOutlined, UserSwitchOutlined, GlobalOutlined,
-  DeleteOutlined, SmileOutlined, GiftOutlined
+  DeleteOutlined, SmileOutlined, GiftOutlined, RollbackOutlined
 } from '@ant-design/icons'
 import { motion } from 'framer-motion'
 import dayjs from 'dayjs'
@@ -283,16 +283,16 @@ function RequisitionsTab() {
   const navigate = useNavigate()
   const { isDarkMode } = useUIStore()
   const { can } = usePermission()
-  const { hasRole } = useAuth()
+  const { hasRole, user } = useAuth()
 
   // Role-based view control
   const isMRFCreator = hasRole(ROLES.SUPER_ADMIN) || hasRole(ROLES.HR_ADMIN) || hasRole(ROLES.HR_MANAGER) || hasRole(ROLES.DEPARTMENT_MANAGER)
   const isRecruitmentOnly = hasRole(ROLES.RECRUITMENT_MANAGER) && !isMRFCreator
-  
+
   const [mrfFilters, setMrfFilters] = useState({ deptId: undefined, designationId: undefined, status: isRecruitmentOnly ? 'Approved' : undefined })
   const [detailDrawer, setDetailDrawer] = useState({ open: false, record: null })
   const [approveModal, setApproveModal] = useState({ open: false, record: null, approved: true })
-  
+
   const [approveForm] = Form.useForm()
 
   // Sourcing Posting Form Drawer State
@@ -372,6 +372,18 @@ function RequisitionsTab() {
     }
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: (id) => recruitmentService.deleteRequisition(id),
+    onSuccess: (res) => {
+      if (res.success) {
+        notification.success({ message: 'MRF Deleted', description: 'Draft requisition deleted successfully.' })
+        queryClient.invalidateQueries({ queryKey: ['requisitions'] })
+      } else {
+        message.error(res.message || 'Action failed.')
+      }
+    }
+  })
+
   const handleApproveReject = (values) => {
     if (approveModal.action === 'Return') {
       returnMutation.mutate({
@@ -397,7 +409,7 @@ function RequisitionsTab() {
       case 'PendingCOO': return <Tag color="purple">Pending COO</Tag>
       case 'Approved': return <Tag color="success">Approved</Tag>
       case 'Rejected': return <Tag color="error">Rejected</Tag>
-      case 'ReturnedForCorrection': return <Tag color="warning">Returned for Correction</Tag>
+      case 'ReturnedForCorrection': return <Tag color="warning" icon={<RollbackOutlined />}>Returned for Correction</Tag>
       case 'Cancelled': return <Tag color="red">Cancelled</Tag>
       case 'InternalReview': return <Tag color="magenta">Internal Review</Tag>
       case 'Open': return <Tag color="blue">Open</Tag>
@@ -411,13 +423,16 @@ function RequisitionsTab() {
       title: 'MRF Code',
       dataIndex: 'mrfNumber',
       key: 'mrfNumber',
+      width: 140,
       render: (v) => <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{v || '-'}</span>
     },
     {
       title: 'Job Title',
       key: 'jobTitle',
+      width: 200,
+      ellipsis: true,
       render: (_, r) => (
-        <span 
+        <span
           style={{ fontWeight: 600, color: 'var(--color-primary-light)', cursor: 'pointer' }}
           onClick={() => setDetailDrawer({ open: true, record: r })}
         >
@@ -425,73 +440,92 @@ function RequisitionsTab() {
         </span>
       )
     },
-    { title: 'Department', dataIndex: 'departmentName', key: 'dept' },
-    { title: 'Designation', dataIndex: 'designationTitle', key: 'designation' },
-    { title: 'Positions', dataIndex: 'noOfPositions', key: 'positions', align: 'center' },
-    { 
-      title: 'Target Date', 
-      dataIndex: 'targetDate', 
+    { title: 'Department', dataIndex: 'departmentName', key: 'dept', width: 160, ellipsis: true },
+    { title: 'Designation', dataIndex: 'designationTitle', key: 'designation', width: 170, ellipsis: true },
+    { title: 'Positions', dataIndex: 'noOfPositions', key: 'positions', align: 'center', width: 90 },
+    {
+      title: 'Target Date',
+      dataIndex: 'targetDate',
       key: 'targetDate',
+      width: 120,
       render: (v) => formatDate(v)
     },
-    { 
-      title: 'Status', 
-      dataIndex: 'status', 
+    {
+      title: 'Status',
+      dataIndex: 'status',
       key: 'status',
+      width: 170,
       render: (v) => getStatusTag(v)
     },
     {
-      title: 'Raised By',
-      dataIndex: 'raisedByUserName',
-      key: 'raisedBy'
+      title: 'Current Approver',
+      dataIndex: 'currentApproverName',
+      key: 'currentApprover',
+      width: 170,
+      ellipsis: true,
+      render: (v) => <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{v || '—'}</span>
+    },
+    {
+      title: 'Created By',
+      dataIndex: 'raisedByName',
+      key: 'raisedBy',
+      width: 150,
+      ellipsis: true,
+      render: (v) => <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{v || '—'}</span>
     },
     {
       title: 'Actions',
       key: 'actions',
+      width: 240,
       render: (_, r) => (
-        <Space size="middle">
-          {(r.status === 'Draft' || r.status === 'ReturnedForCorrection') && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+          {can(PERMISSIONS.RECRUITMENT.EDIT) && (r.status === 'Draft' || r.status === 'ReturnedForCorrection') && (
             <>
-              {can(PERMISSIONS.RECRUITMENT.EDIT) && (
-                <Tooltip title="Edit">
-                  <Button size="small" type="text" icon={<EditOutlined />} onClick={() => {
-                    navigate(`/recruitment/mrf/${r.reqId}/edit`)
-                  }} />
-                </Tooltip>
-              )}
-              {can(PERMISSIONS.RECRUITMENT.EDIT) && (
-                <Tooltip title="Submit for Approval">
-                  <Popconfirm title="Submit this requisition?" onConfirm={() => submitMutation.mutate(r.reqId)}>
-                    <Button size="small" type="text" icon={<SendOutlined style={{ color: '#8B5CF6' }} />} />
-                  </Popconfirm>
-                </Tooltip>
-              )}
-              {can(PERMISSIONS.RECRUITMENT.EDIT) && (
-                <Tooltip title="Cancel Requisition">
-                  <Popconfirm title="Cancel this requisition?" onConfirm={() => cancelMutation.mutate(r.reqId)}>
-                    <Button size="small" type="text" danger icon={<CloseOutlined />} />
-                  </Popconfirm>
-                </Tooltip>
-              )}
+              <Tooltip title="Edit">
+                <Button size="small" type="text" icon={<EditOutlined />} onClick={() => {
+                  navigate(`/recruitment/mrf/${r.reqId}/edit`)
+                }} />
+              </Tooltip>
+              <Tooltip title="Submit for Approval">
+                <Popconfirm title="Submit this requisition?" onConfirm={() => submitMutation.mutate(r.reqId)}>
+                  <Button size="small" type="text" icon={<SendOutlined style={{ color: '#8B5CF6' }} />} />
+                </Popconfirm>
+              </Tooltip>
             </>
           )}
 
-          {['PendingHOD', 'PendingHR', 'PendingFinance', 'PendingCOO', 'PendingApproval'].includes(r.status) && can(PERMISSIONS.RECRUITMENT.APPROVE) && (
-            <Space>
+          {can(PERMISSIONS.RECRUITMENT.EDIT) && r.status === 'Draft' && (
+            <Tooltip title="Delete Requisition">
+              <Popconfirm title="Delete this draft requisition permanently?" onConfirm={() => deleteMutation.mutate(r.reqId)}>
+                <Button size="small" type="text" danger icon={<CloseOutlined />} />
+              </Popconfirm>
+            </Tooltip>
+          )}
+
+          {can(PERMISSIONS.RECRUITMENT.EDIT) && r.status !== 'Draft' && r.status !== 'Cancelled' && r.status !== 'Fulfilled' && r.status !== 'Closed' && (
+            <Tooltip title="Cancel Requisition">
+              <Popconfirm title="Cancel this requisition? This action cannot be undone." onConfirm={() => cancelMutation.mutate(r.reqId)}>
+                <Button size="small" type="text" danger icon={<CloseOutlined />} />
+              </Popconfirm>
+            </Tooltip>
+          )}
+
+          {['PendingHOD', 'PendingHR', 'PendingFinance', 'PendingCOO', 'PendingApproval'].includes(r.status) && r.currentApproverId === user?.userId && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
               <Tooltip title="Approve">
-                <Button size="small" type="primary" shape="circle" icon={<CheckOutlined />} 
+                <Button size="small" type="primary" shape="circle" icon={<CheckOutlined />}
                   style={{ background: '#22C55E', borderColor: '#22C55E' }}
                   onClick={() => setApproveModal({ open: true, record: r, approved: true, action: 'Approve' })} />
               </Tooltip>
               <Tooltip title="Reject">
-                <Button size="small" type="primary" danger shape="circle" icon={<CloseOutlined />} 
+                <Button size="small" type="primary" danger shape="circle" icon={<CloseOutlined />}
                   onClick={() => setApproveModal({ open: true, record: r, approved: false, action: 'Reject' })} />
               </Tooltip>
               <Tooltip title="Return for Correction">
-                <Button size="small" shape="circle" icon={<CloseOutlined style={{ color: '#FAA71A', transform: 'rotate(180deg)' }} />} 
+                <Button size="small" shape="circle" icon={<RollbackOutlined style={{ color: '#FAA71A' }} />}
                   onClick={() => setApproveModal({ open: true, record: r, approved: false, action: 'Return' })} />
               </Tooltip>
-            </Space>
+            </div>
           )}
 
           {r.status === 'Approved' && can(PERMISSIONS.RECRUITMENT.CREATE) && (
@@ -505,14 +539,14 @@ function RequisitionsTab() {
           <Tooltip title="View Details">
             <Button size="small" type="text" icon={<EyeOutlined />} onClick={() => setDetailDrawer({ open: true, record: r })} />
           </Tooltip>
-        </Space>
+        </div>
       )
     }
   ]
 
   const stats = {
-    total: requisitions.length,
-    pending: requisitions.filter(r => ['PendingApproval', 'PendingHOD', 'PendingHR', 'PendingFinance', 'PendingCOO', 'InternalReview'].includes(r.status)).length,
+    total: requisitions.filter(r => r.status !== 'Cancelled').length,
+    pending: requisitions.filter(r => r.status !== 'Cancelled' && ['PendingApproval', 'PendingHOD', 'PendingHR', 'PendingFinance', 'PendingCOO', 'InternalReview'].includes(r.status)).length,
     approved: requisitions.filter(r => r.status === 'Approved').length,
     drafts: requisitions.filter(r => r.status === 'Draft').length
   }
@@ -522,7 +556,7 @@ function RequisitionsTab() {
       <Row gutter={16} style={{ marginBottom: 20 }}>
         <Col span={6}>
           <Card bordered={false} style={{ background: 'var(--color-bg-container)', border: 'var(--border-glass)' }}>
-            <Statistic title="Total MRFs" value={stats.total} prefix={<FileTextOutlined style={{ color: '#3B82F6' }} />} />
+            <Statistic title="Total Active MRFs" value={stats.total} prefix={<FileTextOutlined style={{ color: '#3B82F6' }} />} />
           </Card>
         </Col>
         <Col span={6}>
@@ -544,38 +578,44 @@ function RequisitionsTab() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center' }}>
         <Space>
-          <Select 
-            placeholder="Filter Department" 
+          <Select
+            placeholder="Filter Department"
             style={{ width: 180 }}
             allowClear
             onChange={(v) => setMrfFilters(prev => ({ ...prev, deptId: v }))}
             options={(deptsData || []).map(d => ({ value: d.deptId, label: d.deptName }))}
           />
-          <Select 
-            placeholder="Filter Designation" 
+          <Select
+            placeholder="Filter Designation"
             style={{ width: 180 }}
             allowClear
             onChange={(v) => setMrfFilters(prev => ({ ...prev, designationId: v }))}
             options={(desigsData || []).map(d => ({ value: d.designationId, label: d.title }))}
           />
-          <Select 
-            placeholder="Filter Status" 
+          <Select
+            placeholder="Filter Status"
             style={{ width: 160 }}
             allowClear
             onChange={(v) => setMrfFilters(prev => ({ ...prev, status: v }))}
             options={[
               { value: 'Draft', label: 'Draft' },
               { value: 'PendingApproval', label: 'Pending Approval' },
+              { value: 'PendingHOD', label: 'Pending HOD' },
+              { value: 'PendingHR', label: 'Pending HR' },
+              { value: 'PendingFinance', label: 'Pending Finance' },
+              { value: 'PendingCOO', label: 'Pending COO' },
               { value: 'Approved', label: 'Approved' },
-              { value: 'Rejected', label: 'Rejected' }
+              { value: 'Rejected', label: 'Rejected' },
+              { value: 'ReturnedForCorrection', label: 'Returned for Correction' },
+              { value: 'Cancelled', label: 'Cancelled' }
             ]}
           />
         </Space>
 
         {isMRFCreator && can(PERMISSIONS.RECRUITMENT.CREATE) && (
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
             onClick={() => {
               navigate('/recruitment/mrf/create')
             }}
@@ -591,76 +631,117 @@ function RequisitionsTab() {
         )}
       </div>
 
-      <div style={{ background: 'var(--color-card-bg)', borderRadius: 12, border: 'var(--border-glass)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--color-card-bg)', borderRadius: 16, border: 'var(--border-glass)', overflow: 'hidden', boxShadow: 'var(--shadow-subtle)' }}>
         <Table
+          sticky={true}
           columns={columns}
           dataSource={requisitions}
           rowKey="reqId"
           loading={isLoading}
+          scroll={{ x: 1610 }}
           locale={{ emptyText: <EmptyState title="No requisitions found" /> }}
         />
       </div>
 
-      {/* Approval Remarks Modal */}
+      {/* Approval / Return Remarks Modal */}
       <Modal
-        title={<span style={{ fontWeight: 700 }}>{approveModal.approved ? 'Approve Requisition' : 'Reject Requisition'}</span>}
+        title={
+          <span style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            {approveModal.action === 'Return' ? (
+              <><RollbackOutlined style={{ color: '#FAA71A' }} /> Return Requisition for Correction</>
+            ) : approveModal.approved ? (
+              <><CheckOutlined style={{ color: '#22C55E' }} /> Approve Requisition</>
+            ) : (
+              <><CloseOutlined style={{ color: '#E94043' }} /> Reject Requisition</>
+            )}
+          </span>
+        }
         open={approveModal.open}
         onCancel={() => setApproveModal({ open: false, record: null, approved: true })}
         onOk={() => approveForm.validateFields().then(handleApproveReject)}
-        confirmLoading={approveMutation.isPending}
-        okButtonProps={{ style: { background: approveModal.approved ? '#22C55E' : '#E94043', border: 'none' } }}
+        confirmLoading={approveMutation.isPending || returnMutation.isPending}
+        okText={approveModal.action === 'Return' ? 'Return to Creator' : approveModal.approved ? 'Approve' : 'Reject'}
+        okButtonProps={{ style: { background: approveModal.action === 'Return' ? '#FAA71A' : approveModal.approved ? '#22C55E' : '#E94043', border: 'none' } }}
       >
         <Form form={approveForm} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="comment" label="Comments / Remarks" rules={[{ required: !approveModal.approved, message: 'Rejection comments are mandatory' }]}>
-            <Input.TextArea rows={3} placeholder={approveModal.approved ? 'Add optional approval remarks...' : 'Specify reasons for rejection...'} style={{ borderRadius: 8 }} />
+          <Form.Item
+            name="comment"
+            label="Comments / Correction Remarks"
+            rules={[{ required: !approveModal.approved || approveModal.action === 'Return', message: approveModal.action === 'Return' ? 'Specify correction reasons / instructions' : 'Rejection comments are mandatory' }]}
+          >
+            <Input.TextArea
+              rows={3}
+              placeholder={
+                approveModal.action === 'Return'
+                  ? 'Specify details on what needs correction...'
+                  : approveModal.approved
+                  ? 'Add optional approval remarks...'
+                  : 'Specify reasons for rejection...'
+              }
+              style={{ borderRadius: 8 }}
+            />
           </Form.Item>
         </Form>
       </Modal>
 
-      {/* Details Drawer with Workforce availability */}
+      {/* Details Drawer with Workforce availability + Audit Trail */}
       <Drawer
-        title={<span style={{ fontWeight: 700 }}>Requisition Details</span>}
+        title={<span style={{ fontWeight: 700 }}>Requisition Details — {detailDrawer.record?.mrfNumber}</span>}
         placement="right"
-        width={600}
+        width={680}
         onClose={() => setDetailDrawer({ open: false, record: null })}
         open={detailDrawer.open}
+        bodyStyle={{ padding: '16px 24px' }}
       >
         {detailDrawer.record && (
-          <div>
-            <Descriptions title="Overview" bordered column={1} size="small">
-              <Descriptions.Item label="Job Title">{detailDrawer.record.jobTitle}</Descriptions.Item>
-              <Descriptions.Item label="Positions">{detailDrawer.record.noOfPositions}</Descriptions.Item>
-              <Descriptions.Item label="Department">{detailDrawer.record.departmentName}</Descriptions.Item>
-              <Descriptions.Item label="Designation">{detailDrawer.record.designationTitle}</Descriptions.Item>
-              <Descriptions.Item label="Experience Range">
-                {detailDrawer.record.minExperience ?? 0} - {detailDrawer.record.maxExperience ?? 'Any'} Years
-              </Descriptions.Item>
-              <Descriptions.Item label="Salary Budget Range">
-                {detailDrawer.record.minSalary ? `₹ ${detailDrawer.record.minSalary.toLocaleString()}` : '-'} to {detailDrawer.record.maxSalary ? `₹ ${detailDrawer.record.maxSalary.toLocaleString()}` : '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Target Joining Date">{formatDate(detailDrawer.record.targetDate)}</Descriptions.Item>
-              <Descriptions.Item label="Skills Required">{detailDrawer.record.skillsRequired || 'None specified'}</Descriptions.Item>
-              <Descriptions.Item label="Status">{getStatusTag(detailDrawer.record.status)}</Descriptions.Item>
-            </Descriptions>
-            
-            <Divider />
-            
-            <h4 style={{ fontWeight: 600, marginBottom: 8 }}>Job Description</h4>
-            <div style={{ background: 'var(--color-bg-elevated)', padding: 12, borderRadius: 8, whiteSpace: 'pre-wrap', maxHeight: 200, overflowY: 'auto' }}>
-              {detailDrawer.record.jobDescription || 'No job description provided.'}
-            </div>
+          <Tabs defaultActiveKey="overview" items={[
+            {
+              key: 'overview',
+              label: 'Overview',
+              children: (
+                <div>
+                  <Descriptions title="Overview" bordered column={1} size="small">
+                    <Descriptions.Item label="Job Title">{detailDrawer.record.jobTitle}</Descriptions.Item>
+                    <Descriptions.Item label="Positions">{detailDrawer.record.noOfPositions}</Descriptions.Item>
+                    <Descriptions.Item label="Department">{detailDrawer.record.departmentName}</Descriptions.Item>
+                    <Descriptions.Item label="Designation">{detailDrawer.record.designationTitle}</Descriptions.Item>
+                    <Descriptions.Item label="Experience Range">
+                      {detailDrawer.record.minExperience ?? 0} - {detailDrawer.record.maxExperience ?? 'Any'} Years
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Salary Budget Range">
+                      {detailDrawer.record.minSalary ? `₹ ${detailDrawer.record.minSalary.toLocaleString()}` : '-'} to {detailDrawer.record.maxSalary ? `₹ ${detailDrawer.record.maxSalary.toLocaleString()}` : '-'}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Target Joining Date">{formatDate(detailDrawer.record.targetDate)}</Descriptions.Item>
+                    <Descriptions.Item label="Skills Required">{detailDrawer.record.skillsRequired || 'None specified'}</Descriptions.Item>
+                    <Descriptions.Item label="Status">{getStatusTag(detailDrawer.record.status)}</Descriptions.Item>
+                  </Descriptions>
 
-            <Divider />
-            
-            <Descriptions title="Metadata" column={1} size="small">
-              <Descriptions.Item label="Raised By">{detailDrawer.record.raisedByUserName}</Descriptions.Item>
-              <Descriptions.Item label="Approved By">{detailDrawer.record.approvedByUserName || '-'}</Descriptions.Item>
-              <Descriptions.Item label="Raised Date">{formatDate(detailDrawer.record.requisitionDate)}</Descriptions.Item>
-            </Descriptions>
+                  <Divider />
 
-            <Divider />
-            <InternalWorkforcePanel reqId={detailDrawer.record.reqId} />
-          </div>
+                  <h4 style={{ fontWeight: 600, marginBottom: 8 }}>Job Description</h4>
+                  <div style={{ background: 'var(--color-bg-elevated)', padding: 12, borderRadius: 8, whiteSpace: 'pre-wrap', maxHeight: 200, overflowY: 'auto' }}>
+                    {detailDrawer.record.jobDescription || 'No job description provided.'}
+                  </div>
+
+                  <Divider />
+
+                  <Descriptions title="Metadata" column={1} size="small">
+                    <Descriptions.Item label="Raised By">{detailDrawer.record.raisedByUserName}</Descriptions.Item>
+                    <Descriptions.Item label="Approved By">{detailDrawer.record.approvedByUserName || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="Raised Date">{formatDate(detailDrawer.record.requisitionDate)}</Descriptions.Item>
+                  </Descriptions>
+
+                  <Divider />
+                  <InternalWorkforcePanel reqId={detailDrawer.record.reqId} onClose={() => setDetailDrawer({ open: false, record: null })} />
+                </div>
+              )
+            },
+            {
+              key: 'audit',
+              label: '📜 Audit Trail',
+              children: <RequisitionAuditPanel reqId={detailDrawer.record.reqId} />
+            }
+          ]} />
         )}
       </Drawer>
 
@@ -679,8 +760,96 @@ function RequisitionsTab() {
   )
 }
 
+// ─── Requisition Audit Trail Panel ────────────────────────────────────────────
+function RequisitionAuditPanel({ reqId }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['requisitionAudit', reqId],
+    queryFn: () => recruitmentService.getRequisitionAuditTrail(reqId),
+    enabled: !!reqId,
+    select: (r) => r?.data || []
+  })
+
+  const getActionColor = (action = '') => {
+    const a = action.toLowerCase()
+    if (a.includes('approv') || a.includes('approved')) return 'green'
+    if (a.includes('reject')) return 'red'
+    if (a.includes('submit')) return 'blue'
+    if (a.includes('return')) return 'orange'
+    if (a.includes('cancel')) return 'red'
+    if (a.includes('created') || a.includes('created')) return 'purple'
+    if (a.includes('edit')) return 'cyan'
+    if (a.includes('assign')) return 'geekblue'
+    return 'gray'
+  }
+
+  const getActionDot = (action = '') => {
+    const a = action.toLowerCase()
+    if (a.includes('approv')) return '✅'
+    if (a.includes('reject')) return '❌'
+    if (a.includes('submit')) return '🚀'
+    if (a.includes('return')) return '↩️'
+    if (a.includes('cancel')) return '🚫'
+    if (a.includes('created')) return '📋'
+    if (a.includes('edit')) return '✏️'
+    return '📌'
+  }
+
+  if (isLoading) return <div style={{ textAlign: 'center', padding: 32 }}>Loading audit trail...</div>
+
+  if (!data || data.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-secondary)' }}>
+        <div style={{ fontSize: 32 }}>📜</div>
+        <div style={{ marginTop: 8 }}>No audit records found for this requisition.</div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ paddingTop: 8 }}>
+      <Timeline
+        mode="left"
+        items={data.map(entry => ({
+          color: getActionColor(entry.action),
+          label: (
+            <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', textAlign: 'right', minWidth: 90 }}>
+              {dayjs(entry.timestamp).format('DD MMM YYYY')}<br />
+              <span style={{ fontSize: 10 }}>{dayjs(entry.timestamp).format('HH:mm:ss')}</span>
+            </div>
+          ),
+          children: (
+            <div style={{ paddingBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <span style={{ fontSize: 13 }}>{getActionDot(entry.action)}</span>
+                <span style={{ fontWeight: 700, fontSize: 13 }}>{entry.action}</span>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+                by <strong>{entry.actionByName}</strong>
+                {entry.actionByUsername && entry.actionByUsername !== '-' && (
+                  <span style={{ opacity: 0.6 }}> (@{entry.actionByUsername})</span>
+                )}
+              </div>
+              {entry.remarks && (
+                <div style={{
+                  marginTop: 6, fontSize: 12, padding: '6px 10px',
+                  background: 'var(--color-bg-elevated)', borderRadius: 6,
+                  borderLeft: `3px solid ${getActionColor(entry.action) === 'green' ? '#22C55E' : getActionColor(entry.action) === 'red' ? '#EF4444' : '#6366F1'}`,
+                  color: 'var(--color-text-secondary)'
+                }}>
+                  {entry.remarks}
+                </div>
+              )}
+            </div>
+          )
+        }))}
+      />
+    </div>
+  )
+}
+
 // ─── Internal Workforce Check Subcomponent ───────────────────────────────────
-function InternalWorkforcePanel({ reqId }) {
+
+function InternalWorkforcePanel({ reqId, onClose }) {
   const queryClient = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ['internalCheck', reqId],
@@ -704,6 +873,7 @@ function InternalWorkforcePanel({ reqId }) {
         setModalOpen(false)
         form.resetFields()
         queryClient.invalidateQueries({ queryKey: ['requisitions'] })
+        if (onClose) onClose()
       } else {
         message.error(res.message || 'Workflow action failed.')
       }
@@ -757,7 +927,7 @@ function InternalWorkforcePanel({ reqId }) {
                 avatar={<Avatar style={{ background: candidate.isExactMatch ? '#8B5CF6' : '#3B82F6' }}>{candidate.fullName?.[0]}</Avatar>}
                 title={
                   <span>
-                    {candidate.fullName} 
+                    {candidate.fullName}
                     <Tag style={{ marginLeft: 8 }} color={candidate.isExactMatch ? 'purple' : 'blue'}>
                       {candidate.isExactMatch ? 'Exact Match' : 'Partial Match'}
                     </Tag>
@@ -824,7 +994,7 @@ function InternalWorkforcePanel({ reqId }) {
                   <Select.Option value="Other">Other (Require remarks)</Select.Option>
                 </Select>
               </Form.Item>
-              
+
               {selectedReason === 'Other' && (
                 <Form.Item name="otherJustification" label="Specify Justification Details" rules={[{ required: true, message: 'Details are mandatory for Other' }]}>
                   <Input.TextArea rows={2} placeholder="Explain justification details..." style={{ borderRadius: 8 }} />
@@ -926,7 +1096,7 @@ function PostingsTab() {
       title: 'Job Title',
       key: 'jobTitle',
       render: (_, r) => (
-        <span 
+        <span
           style={{ fontWeight: 600, color: 'var(--color-primary-light)', cursor: 'pointer' }}
           onClick={() => setDetailDrawer({ open: true, record: r })}
         >
@@ -934,30 +1104,30 @@ function PostingsTab() {
         </span>
       )
     },
-    { 
-      title: 'Publish Channels', 
-      dataIndex: 'publishingChannels', 
+    {
+      title: 'Publish Channels',
+      dataIndex: 'publishingChannels',
       key: 'channels',
       render: (v) => {
         if (!v || !v.length) return '-'
         return v.map(c => <Tag color="blue" style={{ borderRadius: 4 }} key={c}>{c}</Tag>)
       }
     },
-    { 
-      title: 'Posted At', 
-      dataIndex: 'postedAt', 
+    {
+      title: 'Posted At',
+      dataIndex: 'postedAt',
       key: 'postedAt',
       render: (v) => dayjs(v).format('DD MMM YYYY HH:mm')
     },
-    { 
-      title: 'Expiry Date', 
-      dataIndex: 'expiryDate', 
+    {
+      title: 'Expiry Date',
+      dataIndex: 'expiryDate',
       key: 'expiryDate',
       render: (v) => formatDate(v)
     },
-    { 
-      title: 'Status', 
-      dataIndex: 'status', 
+    {
+      title: 'Status',
+      dataIndex: 'status',
       key: 'status',
       render: (v) => getStatusTag(v)
     },
@@ -1045,8 +1215,8 @@ function PostingsTab() {
       </Row>
 
       <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 16 }}>
-        <Select 
-          placeholder="Filter Status" 
+        <Select
+          placeholder="Filter Status"
           style={{ width: 180 }}
           allowClear
           onChange={(v) => setPostingFilters({ status: v })}
@@ -1113,7 +1283,7 @@ function PostingsTab() {
             </Descriptions>
 
             <Divider />
-            
+
             <h4 style={{ fontWeight: 600, marginBottom: 8 }}>Job Description (Public advertisement text)</h4>
             <div style={{ background: 'var(--color-bg-elevated)', padding: 12, borderRadius: 8, whiteSpace: 'pre-wrap', maxHeight: 300, overflowY: 'auto' }}>
               {detailDrawer.record.jobDescription || 'No job description provided.'}
@@ -1138,36 +1308,26 @@ function PostingsTab() {
 
 // ─── Main Recruitment Hub View ───────────────────────────────────────────────
 export default function RecruitmentPage() {
-  const { hasRole } = useAuth()
-  const isHR = hasRole(ROLES.SUPER_ADMIN) || hasRole(ROLES.HR_ADMIN) || hasRole(ROLES.HR_MANAGER) || hasRole(ROLES.RECRUITMENT_MANAGER)
-
-  const tabs = [
-    { key: 'requisitions', label: 'Manpower Requisitions (MRF)', children: <RequisitionsTab /> }
-  ]
-
-  if (isHR) {
-    tabs.push({ key: 'postings', label: 'Job Openings & Board', children: <PostingsTab /> })
-  }
-
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <PageHeader
-        title="Recruitment & Job Openings"
-        subtitle="Manage end-to-end manpower requisitions and job postings"
-        breadcrumbs={[{ label: 'Home', path: '/dashboard' }, { label: 'Recruitment & Onboarding' }]}
+        title="Manpower Requisitions"
+        subtitle="Manage end-to-end manpower requisitions (MRFs) and internal/external approvals."
+        breadcrumbs={[{ label: 'Home', path: '/dashboard' }, { label: 'Recruitment' }, { label: 'Manpower Requisitions' }]}
       />
-      <Tabs 
-        items={tabs} 
-        style={{ 
-          background: 'var(--color-card-bg)', 
-          backdropFilter: 'blur(16px)', 
-          WebkitBackdropFilter: 'blur(16px)', 
-          borderRadius: 16, 
-          padding: '20px 20px 0', 
-          border: 'var(--border-glass)', 
-          boxShadow: 'var(--shadow-subtle)' 
-        }} 
-      />
+      <div
+        style={{
+          background: 'var(--color-card-bg)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderRadius: 16,
+          padding: '24px',
+          border: 'var(--border-glass)',
+          boxShadow: 'var(--shadow-subtle)'
+        }}
+      >
+        <RequisitionsTab />
+      </div>
     </motion.div>
   )
 }

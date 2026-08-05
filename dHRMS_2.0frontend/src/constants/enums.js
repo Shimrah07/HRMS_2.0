@@ -59,7 +59,6 @@ export const BLOOD_GROUP = [
   { value: 'ONegative', label: 'O-' },
   { value: 'ABPositive', label: 'AB+' },
   { value: 'ABNegative', label: 'AB-' },
-  { value: 'Unknown', label: 'Unknown' },
 ]
 
 export const MARITAL_STATUS = [
@@ -125,6 +124,7 @@ export const MOTHER_TONGUE = [
   { value: 'Bengali', label: 'Bengali' },
   { value: 'Bodo', label: 'Bodo' },
   { value: 'Dogri', label: 'Dogri' },
+  { value: 'English', label: 'English' },
   { value: 'Gujarati', label: 'Gujarati' },
   { value: 'Hindi', label: 'Hindi' },
   { value: 'Kannada', label: 'Kannada' },

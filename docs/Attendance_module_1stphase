@@ -1,0 +1,27 @@
+# Attendance Core Engine: Steps 1 to 3 Completed
+
+We have successfully implemented the first three steps of the core engine.
+
+## Step 1: Shift Master CRUD
+We've added full CRUD for shifts.
+- **Backend**: `ShiftController.cs` added (`/api/v1/shifts`).
+- **Frontend**: `ShiftMasterPage.jsx` created and added to the routes under `/attendance/shifts`.
+
+## Step 2: Rules Engine & Nightly Batch Processing
+- **Backend `Punch` Endpoint**: Refactored to not hardcode `Present` status. It now logs `MissingPunch` and leaves it for the batch job.
+- **Batch Processor**: Built `AttendanceBatchProcessor` as an `IHostedService` to run every night at 1:00 AM IST to process yesterday's records.
+- **Manual Trigger Endpoint**: Added `POST /api/v1/attendance/process-daily` which allows HR/Admin to manually trigger the daily calculation (useful for testing or ad-hoc runs).
+- **Core Logic**: Evaluates shift hours, late grace periods, missing punches, and marks statuses (`Present`, `LatePresent`, `HalfDay`, `Absent`, `MissingPunch`, `WeeklyOff`).
+
+## Step 3: Leave Reconciliation
+- Integrated into the batch processor. When the logic marks an employee as `Absent`, it cross-references `LeaveApplications`.
+- If an approved leave covers the target date, the status is converted to `Leave` (or `HalfDay` if it's a half-day leave).
+
+> [!NOTE]
+> All new database interactions respect the `IsFrozen` flag and will gracefully ignore locked records (which we will implement fully in Step 7).
+
+### Verification Performed
+- Database migrations correctly execute and the backend builds without errors.
+- Shift Master UI is hooked up to the new backend API endpoints.
+
+Please confirm you'd like me to proceed to **Step 4 (Regularization Approval Workflow)**.

@@ -5,6 +5,7 @@ using IndiaHRMS.Domain.Constants;
 using IndiaHRMS.Domain.Entities;
 using IndiaHRMS.Domain.Enums;
 using IndiaHRMS.Infrastructure.Data;
+using IndiaHRMS.Infrastructure.Services;
 using IndiaHRMS.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -92,6 +93,7 @@ public class BGVController : ControllerBase
         if (activeApp != null)
         {
             activeApp.CurrentStage = ApplicationStage.BackgroundCheck;
+            TimelineHelper.AddTimelineEvent(activeApp, "BGV Initiated", $"Initiated BGV Agency: {request.AgencyName}");
         }
 
         await _context.SaveChangesAsync(ct);
@@ -161,18 +163,27 @@ public class BGVController : ControllerBase
         else if (statuses.All(s => s == "Cleared"))
         {
             bgv.Status = "Cleared";
-
-            // Advance candidate stage logically if BGV is cleared
-            var app = await _context.JobApplications
-                .FirstOrDefaultAsync(a => a.CandidateId == bgv.CandidateId && a.CurrentStage == ApplicationStage.BackgroundCheck, ct);
-            if (app != null)
-            {
-                app.CurrentStage = ApplicationStage.Joined; // Ready for pre-joining/onboarding
-            }
         }
         else
         {
             bgv.Status = "InProgress";
+        }
+
+        // Advance candidate stage logically if BGV is completed
+        var app = await _context.JobApplications
+            .FirstOrDefaultAsync(a => a.CandidateId == bgv.CandidateId && a.CurrentStage == ApplicationStage.BackgroundCheck, ct);
+        
+        if (app != null)
+        {
+            if (bgv.Status == "Failed")
+            {
+                TimelineHelper.AddTimelineEvent(app, "BGV Failed", $"Discrepancies found: {bgv.DiscrepancyNotes}");
+            }
+            else if (bgv.Status == "Cleared")
+            {
+                app.CurrentStage = ApplicationStage.Joined; // Ready for pre-joining/onboarding
+                TimelineHelper.AddTimelineEvent(app, "BGV Cleared", "All background checks cleared successfully.");
+            }
         }
 
         await _context.SaveChangesAsync(ct);

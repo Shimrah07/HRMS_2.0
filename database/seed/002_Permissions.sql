@@ -34,6 +34,7 @@ VALUES
   (NEWID(), 'PAYROLL.EXPORT', 'Export Payroll', 'Payroll', 'Export', 'Export payroll reports and salary slips.', GETUTCDATE()),
   (NEWID(), 'PAYROLL.GENERATE', 'Generate Salary Slips', 'Payroll', 'Generate', 'Generate PDF salary slips.', GETUTCDATE()),
   (NEWID(), 'PAYROLL.CONFIGURE', 'Configure Payroll', 'Payroll', 'Configure', 'Configure salary components and structures.', GETUTCDATE()),
+  (NEWID(), 'PAYROLL.DISBURSE', 'Disburse Payroll', 'Payroll', 'Disburse', 'Generate bank batch files for NEFT/RTGS salary disbursement.', GETUTCDATE()),
 
   -- Recruitment Module
   (NEWID(), 'RECRUITMENT.VIEW', 'View Recruitment', 'Recruitment', 'View', 'View job requisitions and applications.', GETUTCDATE()),

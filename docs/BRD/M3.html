@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRMS - Module 3: Attendance & Time Management</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(17,153,142,0.4);
+            z-index: 9999;
+            transition: all 0.3s;
+        }
+        .print-btn:hover { transform: translateY(-2px); }
+
+        .container { max-width: 1300px; margin: 0 auto; padding: 20px; }
+
+        /* Cover */
+        .cover {
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: white;
+            padding: 60px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .cover::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(17,153,142,0.15) 0%, transparent 70%);
+        }
+        .cover h1 { font-size: 42px; font-weight: 800; background: linear-gradient(90deg,#38ef7d,#11998e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; position: relative; }
+        .cover p { color: #a0aec0; font-size: 18px; margin-top: 10px; position: relative; }
+        .cover-badges { display: flex; justify-content: center; gap: 12px; margin-top: 25px; flex-wrap: wrap; position: relative; }
+        .cover-badge { background: rgba(255,255,255,0.1); padding: 8px 18px; border-radius: 30px; font-size: 12px; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* Section */
+        .section { background: white; border-radius: 16px; margin-bottom: 25px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .section-header { padding: 22px 30px; color: white; display: flex; align-items: center; gap: 15px; }
+        .section-header h2 { font-size: 21px; font-weight: 700; }
+        .section-header p { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+        .section-body { padding: 25px 30px; }
+
+        /* Gradients */
+        .g-green  { background: linear-gradient(135deg,#11998e,#38ef7d); }
+        .g-blue   { background: linear-gradient(135deg,#667eea,#764ba2); }
+        .g-orange { background: linear-gradient(135deg,#f7971e,#ffd200); }
+        .g-red    { background: linear-gradient(135deg,#ff416c,#ff4b2b); }
+        .g-purple { background: linear-gradient(135deg,#4776e6,#8e54e9); }
+        .g-teal   { background: linear-gradient(135deg,#0f2027,#203a43,#2c5364); }
+        .g-pink   { background: linear-gradient(135deg,#ee0979,#ff6a00); }
+        .g-dark   { background: linear-gradient(135deg,#2c3e50,#3498db); }
+        .g-maroon { background: linear-gradient(135deg,#8e0e00,#1f1c18); }
+        .g-lime   { background: linear-gradient(135deg,#56ab2f,#a8e063); }
+        .g-cyan   { background: linear-gradient(135deg,#00b4db,#0083b0); }
+        .g-attn   { background: linear-gradient(135deg,#f093fb,#f5576c); }
+
+        /* Stats */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 12px; margin: 15px 0; }
+        .stat-box { background: white; border-radius: 10px; padding: 15px; text-align: center; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stat-box .num { font-size: 28px; font-weight: 800; background: linear-gradient(135deg,#11998e,#38ef7d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-box .lbl { font-size: 11px; color: #718096; margin-top: 3px; }
+
+        /* Field Table */
+        .field-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 15px 0; }
+        .field-table th { background: #f7fafc; padding: 10px 12px; text-align: left; font-weight: 700; color: #2d3748; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+        .field-table td { padding: 9px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+        .field-table tr:nth-child(even) { background: #fafafa; }
+        .field-table tr:hover { background: #f0fff4; }
+
+        /* Badges */
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+        .b-required    { background: #fed7d7; color: #c53030; }
+        .b-optional    { background: #c6f6d5; color: #276749; }
+        .b-conditional { background: #feebc8; color: #c05621; }
+        .b-text        { background: #e9d8fd; color: #553c9a; }
+        .b-number      { background: #bee3f8; color: #2b6cb0; }
+        .b-date        { background: #fefcbf; color: #744210; }
+        .b-dropdown    { background: #fed7e2; color: #97266d; }
+        .b-file        { background: #c6f6d5; color: #22543d; }
+        .b-radio       { background: #e9d8fd; color: #44337a; }
+        .b-checkbox    { background: #b2f5ea; color: #234e52; }
+        .b-email       { background: #bee3f8; color: #1a365d; }
+        .b-mobile      { background: #feebc8; color: #7b341e; }
+        .b-textarea    { background: #e2e8f0; color: #4a5568; }
+        .b-readonly    { background: #e2e8f0; color: #4a5568; }
+        .b-auto        { background: #c6f6d5; color: #1c4532; }
+        .b-rich        { background: #fef3c7; color: #92400e; }
+        .b-critical    { background: #fc8181; color: #7b0000; }
+        .b-high        { background: #f6ad55; color: #7b341e; }
+        .b-medium      { background: #76e4f7; color: #065666; }
+        .b-low         { background: #9ae6b4; color: #1c4532; }
+        .b-toggle      { background: #d6bcfa; color: #44337a; }
+        .b-rating      { background: #fbd38d; color: #7b341e; }
+
+        /* Form Preview */
+        .form-preview { background: #f8fafc; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; }
+        .form-row { display: grid; gap: 15px; margin-bottom: 15px; }
+        .form-row.col-1 { grid-template-columns: 1fr; }
+        .form-row.col-2 { grid-template-columns: 1fr 1fr; }
+        .form-row.col-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .form-row.col-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        .form-field { display: flex; flex-direction: column; gap: 4px; }
+        .form-field label { font-size: 11px; font-weight: 700; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-field label .req { color: #e53e3e; }
+        .form-field input, .form-field select, .form-field textarea {
+            padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+            font-size: 13px; color: #2d3748; background: white;
+        }
+        .form-field textarea { resize: vertical; min-height: 80px; }
+        .form-field .hint { font-size: 10px; color: #a0aec0; }
+        .form-field .error-msg { font-size: 10px; color: #e53e3e; }
+        .form-section-title {
+            font-size: 13px; font-weight: 800; color: #11998e;
+            padding: 8px 12px; background: linear-gradient(135deg,#e6fffa,#c6f6d5);
+            border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #11998e;
+        }
+
+        /* Flow */
+        .flow-container { overflow-x: auto; padding: 10px 0; }
+        .flow-steps { display: flex; align-items: flex-start; gap: 0; min-width: max-content; }
+        .flow-step {
+            background: white; border: 2px solid #11998e; border-radius: 10px;
+            padding: 12px 14px; text-align: center; min-width: 130px;
+        }
+        .flow-step .step-num {
+            background: #11998e; color: white; width: 22px; height: 22px;
+            border-radius: 50%; font-size: 11px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; margin: 0 auto 6px;
+        }
+        .flow-step .step-title { font-size: 11px; font-weight: 700; color: #2d3748; }
+        .flow-step .step-role  { font-size: 9px; color: #11998e; font-weight: 600; margin-top: 2px; }
+        .flow-step .step-desc  { font-size: 10px; color: #718096; margin-top: 3px; }
+        .flow-arrow { color: #11998e; font-size: 22px; padding: 0 4px; margin-top: 22px; }
+        .flow-step.decision { border-color: #ed8936; background: #fffaf0; }
+        .flow-step.decision .step-num { background: #ed8936; }
+        .flow-step.decision .step-role { color: #ed8936; }
+        .flow-step.success  { border-color: #48bb78; background: #f0fff4; }
+        .flow-step.success  .step-num { background: #48bb78; }
+        .flow-step.error    { border-color: #e53e3e; background: #fff5f5; }
+        .flow-step.error    .step-num { background: #e53e3e; }
+        .flow-step.rejected { border-color: #718096; background: #f7fafc; }
+        .flow-step.rejected .step-num { background: #718096; }
+
+        /* Info / Warning / Validation boxes */
+        .info-box    { background: #e6fffa; border: 1px solid #81e6d9; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .info-box h4 { color: #234e52; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .info-box p, .info-box li { font-size: 12px; color: #234e52; }
+        .info-box ul { padding-left: 16px; }
+
+        .warning-box    { background: #fffbeb; border: 1px solid #f6e05e; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .warning-box h4 { color: #b7791f; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .warning-box p, .warning-box li { font-size: 12px; color: #7b341e; }
+        .warning-box ul { padding-left: 16px; }
+
+        .validation-box    { background: #fff5f5; border: 1px solid #fed7d7; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .validation-box h4 { color: #c53030; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .validation-box li  { font-size: 12px; color: #742a2a; padding: 2px 0; }
+        .validation-box ul  { padding-left: 16px; }
+
+        .success-box    { background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .success-box h4 { color: #276749; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .success-box li  { font-size: 12px; color: #1c4532; padding: 2px 0; }
+        .success-box ul  { padding-left: 16px; }
+
+        /* RBAC */
+        .rbac-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 15px 0; }
+        .rbac-table th { background: #2d3748; color: white; padding: 10px 10px; text-align: center; font-size: 11px; }
+        .rbac-table td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 11px; }
+        .rbac-table tr:nth-child(even) { background: #f7fafc; }
+        .rbac-table .field-name { text-align: left; font-weight: 600; color: #2d3748; font-size: 12px; }
+        .can       { color: #276749; font-size: 15px; }
+        .cannot    { color: #c53030; font-size: 15px; }
+        .view-only { color: #2b6cb0; font-size: 13px; font-weight: 700; }
+        .masked    { color: #b7791f; font-size: 10px; font-weight: 700; }
+
+        /* Kanban Board */
+        .kanban { display: flex; gap: 12px; overflow-x: auto; padding: 10px 0; }
+        .kanban-col {
+            min-width: 160px; background: #f8fafc; border-radius: 12px;
+            padding: 12px; border: 1px solid #e2e8f0; flex-shrink: 0;
+        }
+        .kanban-col-title { font-size: 12px; font-weight: 700; color: white; padding: 6px 12px; border-radius: 8px; text-align: center; margin-bottom: 10px; }
+        .kanban-card { background: white; border-radius: 8px; padding: 10px; margin-bottom: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); font-size: 11px; border-left: 3px solid; }
+        .kanban-card .kc-title { font-weight: 700; color: #2d3748; margin-bottom: 3px; }
+        .kanban-card .kc-meta { color: #718096; font-size: 10px; }
+
+        /* Pipeline Stage */
+        .pipeline { display: flex; gap: 0; margin: 15px 0; overflow-x: auto; }
+        .pipe-stage {
+            flex: 1; min-width: 100px; text-align: center; padding: 12px 8px;
+            position: relative; background: #f8fafc;
+            border-top: 3px solid #e2e8f0; border-bottom: 3px solid #e2e8f0;
+        }
+        .pipe-stage:first-child { border-radius: 10px 0 0 10px; border-left: 3px solid #e2e8f0; }
+        .pipe-stage:last-child  { border-radius: 0 10px 10px 0; border-right: 3px solid #e2e8f0; }
+        .pipe-stage.active { background: linear-gradient(135deg,#e6fffa,#c6f6d5); border-color: #11998e; }
+        .pipe-stage .ps-count { font-size: 22px; font-weight: 800; color: #11998e; }
+        .pipe-stage .ps-label { font-size: 10px; color: #718096; margin-top: 3px; font-weight: 600; }
+        .pipe-stage .ps-arrow { position: absolute; right: -8px; top: 50%; transform: translateY(-50%); background: white; border-radius: 50%; border: 2px solid #e2e8f0; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 9px; z-index: 1; }
+
+        /* Timeline */
+        .timeline { position: relative; padding: 10px 0; }
+        .timeline::before { content: ''; position: absolute; left: 18px; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom,#11998e,#38ef7d); border-radius: 2px; }
+        .tl-item { display: flex; gap: 15px; margin-bottom: 18px; padding-left: 10px; }
+        .tl-dot { width: 18px; height: 18px; border-radius: 50%; background: #11998e; flex-shrink: 0; border: 2px solid white; box-shadow: 0 0 0 2px #11998e; margin-top: 2px; }
+        .tl-content { background: white; border-radius: 10px; padding: 12px 15px; flex: 1; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .tl-content h4 { font-size: 13px; font-weight: 700; color: #2d3748; margin-bottom: 4px; }
+        .tl-content p  { font-size: 12px; color: #718096; }
+        .tl-content .tl-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .tl-tag { background: #e6fffa; color: #234e52; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+
+        /* API box */
+        .api-box { background: #1a202c; border-radius: 10px; padding: 15px; margin: 10px 0; font-family: 'Courier New', monospace; font-size: 11px; color: #68d391; overflow-x: auto; }
+        .api-method { color: #f6ad55; font-weight: 700; }
+        .api-url    { color: #90cdf4; }
+        .api-key    { color: #fc8181; }
+        .api-value  { color: #68d391; }
+
+        /* Grid */
+        .two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .four-col  { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+
+        .sub-section { background: #f8fafc; border-radius: 12px; padding: 20px; margin: 15px 0; }
+        .sub-section h3 { font-size: 16px; font-weight: 700; color: #2d3748; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+
+        /* Checklist */
+        .checklist { list-style: none; padding: 0; }
+        .checklist li { padding: 5px 0; font-size: 12px; color: #4a5568; display: flex; align-items: flex-start; gap: 8px; border-bottom: 1px solid #f0f0f0; }
+        .checklist li:last-child { border: none; }
+        .checklist li .check { color: #48bb78; font-weight: 700; flex-shrink: 0; }
+        .checklist li .cross { color: #e53e3e; font-weight: 700; flex-shrink: 0; }
+        .checklist li .warn  { color: #ed8936; font-weight: 700; flex-shrink: 0; }
+
+        /* Score card */
+        .score-card { background: white; border-radius: 12px; padding: 15px; border: 1px solid #e2e8f0; }
+        .score-row  { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+        .score-row .sc-label { color: #4a5568; }
+        .score-row .sc-score { font-weight: 700; color: #11998e; }
+        .score-bar  { height: 6px; background: #e2e8f0; border-radius: 3px; margin-top: 3px; }
+        .score-fill { height: 100%; background: linear-gradient(90deg,#11998e,#38ef7d); border-radius: 3px; }
+
+        /* Status badge */
+        .status { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .s-new        { background: #bee3f8; color: #2b6cb0; }
+        .s-screen     { background: #feebc8; color: #c05621; }
+        .s-interview  { background: #e9d8fd; color: #553c9a; }
+        .s-offer      { background: #c6f6d5; color: #276749; }
+        .s-joined     { background: #9ae6b4; color: #1c4532; }
+        .s-rejected   { background: #fed7d7; color: #c53030; }
+        .s-hold       { background: #e2e8f0; color: #4a5568; }
+        .s-withdrawn  { background: #fef3c7; color: #92400e; }
+
+        /* Print */
+        @media print {
+            body { background: white; font-size: 11px; }
+            .print-btn { display: none !important; }
+            .container { max-width: 100%; padding: 0; }
+            .section { box-shadow: none; border: 1px solid #e2e8f0; break-inside: avoid; }
+            .section-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .api-box { background: #f0f0f0 !important; color: #333 !important; }
+            @page { margin: 12mm; size: A4; }
+        }
+
+        @media (max-width: 768px) {
+            .two-col, .three-col, .four-col { grid-template-columns: 1fr; }
+            .form-row.col-2, .form-row.col-3, .form-row.col-4 { grid-template-columns: 1fr; }
+            .cover { padding: 30px 20px; }
+            .cover h1 { font-size: 26px; }
+        }
+    </style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ PDF Save Karein</button>
+
+<div class="container">
+
+    <!-- ===== COVER ===== -->
+    <div class="cover">
+        <div style="font-size:64px;margin-bottom:15px;position:relative;">⏰</div>
+        <h1>Module 3: Attendance & Time Management</h1>
+        <p>HRMS System — Deep Level Requirements Document</p>
+        <div class="cover-badges">
+            <span class="cover-badge">📋 130+ Fields Documented</span>
+            <span class="cover-badge">🔐 RBAC - 7 Roles</span>
+            <span class="cover-badge">🔄 8 Sub-Modules</span>
+            <span class="cover-badge">✅ Full Validations</span>
+            <span class="cover-badge">📱 9 Capture Methods</span>
+            <span class="cover-badge">🏭 8 Sector Configs</span>
+            <span class="cover-badge">🔗 14 API Endpoints</span>
+            <span class="cover-badge">📈 Attendance Analytics</span>
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+        <div class="stat-box"><div class="num">8</div><div class="lbl">Sub-Modules</div></div>
+        <div class="stat-box"><div class="num">130+</div><div class="lbl">Input Fields</div></div>
+        <div class="stat-box"><div class="num">9</div><div class="lbl">Capture Methods</div></div>
+        <div class="stat-box"><div class="num">7</div><div class="lbl">User Roles</div></div>
+        <div class="stat-box"><div class="num">18</div><div class="lbl">Workflow Steps</div></div>
+        <div class="stat-box"><div class="num">16</div><div class="lbl">Reports</div></div>
+        <div class="stat-box"><div class="num">22+</div><div class="lbl">Notifications</div></div>
+        <div class="stat-box"><div class="num">8</div><div class="lbl">Sector Configs</div></div>
+    </div>
+
+    <!-- ===== 1. OVERVIEW ===== -->
+    <div class="section">
+        <div class="section-header g-attn">
+            <span style="font-size:28px">📌</span>
+            <div>
+                <h2>1.0 Module Overview & Sub-Module List</h2>
+                <p>Attendance — Daily punch se payroll-ready muster roll tak ka poora process</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="info-box">
+                        <h4>🎯 Module Purpose</h4>
+                        <p>Attendance & Time Management module employee ki daily presence, working hours, shift compliance aur overtime ko multi-mode capture karke automatically process karta hai. Biometric se GPS tak — sabhi capture methods ek single attendance record mein consolidate hote hain, jo directly Payroll (Module 5) aur Leave (Module 4) ke saath sync rehta hai.</p>
+                    </div>
+                    <div class="info-box" style="margin-top:12px;">
+                        <h4>📦 8 Sub-Modules</h4>
+                        <ul>
+                            <li><strong>3.1</strong> Attendance Capture Methods</li>
+                            <li><strong>3.2</strong> Shift & Roster Management</li>
+                            <li><strong>3.3</strong> Attendance Processing & Rules Engine</li>
+                            <li><strong>3.4</strong> Regularization & Correction Workflow</li>
+                            <li><strong>3.5</strong> Overtime & Comp-Off Management</li>
+                            <li><strong>3.6</strong> Muster Roll & Statutory Compliance</li>
+                            <li><strong>3.7</strong> Sector-Specific Configuration</li>
+                            <li><strong>3.8</strong> Attendance Dashboard & Analytics</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Key Business Rules</h4>
+                        <ul>
+                            <li>Ek employee ka ek din mein sirf ek final attendance status hoga (System calculated, override sirf approved regularization se)</li>
+                            <li>Grace period se zyada late aane par half-day ya LOP (Loss of Pay) auto-trigger hoga as per policy</li>
+                            <li>Regularization request sirf 3 working days ke andar raise ho sakti hai, uske baad HR approval mandatory</li>
+                            <li>OT sirf pre-approved ya post-facto manager-approved hoga — auto-payment nahi</li>
+                            <li>Attendance freeze payroll cut-off date ke baad koi edit allowed nahi (sirf HR override with audit log)</li>
+                            <li>Biometric punch missing ho to mobile GPS/web punch backup ke roop mein accept hoga (policy-based)</li>
+                            <li>Comp-off earned holiday/weekly-off working par, expiry 90 days (default, configurable)</li>
+                            <li>Multi-location employee ka attendance sabhi devices se auto-sync hoga single record mein</li>
+                        </ul>
+                    </div>
+                    <div class="success-box" style="margin-top:12px;">
+                        <h4>✅ Key Metrics System Track Karega</h4>
+                        <ul>
+                            <li>Daily Attendance % (Present/Absent/Half-day)</li>
+                            <li>Late Coming Trend (Employee & Dept-wise)</li>
+                            <li>Average Working Hours vs Standard Hours</li>
+                            <li>Overtime Hours & Cost</li>
+                            <li>Regularization Request Volume & Approval TAT</li>
+                            <li>Comp-off Earned vs Utilized vs Expired</li>
+                            <li>Biometric Device Uptime & Mismatch Rate</li>
+                            <li>Statutory Compliance Score (Factories Act / AEBAS)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 2. MASTER FLOW ===== -->
+    <div class="section">
+        <div class="section-header g-dark">
+            <span style="font-size:28px">🔄</span>
+            <div>
+                <h2>2.0 Master Attendance Flow — End to End</h2>
+                <p>Daily punch se payroll-freeze tak — poora lifecycle</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:#2d3748;">🔵 Phase 1: Daily Punch Capture</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">1</div>
+                        <div class="step-title">Employee Punch In</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Biometric/GPS/RFID/QR/Web</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">2</div>
+                        <div class="step-title">Device Validates</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Location/Face/Card match</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">3</div>
+                        <div class="step-title">Punch Log Created</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Timestamp + geo-tag stored</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">4</div>
+                        <div class="step-title">Employee Punch Out</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Same/different device</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">5</div>
+                        <div class="step-title">✅ Daily Log Complete</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">In-Out pair matched</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🟠 Phase 2: Processing & Exception Handling</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">6</div>
+                        <div class="step-title">Nightly Batch Run</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">2 AM daily calculation</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">7</div>
+                        <div class="step-title">Shift Rules Applied</div>
+                        <div class="step-role">🤖 Rules Engine</div>
+                        <div class="step-desc">Grace, late, half-day logic</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">8</div>
+                        <div class="step-title">Exception Detected?</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Missing punch / late / early-out</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">9</div>
+                        <div class="step-title">Employee Regularizes</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Reason + proof upload</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">10</div>
+                        <div class="step-title">Manager Approval</div>
+                        <div class="step-role">👤 Reporting Manager</div>
+                        <div class="step-desc">Approve / Reject</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">11</div>
+                        <div class="step-title">OT Auto-Computed</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Beyond shift hours</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">12</div>
+                        <div class="step-title">OT / Comp-off Approval</div>
+                        <div class="step-role">👤 Manager</div>
+                        <div class="step-desc">Payout or comp-off choice</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🟢 Phase 3: Monthly Closure to Payroll</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">13</div>
+                        <div class="step-title">Leave Sync Check</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Approved leaves overlay</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">14</div>
+                        <div class="step-title">Muster Roll Draft</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Month-end consolidated view</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">15</div>
+                        <div class="step-title">HR Review</div>
+                        <div class="step-role">👤 HR Admin</div>
+                        <div class="step-desc">Final anomaly check</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">16</div>
+                        <div class="step-title">Cut-off Date Reached</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">e.g. 25th of month</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step error">
+                        <div class="step-num">17</div>
+                        <div class="step-title">🔒 Attendance Frozen</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">No further edits w/o HR override</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">18</div>
+                        <div class="step-title">✅ Sent to Payroll</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Module 5 pulls final data</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pipeline View -->
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">📊 Today's Attendance Status — Live View</h3>
+            <div class="pipeline">
+                <div class="pipe-stage active">
+                    <div class="ps-count">842</div>
+                    <div class="ps-label">Present</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">38</div>
+                    <div class="ps-label">On Leave</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">21</div>
+                    <div class="ps-label">Late Coming</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">12</div>
+                    <div class="ps-label">Half Day</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">9</div>
+                    <div class="ps-label">WFH</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">7</div>
+                    <div class="ps-label">Absent</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">5</div>
+                    <div class="ps-label">Missing Punch</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 3. CAPTURE METHODS ===== -->
+    <div class="section">
+        <div class="section-header g-blue">
+            <span style="font-size:28px">📱</span>
+            <div>
+                <h2>3.0 Sub-Module 3.1 — Attendance Capture Methods</h2>
+                <p>9 tarike se punch — Biometric se GPS geo-fence tak</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="stats-row">
+                <div class="stat-box"><div class="num">9</div><div class="lbl">Capture Modes</div></div>
+                <div class="stat-box"><div class="num">99.2%</div><div class="lbl">Biometric Uptime</div></div>
+                <div class="stat-box"><div class="num">3</div><div class="lbl">Backup Modes</div></div>
+                <div class="stat-box"><div class="num">150m</div><div class="lbl">Geo-fence Default</div></div>
+            </div>
+
+            <div class="sub-section">
+                <h3>📶 Capture Method Master</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Method</th><th>Use Case</th><th>Hardware</th><th>Offline Support</th><th>Fraud Risk Control</th></tr>
+                        <tr><td><strong>Biometric — Fingerprint</strong></td><td>Factory, office main gate</td><td>ESSL/Realtime/ZKTeco device</td><td>Local storage, sync on network</td><td>Duplicate finger check</td></tr>
+                        <tr><td><strong>Biometric — Face Recognition</strong></td><td>Contactless entry, COVID-safe</td><td>AI camera device</td><td>Edge processing</td><td>Liveness detection (anti-spoof)</td></tr>
+                        <tr><td><strong>Biometric — Iris</strong></td><td>High-security zones</td><td>Iris scanner</td><td>Local cache</td><td>Very low false match</td></tr>
+                        <tr><td><strong>RFID / Smart Card</strong></td><td>Manufacturing, warehouse</td><td>Card reader + printed card</td><td>Yes</td><td>Card sharing risk — photo audit</td></tr>
+                        <tr><td><strong>Mobile App GPS</strong></td><td>Field sales, remote workers</td><td>Employee smartphone</td><td>Queued, syncs when online</td><td>Mock GPS detection, selfie required</td></tr>
+                        <tr><td><strong>Geo-fencing</strong></td><td>Site/store boundary based auto punch</td><td>Mobile GPS + defined radius</td><td>Background service</td><td>Radius breach alert</td></tr>
+                        <tr><td><strong>QR Code</strong></td><td>Events, temporary sites, visitors-linked staff</td><td>Static/dynamic QR + camera</td><td>No (needs scan)</td><td>Time-bound rotating QR</td></tr>
+                        <tr><td><strong>Web Punch (IP restricted)</strong></td><td>Office desk-based staff, WFH exceptions</td><td>Browser + whitelisted IP/VPN</td><td>No</td><td>IP + device fingerprint lock</td></tr>
+                        <tr><td><strong>Wi-Fi Auto Attendance</strong></td><td>Office premises passive detection</td><td>Wi-Fi AP + employee device MAC</td><td>No</td><td>MAC spoofing monitored</td></tr>
+                        <tr><td><strong>Bluetooth Beacon</strong></td><td>Large campus, multi-floor buildings</td><td>BLE beacon + mobile app</td><td>Local buffer</td><td>Signal strength threshold</td></tr>
+                        <tr><td><strong>Supervisor Manual Marking</strong></td><td>Contract labour, daily wage workers</td><td>None — supervisor entry</td><td>N/A</td><td>Dual approval, photo evidence optional</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-preview">
+                <div class="form-section-title">⚙️ Device / Capture Method Mapping</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Location / Site <span class="req">*</span></label>
+                        <select><option>Mumbai HQ - Gate 1</option><option>Pune Plant - Shop Floor</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Capture Method <span class="req">*</span></label>
+                        <select><option>Biometric - Face</option><option>RFID</option><option>Mobile GPS</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Device ID / Serial No <span class="req">*</span></label>
+                        <input type="text" placeholder="ESSL-BM-0451">
+                    </div>
+                    <div class="form-field">
+                        <label>Device Status</label>
+                        <input type="text" value="Online" readonly style="background:#f0fff4;color:#276749;font-weight:700;">
+                    </div>
+                </div>
+                <div class="form-row col-3" style="margin-top:12px;">
+                    <div class="form-field">
+                        <label>Geo-fence Radius (meters)</label>
+                        <input type="number" value="150" placeholder="Applicable for GPS/Geo-fence only">
+                    </div>
+                    <div class="form-field">
+                        <label>Allow Backup Punch Mode</label>
+                        <select><option>Mobile Web Punch</option><option>Supervisor Marking</option><option>None</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Sync Frequency</label>
+                        <select><option>Real-time</option><option>Every 5 mins</option><option>On reconnect (offline device)</option></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="warning-box" style="margin-top:15px;">
+                <h4>⚠️ Validation & Fraud Rules</h4>
+                <ul>
+                    <li>Same employee ka 2 alag locations se 30 minute ke andar punch flagged for review (buddy punching check)</li>
+                    <li>Mobile GPS punch ke liye mock-location apps detect hone par punch reject + admin alert</li>
+                    <li>Face recognition mein liveness fail (photo/video spoof) hone par punch reject, security notify</li>
+                    <li>Web punch sirf whitelisted office IP range ya approved VPN se accept hoga</li>
+                    <li>Geo-fence radius se bahar punch attempt hone par "Out of Zone" flag with manager visibility</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 4. SHIFT & ROSTER ===== -->
+    <div class="section">
+        <div class="section-header g-orange">
+            <span style="font-size:28px">🕐</span>
+            <div>
+                <h2>4.0 Sub-Module 3.2 — Shift & Roster Management</h2>
+                <p>Shift master, weekly-off pattern aur roster scheduling</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="form-preview">
+                <div class="form-section-title">🕐 Shift Master Configuration</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Shift Code <span class="req">*</span></label>
+                        <input type="text" value="GEN-A" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Shift Name <span class="req">*</span></label>
+                        <input type="text" placeholder="General Shift">
+                    </div>
+                    <div class="form-field">
+                        <label>Shift Start Time <span class="req">*</span></label>
+                        <input type="text" value="09:30">
+                    </div>
+                    <div class="form-field">
+                        <label>Shift End Time <span class="req">*</span></label>
+                        <input type="text" value="18:30">
+                    </div>
+                </div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Grace Period - In (mins)</label>
+                        <input type="number" value="10">
+                    </div>
+                    <div class="form-field">
+                        <label>Grace Period - Out (mins)</label>
+                        <input type="number" value="10">
+                    </div>
+                    <div class="form-field">
+                        <label>Break / Lunch Duration (mins)</label>
+                        <input type="number" value="60">
+                    </div>
+                    <div class="form-field">
+                        <label>Total Working Hours</label>
+                        <input type="text" value="8.0" readonly style="background:#f7fafc;">
+                    </div>
+                </div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Half-Day Threshold (hrs)</label>
+                        <input type="number" value="4">
+                    </div>
+                    <div class="form-field">
+                        <label>Night Shift Allowance Trigger</label>
+                        <select><option>No</option><option>Yes (after 10 PM)</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Flexible Hours?</label>
+                        <select><option>No</option><option>Yes - Core hours 11AM-4PM</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Applicable To</label>
+                        <select><option>All Employees</option><option>Dept-wise</option><option>Grade-wise</option></select>
+                    </div>
+                </div>
+
+                <div class="form-section-title" style="margin-top:15px;">📅 Weekly-Off & Roster Pattern</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Weekly Off Pattern <span class="req">*</span></label>
+                        <select><option>Every Sunday</option><option>Alternate Saturdays + Sunday</option><option>Rotational (Roster-based)</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Roster Type</label>
+                        <select><option>Fixed Shift</option><option>Rotating Shift (3-shift)</option><option>Flexible / Choose-your-own</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Roster Publish Frequency</label>
+                        <select><option>Weekly</option><option>Monthly</option></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sub-section" style="margin-top:15px;">
+                <h3>🔄 3-Shift Rotation Example (Manufacturing)</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Shift Code</th><th>Timing</th><th>Night Allowance</th><th>Rotation Cycle</th><th>Applicable Sector</th></tr>
+                        <tr><td><strong>Shift A (General)</strong></td><td>06:00 AM – 02:00 PM</td><td>No</td><td>Weekly rotation</td><td>Manufacturing, Healthcare</td></tr>
+                        <tr><td><strong>Shift B (Afternoon)</strong></td><td>02:00 PM – 10:00 PM</td><td>No</td><td>Weekly rotation</td><td>Manufacturing, Healthcare</td></tr>
+                        <tr><td><strong>Shift C (Night)</strong></td><td>10:00 PM – 06:00 AM</td><td>Yes (statutory)</td><td>Weekly rotation</td><td>Manufacturing, Healthcare, Security</td></tr>
+                        <tr><td><strong>General Shift</strong></td><td>09:30 AM – 06:30 PM</td><td>No</td><td>Fixed</td><td>Corporate / IT / Admin</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <h4>🔀 Shift Change Request Workflow</h4>
+                <ul>
+                    <li>Employee/Supervisor shift change request raise karta hai with reason and proposed date</li>
+                    <li>Reporting Manager approval mandatory before roster update</li>
+                    <li>System auto-checks minimum rest period between shifts (min 8 hrs gap, statutory requirement)</li>
+                    <li>Approved change roster calendar + attendance rules engine dono mein reflect hota hai</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 5. PROCESSING & RULES ENGINE ===== -->
+    <div class="section">
+        <div class="section-header g-purple">
+            <span style="font-size:28px">⚙️</span>
+            <div>
+                <h2>5.0 Sub-Module 3.3 — Attendance Processing & Rules Engine</h2>
+                <p>Nightly batch calculation — late, absent, half-day, OT automation</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="sub-section">
+                <h3>📐 Attendance Status Determination Logic</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Condition</th><th>Rule</th><th>Resulting Status</th><th>Payroll Impact</th></tr>
+                        <tr><td>Punch In within grace period</td><td>≤ Shift start + grace (e.g. 10 min)</td><td><span class="status s-joined">Present - On Time</span></td><td>Full day pay</td></tr>
+                        <tr><td>Punch In after grace period</td><td>&gt; Shift start + grace, up to late threshold</td><td><span class="status s-screen">Late Coming</span></td><td>Full day pay + late count towards penalty</td></tr>
+                        <tr><td>3 late-comings in a month</td><td>Configurable policy threshold</td><td><span class="status s-hold">Late Penalty Trigger</span></td><td>0.5 day deduction (policy-based)</td></tr>
+                        <tr><td>Worked hours &lt; Half-day threshold</td><td>e.g. &lt; 4 hrs of 8 hr shift</td><td><span class="status s-hold">Half Day</span></td><td>50% day pay</td></tr>
+                        <tr><td>No punch recorded at all</td><td>No In, No Out, no approved leave</td><td><span class="status s-rejected">Absent</span></td><td>Full day LOP (unless regularized)</td></tr>
+                        <tr><td>Punch In present, Punch Out missing</td><td>System flags exception</td><td><span class="status s-hold">Missing Punch</span></td><td>Pending regularization, held from payroll</td></tr>
+                        <tr><td>Worked beyond shift end</td><td>&gt; Shift hours + buffer</td><td><span class="status s-joined">Overtime Eligible</span></td><td>OT calculation triggered</td></tr>
+                        <tr><td>Worked on Weekly-off / Holiday</td><td>Approved work request</td><td><span class="status s-joined">Comp-off Earned</span></td><td>Comp-off credit or OT pay</td></tr>
+                        <tr><td>Approved leave on file</td><td>Synced from Module 4</td><td><span class="status s-offer">On Leave</span></td><td>As per leave type (paid/unpaid)</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <div class="validation-box">
+                        <h4>🚫 Rules Engine Validations</h4>
+                        <ul>
+                            <li>Grace period cannot exceed 30 mins (statutory reasonableness check)</li>
+                            <li>Half-day threshold must be less than full shift hours</li>
+                            <li>Late penalty policy cannot result in more than 1 day deduction per month per employee without HR review</li>
+                            <li>OT hours capped at statutory limit (e.g. 50 hrs/quarter for Factories Act) — system blocks beyond limit without special approval</li>
+                            <li>Minimum rest between two shifts must be ≥ 8 hours before next punch accepted</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="success-box">
+                        <h4>✅ Auto-Calculation Features</h4>
+                        <ul>
+                            <li>Daily batch job (2 AM) processes previous day's punches against shift rules</li>
+                            <li>Multi-location punch consolidation into single daily record</li>
+                            <li>Leave-Attendance auto-reconciliation (no double deduction)</li>
+                            <li>Holiday calendar overlay (company + regional/state holidays)</li>
+                            <li>Real-time exception dashboard for HR / managers</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sub-section" style="margin-top:15px;">
+                <h3>📊 Late Coming Penalty Slab (Sample Policy)</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Late Instances / Month</th><th>Action</th><th>Deduction</th></tr>
+                        <tr><td>1 – 2 times</td><td>Warning only (no deduction)</td><td>None</td></tr>
+                        <tr><td>3 – 4 times</td><td>Half-day deduction on 3rd instance onward</td><td>0.5 day per additional instance</td></tr>
+                        <tr><td>5+ times</td><td>Full-day deduction + HR counselling flag</td><td>1 day + escalation to manager</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 6. REGULARIZATION ===== -->
+    <div class="section">
+        <div class="section-header g-red">
+            <span style="font-size:28px">✍️</span>
+            <div>
+                <h2>6.0 Sub-Module 3.4 — Regularization & Correction Workflow</h2>
+                <p>Missing punch, late coming, wrong entry — employee-initiated correction</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">1</div>
+                        <div class="step-title">Exception Flagged</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Missing/late/early-out</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">2</div>
+                        <div class="step-title">Employee Raises Request</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Within 3 working days</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">3</div>
+                        <div class="step-title">Manager Reviews</div>
+                        <div class="step-role">👤 Reporting Manager</div>
+                        <div class="step-desc">Approve / Reject / Query</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">4</div>
+                        <div class="step-title">✅ Attendance Updated</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Status corrected, audit logged</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step rejected">
+                        <div class="step-num">4b</div>
+                        <div class="step-title">❌ Rejected</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Original status stands, LOP applies</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-preview" style="margin-top:15px;">
+                <div class="form-section-title">✍️ Regularization Request Form</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Attendance Date <span class="req">*</span></label>
+                        <input type="date" value="2024-01-22">
+                    </div>
+                    <div class="form-field">
+                        <label>Exception Type</label>
+                        <input type="text" value="Missing Punch-Out" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Current Status</label>
+                        <input type="text" value="Half Day (System)" readonly style="background:#fff5f5;color:#c53030;">
+                    </div>
+                </div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Requested In-Time</label>
+                        <input type="text" value="09:28 AM" readonly>
+                    </div>
+                    <div class="form-field">
+                        <label>Requested Out-Time <span class="req">*</span></label>
+                        <input type="text" placeholder="e.g. 06:45 PM">
+                    </div>
+                </div>
+                <div class="form-row col-1">
+                    <div class="form-field">
+                        <label>Reason for Regularization <span class="req">*</span></label>
+                        <textarea placeholder="E.g. Forgot to punch out, worked till 6:45 PM on client call"></textarea>
+                    </div>
+                </div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Supporting Proof (optional)</label>
+                        <input type="text" value="📎 Upload — Email/Swipe screenshot" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Approver</label>
+                        <input type="text" value="Auto-routed to Reporting Manager" readonly style="background:#f7fafc;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col" style="margin-top:15px;">
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Regularization Limits</h4>
+                        <ul>
+                            <li>Max 3 regularization requests per employee per month (configurable)</li>
+                            <li>Requests older than 3 working days require HR-level approval, not just manager</li>
+                            <li>Same date cannot be regularized more than once</li>
+                            <li>Frequent regularization pattern (&gt;5/month, 3 consecutive months) flagged for HR review</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="info-box">
+                        <h4>📋 Regularization Types Supported</h4>
+                        <ul>
+                            <li>Missing Punch In / Punch Out</li>
+                            <li>Wrong Device Punch (punched at wrong location)</li>
+                            <li>On-Duty / Field Work (no punch expected)</li>
+                            <li>Work From Home (ad-hoc, not pre-approved)</li>
+                            <li>Late Coming — Valid Reason (traffic, transport strike)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 7. OVERTIME & COMP-OFF ===== -->
+    <div class="section">
+        <div class="section-header g-teal">
+            <span style="font-size:28px">⏱️</span>
+            <div>
+                <h2>7.0 Sub-Module 3.5 — Overtime & Comp-Off Management</h2>
+                <p>Extra hours ka fair compensation — pay ya comp-off, employee choice</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="form-preview">
+                <div class="form-section-title">⏱️ Overtime Configuration</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>OT Applicable</label>
+                        <select><option>Yes - Grade C & below</option><option>No - Managerial grade exempt</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>OT Trigger After (mins beyond shift)</label>
+                        <input type="number" value="30">
+                    </div>
+                    <div class="form-field">
+                        <label>OT Rate Multiplier</label>
+                        <select><option>1.5x (weekday)</option><option>2x (weekly-off/holiday)</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Max OT Hours / Quarter</label>
+                        <input type="number" value="50" readonly style="background:#fff5f5;color:#c53030;">
+                    </div>
+                </div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Pre-Approval Required?</label>
+                        <select><option>Yes - before working OT</option><option>Post-facto approval allowed</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Compensation Type</label>
+                        <select><option>Monetary Payout</option><option>Comp-off</option><option>Employee Choice</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Comp-off Validity (days)</label>
+                        <input type="number" value="90">
+                    </div>
+                </div>
+            </div>
+
+            <div class="sub-section" style="margin-top:15px;">
+                <h3>💰 OT Calculation Example</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Scenario</th><th>Hours Worked Extra</th><th>Rate</th><th>Calculation Basis</th></tr>
+                        <tr><td>Weekday, post-shift work</td><td>2 hrs</td><td>1.5x</td><td>(Basic+DA / 208) × 1.5 × hours</td></tr>
+                        <tr><td>Weekly-off working (full day)</td><td>8 hrs</td><td>2x</td><td>(Basic+DA / 208) × 2 × hours, or Comp-off</td></tr>
+                        <tr><td>National Holiday working</td><td>8 hrs</td><td>2x + Comp-off</td><td>Double pay + 1 comp-off day (statutory)</td></tr>
+                        <tr><td>Night shift extension</td><td>1.5 hrs</td><td>1.5x + Night Allowance</td><td>OT rate + fixed night allowance</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <div class="info-box">
+                        <h4>🔄 Comp-Off Lifecycle</h4>
+                        <ul>
+                            <li>Earned automatically when employee works on weekly-off/holiday (approved)</li>
+                            <li>Credited to comp-off balance within 24 hrs of approval</li>
+                            <li>Employee applies comp-off like leave via Leave module (Module 4 sync)</li>
+                            <li>Auto-expiry after validity period (default 90 days) with reminder alerts at 15/7/1 day before</li>
+                            <li>Expired comp-off can be encashed only if policy allows</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Statutory OT Limits (Factories Act)</h4>
+                        <ul>
+                            <li>Max 50 hours OT per quarter per worker (Factories Act 1948)</li>
+                            <li>Total working hours (normal + OT) not to exceed 60 hrs/week</li>
+                            <li>Spread-over of work not to exceed 10.5 hours including breaks</li>
+                            <li>System hard-blocks OT beyond statutory limit; HR override with justification only</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 8. MUSTER ROLL & STATUTORY ===== -->
+    <div class="section">
+        <div class="section-header g-maroon">
+            <span style="font-size:28px">📜</span>
+            <div>
+                <h2>8.0 Sub-Module 3.6 — Muster Roll & Statutory Compliance</h2>
+                <p>Factories Act, Shops & Establishment Act, AEBAS aur government reporting</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="sub-section">
+                <h3>📋 Statutory Registers & Forms Auto-Generated</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Register / Form</th><th>Applicable Act</th><th>Frequency</th><th>Applicable Sector</th></tr>
+                        <tr><td><strong>Muster Roll (Form 25)</strong></td><td>Factories Act, 1948</td><td>Monthly</td><td>Manufacturing / Factory</td></tr>
+                        <tr><td><strong>Register of Attendance</strong></td><td>Shops & Establishment Act (state-specific)</td><td>Monthly</td><td>Retail, Corporate, Services</td></tr>
+                        <tr><td><strong>Overtime Register (Form 4)</strong></td><td>Factories Act, 1948</td><td>Monthly</td><td>Manufacturing</td></tr>
+                        <tr><td><strong>AEBAS Biometric Compliance Report</strong></td><td>DoPT Govt Circular</td><td>Daily</td><td>Government / PSU</td></tr>
+                        <tr><td><strong>Leave & Attendance Combined Register</strong></td><td>Shops & Establishment Act</td><td>Monthly</td><td>All sectors</td></tr>
+                        <tr><td><strong>Contract Labour Attendance (Form XVI)</strong></td><td>Contract Labour (R&A) Act, 1970</td><td>Monthly</td><td>Manufacturing, Construction</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <div class="info-box">
+                        <h4>🗄️ Muster Roll Contents</h4>
+                        <ul>
+                            <li>Employee ID, Name, Designation, Department</li>
+                            <li>Date-wise Present/Absent/Leave/Half-day status</li>
+                            <li>Total working days, total present days, OT hours</li>
+                            <li>Wages/salary period cross-reference</li>
+                            <li>Digital signature of authorized signatory</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="success-box">
+                        <h4>✅ AEBAS (Govt/PSU) Specific Requirements</h4>
+                        <ul>
+                            <li>Aadhaar-based biometric mandatory for all employees</li>
+                            <li>Real-time sync with National Informatics Centre (NIC) AEBAS portal</li>
+                            <li>Half-day rule: minimum 2 punches (in/out) required, else marked absent</li>
+                            <li>Public dashboard visibility of department-wise attendance %</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="warning-box" style="margin-top:12px;">
+                <h4>⚠️ Compliance Retention & Audit Rules</h4>
+                <ul>
+                    <li>Muster roll records retained for minimum 3 years (varies by state Shops & Establishment Act)</li>
+                    <li>All attendance edits post-freeze logged with editor ID, timestamp, and reason (immutable audit trail)</li>
+                    <li>Labour inspector access mode — read-only export for statutory audits</li>
+                    <li>OT register cross-validated against payroll OT payout monthly</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 9. SECTOR-SPECIFIC ===== -->
+    <div class="section">
+        <div class="section-header g-pink">
+            <span style="font-size:28px">🏭</span>
+            <div>
+                <h2>9.0 Sub-Module 3.7 — Sector-Specific Attendance Configuration</h2>
+                <p>Har industry ki alag zaroorat — ek hi engine, configurable rules</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="sub-section">
+                <h3>🏭 Sector-Wise Feature Matrix</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Sector</th><th>Special Requirement</th><th>Configuration</th><th>Priority</th></tr>
+                        <tr><td>Manufacturing / Factory</td><td>3-shift rotation, OT tracking per Factories Act</td><td>Shift roster, OT limit 50hrs/quarter</td><td><span class="badge b-critical">Critical</span></td></tr>
+                        <tr><td>IT / Software</td><td>Flexible hours, WFH attendance, Project-based logging</td><td>Core hours 11am–4pm, WFH geo-fence</td><td><span class="badge b-high">High</span></td></tr>
+                        <tr><td>Retail / FMCG</td><td>Store-wise attendance, holiday working tracking</td><td>POS-linked, compensatory off</td><td><span class="badge b-high">High</span></td></tr>
+                        <tr><td>Healthcare / Hospital</td><td>24×7 shifts, Doctor/Nurse rotation</td><td>12-hour shifts, on-call tracking</td><td><span class="badge b-critical">Critical</span></td></tr>
+                        <tr><td>Construction / Site</td><td>Site-wise attendance, contractor workforce</td><td>GPS site geo-fence, daily muster</td><td><span class="badge b-high">High</span></td></tr>
+                        <tr><td>Transport / Logistics</td><td>Driver/fleet attendance, route-based tracking</td><td>Vehicle GPS link, duty hours</td><td><span class="badge b-medium">Medium</span></td></tr>
+                        <tr><td>Education</td><td>Academic calendar, lecture-wise tracking</td><td>Period-wise punch, timetable integration</td><td><span class="badge b-medium">Medium</span></td></tr>
+                        <tr><td>Government / PSU</td><td>AEBAS compliance, biometric mandatory</td><td>Aadhaar-based biometric, half-day rules</td><td><span class="badge b-critical">Critical</span></td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <div class="info-box">
+                        <h4>🏗️ Construction / Site Specific Fields</h4>
+                        <ul>
+                            <li>Site ID / Project code linkage per punch</li>
+                            <li>Contractor / Sub-contractor workforce tagging</li>
+                            <li>Daily muster with photo evidence (labour compliance)</li>
+                            <li>Weather-based work stoppage flag (no-penalty absence)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="info-box">
+                        <h4>🏥 Healthcare Specific Fields</h4>
+                        <ul>
+                            <li>12-hour shift patterns (Day/Night rotation)</li>
+                            <li>On-call duty tracking (separate from regular shift)</li>
+                            <li>Cross-department float staff attendance</li>
+                            <li>Mandatory rest period enforcement between shifts (patient safety)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 10. RBAC ===== -->
+    <div class="section">
+        <div class="section-header g-maroon">
+            <span style="font-size:28px">🔐</span>
+            <div>
+                <h2>10.0 RBAC — Attendance Module Access Control</h2>
+                <p>Kaun kya kar sakta hai — field level aur action level permissions</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="sub-section">
+                <h3>👥 Attendance Module — Role Definitions</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Role</th><th>Who</th><th>Scope</th><th>Key Permissions</th></tr>
+                        <tr><td><strong>R01 - HR Admin</strong></td><td>Central HR Head / CHRO</td><td>All employees, all locations</td><td>Full CRUD. Override attendance, freeze/unfreeze, configure shift & rules</td></tr>
+                        <tr><td><strong>R02 - Attendance Admin</strong></td><td>HR Ops / Time Office</td><td>Assigned locations/depts</td><td>Manage devices, approve regularization, generate muster roll</td></tr>
+                        <tr><td><strong>R03 - Reporting Manager</strong></td><td>Team lead / Department Head</td><td>Own team only</td><td>Approve regularization, OT, view team attendance</td></tr>
+                        <tr><td><strong>R04 - Employee</strong></td><td>Any employee</td><td>Own record only</td><td>Punch, view own attendance, raise regularization</td></tr>
+                        <tr><td><strong>R05 - Payroll Admin</strong></td><td>Payroll team</td><td>Frozen attendance data only</td><td>View/export final attendance for payroll processing</td></tr>
+                        <tr><td><strong>R06 - Security / Gate Staff</strong></td><td>Security personnel</td><td>Manual marking, entry logs</td><td>Supervisor manual marking for contract/daily-wage staff</td></tr>
+                        <tr><td><strong>R07 - Compliance / Legal</strong></td><td>Statutory compliance team</td><td>Read-only muster roll & registers</td><td>Export statutory reports, audit trail view</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🔑 RBAC Matrix — Attendance Actions</h3>
+            <div style="overflow-x:auto;">
+                <table class="rbac-table">
+                    <tr>
+                        <th style="text-align:left;min-width:200px;">Action / Feature</th>
+                        <th>HR<br>Admin</th>
+                        <th>Attn<br>Admin</th>
+                        <th>Manager</th>
+                        <th>Employee</th>
+                        <th>Payroll</th>
+                        <th>Security</th>
+                        <th>Compliance</th>
+                    </tr>
+                    <tr style="background:#eef2ff;">
+                        <td class="field-name" colspan="8" style="font-size:11px;font-weight:800;color:#667eea;padding:6px 10px;">📱 PUNCH & CAPTURE</td>
+                    </tr>
+                    <tr><td class="field-name">Punch In/Out (Own)</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Manual Marking (Others)</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Configure Devices</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr style="background:#f0fff4;">
+                        <td class="field-name" colspan="8" style="font-size:11px;font-weight:800;color:#276749;padding:6px 10px;">✍️ REGULARIZATION & CORRECTION</td>
+                    </tr>
+                    <tr><td class="field-name">Raise Regularization</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Approve Regularization</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Override Attendance Status</td><td><span class="can">✏️</span></td><td><span class="view-only">With reason</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr style="background:#fff5f5;">
+                        <td class="field-name" colspan="8" style="font-size:11px;font-weight:800;color:#c53030;padding:6px 10px;">⏱️ SHIFT, OT & MUSTER</td>
+                    </tr>
+                    <tr><td class="field-name">Configure Shift Rules</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Approve OT</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Generate / Export Muster Roll</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">V</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">V</span></td></tr>
+                    <tr><td class="field-name">Freeze/Unfreeze Attendance</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">View Team Attendance</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="view-only">Own Team</span></td><td><span class="view-only">Own</span></td><td><span class="view-only">V</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">V</span></td></tr>
+                </table>
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:15px;flex-wrap:wrap;font-size:12px;">
+                <div style="display:flex;align-items:center;gap:6px;"><span class="can">✏️</span> = Full Access (Create, Edit, Delete)</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="view-only">V</span> = View Only</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="cannot">🔒</span> = No Access</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="view-only">Own</span> = Only own data</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 11. API SPECS ===== -->
+    <div class="section">
+        <div class="section-header g-teal">
+            <span style="font-size:28px">🔗</span>
+            <div>
+                <h2>11.0 API Specifications — Attendance Module</h2>
+                <p>REST API endpoints for devices, mobile app, frontend and integrations</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">// Punch APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/attendance/punch</span>
+<span style="color:#a0aec0;">// Capture punch from any device</span>
+<span class="api-key">Body:</span> <span class="api-value">{ emp_id, method, device_id, lat, lng, timestamp }</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/attendance/{emp_id}/today</span>
+<span style="color:#a0aec0;">// Today's punch status</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/attendance/mobile-punch</span>
+<span style="color:#a0aec0;">// Mobile GPS punch with selfie</span>
+<span class="api-key">Body:</span> <span class="api-value">{ emp_id, lat, lng, selfie_base64 }</span>
+
+<span style="color:#f6ad55;">// Shift & Roster APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/shifts</span>
+<span style="color:#a0aec0;">// Create shift master</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/roster?dept=Production&week=2024-W04</span>
+<span style="color:#a0aec0;">// Get roster for dept/week</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/roster/{emp_id}/shift-change</span>
+<span style="color:#a0aec0;">// Request shift change</span>
+<span class="api-key">Body:</span> <span class="api-value">{ new_shift_code, effective_date, reason }</span>
+
+<span style="color:#f6ad55;">// Processing APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/attendance/process-daily</span>
+<span style="color:#a0aec0;">// Trigger nightly batch (internal/cron)</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/attendance/{emp_id}/monthly?month=2024-01</span>
+<span style="color:#a0aec0;">// Monthly attendance summary</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">// Regularization APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/regularization</span>
+<span style="color:#a0aec0;">// Raise regularization request</span>
+<span class="api-key">Body:</span> <span class="api-value">{ emp_id, date, reason, requested_in, requested_out }</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/regularization/{id}/approve</span>
+<span style="color:#a0aec0;">// Manager approves</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/regularization/{id}/reject</span>
+<span style="color:#a0aec0;">// Manager rejects with reason</span>
+
+<span style="color:#f6ad55;">// Overtime & Comp-off APIs</span>
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/overtime/{emp_id}?quarter=Q1-2024</span>
+<span style="color:#a0aec0;">// OT hours & statutory limit check</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/compoff/credit</span>
+<span style="color:#a0aec0;">// Credit comp-off on holiday work</span>
+<span class="api-key">Body:</span> <span class="api-value">{ emp_id, earned_date, expiry_date }</span>
+
+<span style="color:#f6ad55;">// Muster Roll & Freeze APIs</span>
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/muster-roll?location=Pune&month=2024-01</span>
+<span style="color:#a0aec0;">// Generate muster roll (Form 25)</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/attendance/freeze</span>
+<span style="color:#a0aec0;">// Freeze attendance for payroll cut-off</span>
+<span class="api-key">Body:</span> <span class="api-value">{ month, cutoff_date }</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/attendance/payroll-export?month=2024-01</span>
+<span style="color:#a0aec0;">// Final data pull for Payroll (Module 5)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 12. NOTIFICATIONS ===== -->
+    <div class="section">
+        <div class="section-header g-green">
+            <span style="font-size:28px">🔔</span>
+            <div>
+                <h2>12.0 Notifications & Triggers — Attendance Module</h2>
+                <p>Every event ka auto notification — email, SMS, WhatsApp, portal</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div style="overflow-x:auto;">
+                <table class="field-table">
+                    <tr><th>Event</th><th>To Whom</th><th>Channel</th><th>Timing</th><th>Auto Action</th></tr>
+                    <tr><td><strong>Missing Punch Detected</strong></td><td>Employee</td><td>Push + Email</td><td>Next morning batch run</td><td>Regularization prompt created</td></tr>
+                    <tr><td><strong>Late Coming Recorded</strong></td><td>Employee</td><td>Push (portal)</td><td>Same day, on punch</td><td>Counter incremented for policy check</td></tr>
+                    <tr><td><strong>Regularization Submitted</strong></td><td>Reporting Manager</td><td>Email + Portal</td><td>Immediately</td><td>Approval task created</td></tr>
+                    <tr><td><strong>Regularization Pending &gt; 48hrs</strong></td><td>Manager, HR Admin (escalation)</td><td>Email</td><td>+48 hrs</td><td>Escalation flag raised</td></tr>
+                    <tr><td><strong>Regularization Approved/Rejected</strong></td><td>Employee</td><td>Push + Email</td><td>Immediately</td><td>Attendance status updated</td></tr>
+                    <tr><td><strong>OT Hours Nearing Statutory Limit</strong></td><td>Employee, Manager, HR Admin</td><td>Email</td><td>At 80% of quarterly limit</td><td>Warning flag on dashboard</td></tr>
+                    <tr><td><strong>Comp-off Credited</strong></td><td>Employee</td><td>Push + Email</td><td>On approval</td><td>Balance updated in Leave module</td></tr>
+                    <tr><td><strong>Comp-off Expiring Soon</strong></td><td>Employee</td><td>Push + Email</td><td>15 / 7 / 1 days before expiry</td><td>—</td></tr>
+                    <tr><td><strong>Shift Change Approved</strong></td><td>Employee, Attendance Admin</td><td>Email + Portal</td><td>Immediately</td><td>Roster & rules engine updated</td></tr>
+                    <tr><td><strong>Roster Published</strong></td><td>All employees in dept</td><td>Email + Portal</td><td>On publish (weekly/monthly)</td><td>—</td></tr>
+                    <tr><td><strong>Biometric Device Offline</strong></td><td>Attendance Admin, IT</td><td>Email + SMS</td><td>Immediately on detection</td><td>Backup capture mode auto-enabled</td></tr>
+                    <tr><td><strong>Buddy Punching / Fraud Flag</strong></td><td>HR Admin, Security</td><td>Email (Confidential)</td><td>Immediately</td><td>Punch held for manual review</td></tr>
+                    <tr><td><strong>Attendance Freeze Reminder</strong></td><td>All employees, Managers</td><td>Email + Portal Banner</td><td>3 days before cut-off</td><td>Final regularization window alert</td></tr>
+                    <tr><td><strong>Attendance Frozen</strong></td><td>Payroll Admin, HR Admin</td><td>Email + Portal</td><td>On freeze</td><td>Payroll export triggered</td></tr>
+                    <tr><td><strong>Muster Roll Generated</strong></td><td>HR Admin, Compliance</td><td>Email + Portal</td><td>Month-end</td><td>Available for statutory download</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 13. REPORTS ===== -->
+    <div class="section">
+        <div class="section-header g-dark">
+            <span style="font-size:28px">📊</span>
+            <div>
+                <h2>13.0 Reports & Analytics — Attendance Module</h2>
+                <p>Attendance metrics aur analytics — compliance aur workforce visibility</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div style="overflow-x:auto;">
+                <table class="field-table">
+                    <tr><th>#</th><th>Report Name</th><th>Filters</th><th>Key Metrics</th><th>Format</th><th>Access</th><th>Frequency</th></tr>
+                    <tr><td>1</td><td><strong>Daily Attendance Register</strong></td><td>Date, Dept, Location</td><td>Present/Absent/Late/Half-day count & list</td><td>Live Dashboard</td><td>HR Admin, Manager</td><td>Real-time</td></tr>
+                    <tr><td>2</td><td><strong>Monthly Attendance Summary</strong></td><td>Month, Dept, Employee</td><td>Total present, absent, LOP days, working hours</td><td>Excel, PDF</td><td>HR Admin</td><td>Monthly</td></tr>
+                    <tr><td>3</td><td><strong>Late Comers Report</strong></td><td>Date range, Dept</td><td>Employee-wise late count, avg late minutes</td><td>Excel</td><td>HR Admin, Manager</td><td>Weekly</td></tr>
+                    <tr><td>4</td><td><strong>Absentee Report</strong></td><td>Date range, Dept</td><td>Unplanned absence trend, repeat offenders</td><td>Excel, Chart</td><td>HR Admin</td><td>Weekly</td></tr>
+                    <tr><td>5</td><td><strong>Department-wise Attendance %</strong></td><td>Date range, Dept</td><td>Attendance % trend by department</td><td>Excel, Chart</td><td>HR Admin, CHRO</td><td>Monthly</td></tr>
+                    <tr><td>6</td><td><strong>Overtime Hours & Cost Report</strong></td><td>Date range, Dept, Grade</td><td>OT hours, OT cost, statutory limit tracking</td><td>Excel, Chart</td><td>HR Admin, Finance</td><td>Monthly</td></tr>
+                    <tr><td>7</td><td><strong>Biometric Mismatch Report</strong></td><td>Date, Device</td><td>Failed punches, device downtime, fraud flags</td><td>Excel</td><td>Attendance Admin, IT</td><td>Weekly</td></tr>
+                    <tr><td>8</td><td><strong>Regularization Trend Report</strong></td><td>Date range, Dept, Employee</td><td>Request volume, approval rate, avg TAT</td><td>Excel</td><td>HR Admin</td><td>Monthly</td></tr>
+                    <tr><td>9</td><td><strong>Comp-off Balance Report</strong></td><td>Employee, Dept, Status</td><td>Earned, utilized, expiring, expired comp-offs</td><td>Excel</td><td>HR Admin</td><td>Monthly</td></tr>
+                    <tr><td>10</td><td><strong>Form 25 — Muster Roll</strong></td><td>Location, Month</td><td>Statutory format for Factories Act</td><td>PDF</td><td>HR Admin, Compliance</td><td>Monthly</td></tr>
+                    <tr><td>11</td><td><strong>Shift-wise Headcount Report</strong></td><td>Date, Shift, Location</td><td>Planned vs actual headcount per shift</td><td>Excel, Chart</td><td>Attendance Admin</td><td>Daily</td></tr>
+                    <tr><td>12</td><td><strong>WFH / Remote Attendance Report</strong></td><td>Date range, Dept</td><td>WFH days, GPS compliance %</td><td>Excel</td><td>HR Admin</td><td>Monthly</td></tr>
+                    <tr><td>13</td><td><strong>AEBAS Compliance Report</strong></td><td>Date range, Location</td><td>Biometric sync %, non-compliance list</td><td>Excel</td><td>HR Admin, Compliance</td><td>Daily (Govt/PSU)</td></tr>
+                    <tr><td>14</td><td><strong>Contract Labour Attendance (Form XVI)</strong></td><td>Site, Contractor, Month</td><td>Contract workforce attendance & wages cross-check</td><td>PDF, Excel</td><td>HR Admin, Compliance</td><td>Monthly</td></tr>
+                    <tr><td>15</td><td><strong>Attendance vs Leave Reconciliation</strong></td><td>Employee, Month</td><td>Discrepancies between leave & attendance records</td><td>Excel</td><td>HR Admin</td><td>Monthly</td></tr>
+                    <tr><td>16</td><td><strong>Payroll-Ready Attendance Export</strong></td><td>Month, Location</td><td>Final frozen data — Present/LOP/OT days per employee</td><td>Excel, API</td><td>Payroll Admin</td><td>Monthly (post-freeze)</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 14. DATABASE ===== -->
+    <div class="section">
+        <div class="section-header g-purple">
+            <span style="font-size:28px">🗄️</span>
+            <div>
+                <h2>14.0 Database Design — Attendance Module</h2>
+                <p>Key tables aur relationships</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">-- Shift Master</span>
+CREATE TABLE <span class="api-url">shift_master</span> (
+  <span class="api-key">shift_id</span>         VARCHAR(20) PK,
+  <span class="api-key">shift_code</span>       VARCHAR(20) UNIQUE,
+  <span class="api-key">shift_name</span>       VARCHAR(50),
+  <span class="api-key">start_time</span>       TIME,
+  <span class="api-key">end_time</span>         TIME,
+  <span class="api-key">grace_in_mins</span>    SMALLINT,
+  <span class="api-key">grace_out_mins</span>   SMALLINT,
+  <span class="api-key">break_mins</span>       SMALLINT,
+  <span class="api-key">half_day_threshold_hrs</span> DECIMAL(3,1),
+  <span class="api-key">night_shift</span>      BOOLEAN DEFAULT FALSE,
+  <span class="api-key">is_active</span>        BOOLEAN DEFAULT TRUE
+);
+
+<span style="color:#f6ad55;">-- Roster / Shift Assignment</span>
+CREATE TABLE <span class="api-url">roster</span> (
+  <span class="api-key">roster_id</span>        BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">emp_id</span>            VARCHAR(20) FK (employees),
+  <span class="api-key">shift_id</span>          VARCHAR(20) FK,
+  <span class="api-key">roster_date</span>       DATE,
+  <span class="api-key">is_weekly_off</span>     BOOLEAN DEFAULT FALSE,
+  <span class="api-key">is_holiday</span>        BOOLEAN DEFAULT FALSE,
+  <span class="api-key">created_at</span>        TIMESTAMP DEFAULT NOW()
+);
+
+<span style="color:#f6ad55;">-- Devices</span>
+CREATE TABLE <span class="api-url">attendance_devices</span> (
+  <span class="api-key">device_id</span>         VARCHAR(30) PK,
+  <span class="api-key">location_id</span>       INT FK,
+  <span class="api-key">device_type</span>       ENUM('Biometric-FP','Biometric-Face',
+                       'RFID','GPS','QR','WebPunch','WiFi','BLE'),
+  <span class="api-key">status</span>            ENUM('Online','Offline','Maintenance'),
+  <span class="api-key">last_sync_at</span>      TIMESTAMP
+);
+                    </div>
+                </div>
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">-- Raw Punch Logs</span>
+CREATE TABLE <span class="api-url">punch_logs</span> (
+  <span class="api-key">punch_id</span>          BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">emp_id</span>            VARCHAR(20) FK (employees),
+  <span class="api-key">device_id</span>         VARCHAR(30) FK,
+  <span class="api-key">punch_type</span>        ENUM('In','Out'),
+  <span class="api-key">punch_timestamp</span>   TIMESTAMP,
+  <span class="api-key">latitude</span>          DECIMAL(9,6),
+  <span class="api-key">longitude</span>         DECIMAL(9,6),
+  <span class="api-key">is_flagged</span>        BOOLEAN DEFAULT FALSE,
+  <span class="api-key">flag_reason</span>       VARCHAR(200)
+);
+
+<span style="color:#f6ad55;">-- Daily Attendance (Processed)</span>
+CREATE TABLE <span class="api-url">daily_attendance</span> (
+  <span class="api-key">attendance_id</span>     BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">emp_id</span>            VARCHAR(20) FK,
+  <span class="api-key">attendance_date</span>   DATE,
+  <span class="api-key">shift_id</span>          VARCHAR(20) FK,
+  <span class="api-key">in_time</span>           TIMESTAMP,
+  <span class="api-key">out_time</span>          TIMESTAMP,
+  <span class="api-key">worked_hours</span>      DECIMAL(4,2),
+  <span class="api-key">status</span>            ENUM('Present','Absent','HalfDay',
+                       'Late','OnLeave','MissingPunch','Holiday','WeeklyOff'),
+  <span class="api-key">ot_hours</span>          DECIMAL(4,2) DEFAULT 0,
+  <span class="api-key">is_frozen</span>         BOOLEAN DEFAULT FALSE,
+  UNIQUE(<span class="api-key">emp_id</span>, <span class="api-key">attendance_date</span>)
+);
+
+<span style="color:#f6ad55;">-- Regularization Requests</span>
+CREATE TABLE <span class="api-url">regularization_requests</span> (
+  <span class="api-key">request_id</span>        VARCHAR(20) PK,
+  <span class="api-key">emp_id</span>            VARCHAR(20) FK,
+  <span class="api-key">attendance_date</span>   DATE,
+  <span class="api-key">requested_in</span>      TIME,
+  <span class="api-key">requested_out</span>     TIME,
+  <span class="api-key">reason</span>            TEXT,
+  <span class="api-key">proof_path</span>        VARCHAR(500),
+  <span class="api-key">status</span>            ENUM('Pending','Approved','Rejected'),
+  <span class="api-key">approved_by</span>       VARCHAR(20) FK (employees),
+  <span class="api-key">approved_at</span>       TIMESTAMP
+);
+
+<span style="color:#f6ad55;">-- Comp-off Ledger</span>
+CREATE TABLE <span class="api-url">compoff_ledger</span> (
+  <span class="api-key">ledger_id</span>         BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">emp_id</span>            VARCHAR(20) FK,
+  <span class="api-key">earned_date</span>       DATE,
+  <span class="api-key">expiry_date</span>       DATE,
+  <span class="api-key">status</span>            ENUM('Available','Utilized','Expired','Encashed')
+);
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="background:linear-gradient(135deg,#0f2027,#2c5364);color:white;padding:30px;border-radius:16px;text-align:center;margin-bottom:20px;">
+        <div style="font-size:28px;margin-bottom:10px;">✅ Module 3 Complete</div>
+        <div style="font-size:16px;font-weight:700;background:linear-gradient(90deg,#f093fb,#f5576c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+            Attendance & Time Management — Full Deep Level Documentation
+        </div>
+        <div style="font-size:13px;color:#a0aec0;margin-top:8px;">
+            130+ Fields | 8 Sub-Modules | Complete RBAC | 9 Capture Methods | Muster Roll | Statutory Compliance | API Specs | 16 Reports
+        </div>
+        <div style="margin-top:20px;padding:15px;background:rgba(255,255,255,0.1);border-radius:10px;display:inline-block;">
+            <div style="font-size:13px;color:#e2e8f0;">📌 Agle Module Ke Liye Ready:</div>
+            <div style="font-size:15px;font-weight:700;color:white;margin-top:5px;">Module 4: Leave Management System 🌴</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.querySelector('.print-btn').addEventListener('click', () => window.print());
+</script>
+</body>
+</html>

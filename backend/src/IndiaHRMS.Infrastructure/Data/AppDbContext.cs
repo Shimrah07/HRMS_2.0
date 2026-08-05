@@ -47,7 +47,9 @@ public class AppDbContext : DbContext
     public DbSet<HolidayCalendar> HolidayCalendars => Set<HolidayCalendar>();
     public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
     public DbSet<AttendanceRegularization> AttendanceRegularizations => Set<AttendanceRegularization>();
-
+    public DbSet<CompOffLedger> CompOffLedgers => Set<CompOffLedger>();
+    public DbSet<PunchLog> PunchLogs => Set<PunchLog>();
+    public DbSet<EmployeeEmploymentHistory> EmployeeEmploymentHistories => Set<EmployeeEmploymentHistory>();
     // ─── Leave ────────────────────────────────────────────────────────────────
     public DbSet<LeaveType> LeaveTypes => Set<LeaveType>();
     public DbSet<LeaveBalance> LeaveBalances => Set<LeaveBalance>();
@@ -58,15 +60,28 @@ public class AppDbContext : DbContext
     public DbSet<SalaryStructure> SalaryStructures => Set<SalaryStructure>();
     public DbSet<StructureComponent> StructureComponents => Set<StructureComponent>();
     public DbSet<EmployeeSalary> EmployeeSalaries => Set<EmployeeSalary>();
+    public DbSet<EmployeeSalaryStructure> EmployeeSalaryStructures => Set<EmployeeSalaryStructure>();
+    public DbSet<EmployeeSalaryComponentAllocation> EmployeeSalaryComponentAllocations => Set<EmployeeSalaryComponentAllocation>();
     public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
     public DbSet<PayrollDetail> PayrollDetails => Set<PayrollDetail>();
     public DbSet<PayrollComponentValue> PayrollComponentValues => Set<PayrollComponentValue>();
     public DbSet<TaxDeclaration> TaxDeclarations => Set<TaxDeclaration>();
+    // New payroll entities (Phase A — Module 5 Spec)
+    public DbSet<PayrollAuditLog> PayrollAuditLogs => Set<PayrollAuditLog>();
+    public DbSet<StatutoryDeductionConfig> StatutoryDeductionConfigs => Set<StatutoryDeductionConfig>();
+    public DbSet<ProfessionalTaxSlab> ProfessionalTaxSlabs => Set<ProfessionalTaxSlab>();
+    public DbSet<InvestmentDeclaration> InvestmentDeclarations => Set<InvestmentDeclaration>();
+    public DbSet<BankDisbursementRecord> BankDisbursementRecords => Set<BankDisbursementRecord>();
+    public DbSet<PayrollDocument> PayrollDocuments => Set<PayrollDocument>();
+    public DbSet<SectorPayrollConfig> SectorPayrollConfigs => Set<SectorPayrollConfig>();
+    public DbSet<VariablePayInput> VariablePayInputs => Set<VariablePayInput>();
+
 
     // ─── Recruitment ──────────────────────────────────────────────────────────
     public DbSet<JobRequisition> JobRequisitions => Set<JobRequisition>();
     public DbSet<Candidate> Candidates => Set<Candidate>();
     public DbSet<JobApplication> JobApplications => Set<JobApplication>();
+    public DbSet<PendingApplication> PendingApplications => Set<PendingApplication>();
     public DbSet<InterviewRound> InterviewRounds => Set<InterviewRound>();
     public DbSet<OfferLetter> OfferLetters => Set<OfferLetter>();
     public DbSet<JobPosting> JobPostings => Set<JobPosting>();
@@ -78,6 +93,8 @@ public class AppDbContext : DbContext
     public DbSet<BGVRecord> BGVRecords => Set<BGVRecord>();
     public DbSet<OnboardingProcess> OnboardingProcesses => Set<OnboardingProcess>();
     public DbSet<OnboardingTask> OnboardingTasks => Set<OnboardingTask>();
+    public DbSet<PendingEmployeeChange> PendingEmployeeChanges => Set<PendingEmployeeChange>();
+    public DbSet<OfferCtcBreakup> OfferCtcBreakups => Set<OfferCtcBreakup>();
     public DbSet<ApprovalWorkflowConfig> ApprovalWorkflowConfigs => Set<ApprovalWorkflowConfig>();
     public DbSet<RequisitionAuditTrail> RequisitionAuditTrails => Set<RequisitionAuditTrail>();
 
@@ -118,6 +135,22 @@ public class AppDbContext : DbContext
             e.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
             e.Property(x => x.PasswordSalt).HasMaxLength(500).IsRequired();
             e.HasOne(x => x.Employee).WithOne(x => x.User).HasForeignKey<User>(x => x.EmployeeId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ─── Leave System ───────────────────────────────────────────────────────
+        modelBuilder.Entity<LeaveType>(e =>
+        {
+            e.HasKey(x => x.LeaveTypeId);
+        });
+
+        modelBuilder.Entity<LeaveBalance>(e =>
+        {
+            e.HasKey(x => x.BalanceId);
+        });
+
+        modelBuilder.Entity<LeaveApplication>(e =>
+        {
+            e.HasKey(x => x.LeaveAppId);
         });
 
         // ─── Roles ─────────────────────────────────────────────────────────────
@@ -266,6 +299,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.PayrollGroup).HasConversion<string>().HasMaxLength(50);
             e.Property(x => x.WorkMode).HasConversion<string>().HasMaxLength(50);
             e.Property(x => x.VendorName).HasMaxLength(200);
+            e.Property(x => x.RecruitmentSource).HasMaxLength(100);
 
             e.HasOne(x => x.Company).WithMany(x => x.Employees).HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Department).WithMany(x => x.Employees).HasForeignKey(x => x.DeptId).OnDelete(DeleteBehavior.Restrict);
@@ -283,6 +317,8 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.JobFunction).WithMany().HasForeignKey(x => x.JobFunctionId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.ReportingManager).WithMany(x => x.DirectReports).HasForeignKey(x => x.ReportingManagerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.L2ReportingManager).WithMany().HasForeignKey(x => x.L2ReportingManagerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.L3ReportingManager).WithMany().HasForeignKey(x => x.L3ReportingManagerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.L4ReportingManager).WithMany().HasForeignKey(x => x.L4ReportingManagerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.FunctionalManager).WithMany().HasForeignKey(x => x.FunctionalManagerId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Shift).WithMany().HasForeignKey(x => x.ShiftId).OnDelete(DeleteBehavior.Restrict);
         });
@@ -386,12 +422,41 @@ public class AppDbContext : DbContext
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
             e.Property(x => x.Source).HasConversion<string>().HasMaxLength(30);
             e.HasOne(x => x.Employee).WithMany(x => x.AttendanceRecords).HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Shift).WithMany().HasForeignKey(x => x.ShiftId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PunchLog>(e =>
+        {
+            e.HasKey(x => x.PunchId);
+            e.HasIndex(x => new { x.EmployeeId, x.PunchTimestamp });
+            e.Property(x => x.Latitude).HasColumnType("decimal(9,6)");
+            e.Property(x => x.Longitude).HasColumnType("decimal(9,6)");
+            e.Property(x => x.Source).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.PunchType).HasConversion<string>().HasMaxLength(20);
+            e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EmployeeEmploymentHistory>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.EmployeeId, x.EffectiveFrom });
+            e.Property(x => x.PayrollGroup).HasConversion<string>().HasMaxLength(30);
+            e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DeptId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Designation).WithMany().HasForeignKey(x => x.DesignationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Grade).WithMany().HasForeignKey(x => x.GradeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Location).WithMany().HasForeignKey(x => x.LocationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.CostCenter).WithMany().HasForeignKey(x => x.CostCenterId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ReportingManager).WithMany().HasForeignKey(x => x.ReportingManagerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.L2ReportingManager).WithMany().HasForeignKey(x => x.L2ReportingManagerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Shift).WithMany().HasForeignKey(x => x.ShiftId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ShiftMaster>(e => e.HasKey(x => x.ShiftId));
         modelBuilder.Entity<EmployeeShift>(e => e.HasKey(x => x.EmpShiftId));
         modelBuilder.Entity<HolidayCalendar>(e => e.HasKey(x => x.HolidayId));
         modelBuilder.Entity<AttendanceRegularization>(e => e.HasKey(x => x.RegId));
+        modelBuilder.Entity<CompOffLedger>(e => e.HasKey(x => x.LedgerId));
 
         // ─── Leave ─────────────────────────────────────────────────────────────
         modelBuilder.Entity<LeaveBalance>(e =>
@@ -487,6 +552,54 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.Employee).WithMany(x => x.PayrollDetails).HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<PendingEmployeeChange>(e =>
+        {
+            e.HasKey(x => x.ChangeId);
+        });
+
+        modelBuilder.Entity<OfferCtcBreakup>(e =>
+        {
+            e.HasKey(x => x.BreakupId);
+            e.HasOne(x => x.OfferLetter)
+             .WithOne(x => x.CtcBreakup)
+             .HasForeignKey<OfferCtcBreakup>(x => x.OfferId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.Property(x => x.Basic).HasColumnType("decimal(12,2)");
+            e.Property(x => x.HRA).HasColumnType("decimal(12,2)");
+            e.Property(x => x.SpecialAllowance).HasColumnType("decimal(12,2)");
+            e.Property(x => x.PFEmployer).HasColumnType("decimal(12,2)");
+            e.Property(x => x.Gratuity).HasColumnType("decimal(12,2)");
+            e.Property(x => x.Insurance).HasColumnType("decimal(12,2)");
+            e.Property(x => x.GrossMonthly).HasColumnType("decimal(12,2)");
+            e.Property(x => x.AnnualCTC).HasColumnType("decimal(14,2)");
+        });
+
+        modelBuilder.Entity<EmployeeSalaryStructure>(e =>
+        {
+            e.HasKey(x => x.StructureId);
+            e.Property(x => x.AnnualCTC).HasColumnType("decimal(14,2)");
+            e.HasOne(x => x.Employee)
+             .WithMany()
+             .HasForeignKey(x => x.EmployeeId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EmployeeSalaryComponentAllocation>(e =>
+        {
+            e.HasKey(x => x.AllocationId);
+            e.Property(x => x.Percentage).HasColumnType("decimal(6,2)");
+            e.Property(x => x.AnnualAmount).HasColumnType("decimal(14,2)");
+            e.Property(x => x.MonthlyAmount).HasColumnType("decimal(12,2)");
+            e.HasOne(x => x.Structure)
+             .WithMany(x => x.Allocations)
+             .HasForeignKey(x => x.StructureId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Component)
+             .WithMany()
+             .HasForeignKey(x => x.ComponentId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
         // ─── Notification ──────────────────────────────────────────────────────
         modelBuilder.Entity<Notification>(e =>
         {
@@ -546,6 +659,28 @@ public class AppDbContext : DbContext
             e.HasKey(x => x.AppId);
             e.Property(x => x.CurrentStage).HasConversion<string>().HasMaxLength(30);
             e.Property(x => x.AiMatchScore).HasColumnType("decimal(5,2)");
+            e.HasOne(x => x.Requisition)
+                .WithMany(x => x.JobApplications)
+                .HasForeignKey(x => x.ReqId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ─── PendingApplication ────────────────────────────────────────────────
+        modelBuilder.Entity<PendingApplication>(e =>
+        {
+            e.HasKey(x => x.PendingAppId);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.CurrentCTC).HasColumnType("decimal(12,2)");
+            e.Property(x => x.ExpectedCTC).HasColumnType("decimal(12,2)");
+            e.Property(x => x.TotalExperience).HasColumnType("decimal(4,1)");
+            e.HasOne(x => x.JobPosting)
+                .WithMany()
+                .HasForeignKey(x => x.JobId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.ReferralEmployee)
+                .WithMany()
+                .HasForeignKey(x => x.ReferralEmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // ─── InterviewRound ────────────────────────────────────────────────────
@@ -572,6 +707,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.ExperienceMin).HasColumnType("decimal(4,1)");
             e.Property(x => x.ExperienceMax).HasColumnType("decimal(4,1)");
             e.HasOne(x => x.JobRequisition).WithMany(x => x.JobPostings).HasForeignKey(x => x.ReqId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.PublishedByUser).WithMany().HasForeignKey(x => x.PublishedById).OnDelete(DeleteBehavior.SetNull);
         });
 
         // ─── Screening Questions & Answers ──────────────────────────────────────
@@ -707,5 +843,25 @@ public class AppDbContext : DbContext
         });
 
         modelBuilder.Entity<EmailTemplate>(e => e.HasKey(x => x.TemplateId));
+
+        // ─── Payroll Model Configuration ───────────────────────────────────────
+        modelBuilder.Entity<SalaryComponent>(e => e.HasKey(x => x.ComponentId));
+        modelBuilder.Entity<SalaryStructure>(e => e.HasKey(x => x.StructureId));
+        modelBuilder.Entity<StructureComponent>(e => e.HasKey(x => x.Id));
+        modelBuilder.Entity<EmployeeSalary>(e => e.HasKey(x => x.EmpSalaryId));
+        modelBuilder.Entity<EmployeeSalaryStructure>(e => e.HasKey(x => x.StructureId));
+        modelBuilder.Entity<EmployeeSalaryComponentAllocation>(e => e.HasKey(x => x.AllocationId));
+        modelBuilder.Entity<PayrollRun>(e => e.HasKey(x => x.PayrollRunId));
+        modelBuilder.Entity<PayrollDetail>(e => e.HasKey(x => x.DetailId));
+        modelBuilder.Entity<PayrollComponentValue>(e => e.HasKey(x => x.ValueId));
+        modelBuilder.Entity<TaxDeclaration>(e => e.HasKey(x => x.DeclarationId));
+        modelBuilder.Entity<PayrollAuditLog>(e => e.HasKey(x => x.AuditId));
+        modelBuilder.Entity<StatutoryDeductionConfig>(e => e.HasKey(x => x.ConfigId));
+        modelBuilder.Entity<ProfessionalTaxSlab>(e => e.HasKey(x => x.SlabId));
+        modelBuilder.Entity<InvestmentDeclaration>(e => e.HasKey(x => x.DeclarationId));
+        modelBuilder.Entity<BankDisbursementRecord>(e => e.HasKey(x => x.DisbursementId));
+        modelBuilder.Entity<PayrollDocument>(e => e.HasKey(x => x.DocumentId));
+        modelBuilder.Entity<SectorPayrollConfig>(e => e.HasKey(x => x.ConfigId));
+        modelBuilder.Entity<VariablePayInput>(e => e.HasKey(x => x.InputId));
     }
 }

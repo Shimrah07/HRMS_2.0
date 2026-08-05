@@ -38,12 +38,20 @@ export const recruitmentService = {
     const { data } = await apiClient.post(`${API.RECRUITMENT.REQUISITIONS}/${id}/return`, payload)
     return data
   },
-  cancelRequisition: async (id) => {
-    const { data } = await apiClient.post(`${API.RECRUITMENT.REQUISITIONS}/${id}/cancel`)
+  cancelRequisition: async (id, reason) => {
+    const { data } = await apiClient.post(`${API.RECRUITMENT.REQUISITIONS}/${id}/cancel`, null, { params: { reason } })
+    return data
+  },
+  deleteRequisition: async (id) => {
+    const { data } = await apiClient.delete(`${API.RECRUITMENT.REQUISITIONS}/${id}`)
     return data
   },
   processInternalAction: async (id, payload) => {
     const { data } = await apiClient.post(`${API.RECRUITMENT.REQUISITIONS}/${id}/internal-action`, payload)
+    return data
+  },
+  getRequisitionAuditTrail: async (id) => {
+    const { data } = await apiClient.get(`${API.RECRUITMENT.REQUISITIONS}/${id}/audit-trail`)
     return data
   },
 
@@ -127,6 +135,20 @@ export const recruitmentService = {
     return data
   },
 
+  // Lookup candidates by name, email, or mobile (top 5) — for smart Add Candidate modal
+  lookupCandidate: async (q) => {
+    const { data } = await apiClient.get(`${API.CANDIDATES.LIST}/lookup`, { params: { q } })
+    return data
+  },
+
+  // POST /job-postings/{jobId}/apply — unified entry for both new + existing candidates
+  addCandidateToJob: async (jobId, formData) => {
+    const { data } = await apiClient.post(`${API.RECRUITMENT.POSTINGS}/${jobId}/apply`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return data
+  },
+
   // Job Applications & ATS Stage transitions
   getApplications: async (params) => {
     const { data } = await apiClient.get(API.APPLICATIONS.LIST, { params })
@@ -142,6 +164,18 @@ export const recruitmentService = {
   },
   updateApplicationStage: async (id, payload) => {
     const { data } = await apiClient.put(API.APPLICATIONS.STAGE(id), payload)
+    return data
+  },
+  saveWorkspace: async (id, payload) => {
+    const { data } = await apiClient.put(`${API.APPLICATIONS.LIST}/${id}/workspace`, payload)
+    return data
+  },
+  addApplicationNote: async (id, note) => {
+    const { data } = await apiClient.post(`${API.APPLICATIONS.LIST}/${id}/notes`, { note })
+    return data
+  },
+  convertCandidate: async (id, payload) => {
+    const { data } = await apiClient.post(`${API.APPLICATIONS.LIST}/${id}/convert`, payload)
     return data
   },
 
@@ -164,6 +198,31 @@ export const recruitmentService = {
   },
   submitInterviewFeedback: async (payload) => {
     const { data } = await apiClient.post(API.INTERVIEWS.FEEDBACK, payload)
+    return data
+  },
+  updateInterview: async (id, payload) => {
+    const { data } = await apiClient.put(`${API.INTERVIEWS.LIST}/${id}`, payload)
+    return data
+  },
+  updateInterviewStatus: async (id, status) => {
+    const { data } = await apiClient.post(`${API.INTERVIEWS.LIST}/${id}/status`, null, { params: { status } })
+    return data
+  },
+  sendInterviewInvitation: async (id) => {
+    const { data } = await apiClient.post(`${API.INTERVIEWS.LIST}/${id}/send-invitation`)
+    return data
+  },
+  updateInterviewChecklist: async (id, checklist) => {
+    const { data } = await apiClient.put(`${API.INTERVIEWS.LIST}/${id}/checklist`, checklist)
+    return data
+  },
+  uploadInterviewAttachment: async (id, file, documentType) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('documentType', documentType || 'Other')
+    const { data } = await apiClient.post(`${API.INTERVIEWS.LIST}/${id}/attachments`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
     return data
   },
 
@@ -254,6 +313,46 @@ export const recruitmentService = {
   },
   getOnboardingDashboardSummary: async () => {
     const { data } = await apiClient.get(API.ONBOARDING.DASHBOARD_SUMMARY)
+    return data
+  },
+
+  // ATS Phase 2 - Ingestion Queue & CSV Import
+  publicApply: async (formData) => {
+    const { data } = await apiClient.post('/recruitment/public/apply', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return data
+  },
+  getPendingApplications: async (params) => {
+    const { data } = await apiClient.get('/recruitment/pending', { params })
+    return data
+  },
+  approvePendingApplication: async (id) => {
+    const { data } = await apiClient.post(`/recruitment/pending/${id}/approve`)
+    return data
+  },
+  rejectPendingApplication: async (id, payload) => {
+    const { data } = await apiClient.post(`/recruitment/pending/${id}/reject`, payload)
+    return data
+  },
+  previewImport: async (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const { data } = await apiClient.post('/recruitment/import/preview', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return data
+  },
+  applyImport: async (payload) => {
+    const { data } = await apiClient.post('/recruitment/import/apply', payload)
+    return data
+  },
+  blacklistCandidate: async (id, payload) => {
+    const { data } = await apiClient.post(`/candidates/${id}/blacklist`, payload)
+    return data
+  },
+  unblacklistCandidate: async (id) => {
+    const { data } = await apiClient.post(`/candidates/${id}/unblacklist`)
     return data
   }
 }

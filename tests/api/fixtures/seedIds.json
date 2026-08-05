@@ -1,0 +1,22 @@
+{
+  "companyId": "afb9302b-6f9b-46c7-811e-f2b2a91305d7",
+  "departments": {
+    "engineering": "a39fdc83-6c74-43ad-a704-3d2e07b2fda2",
+    "sales": "14299ad4-270d-4c03-808d-3cb263b0489e",
+    "hr": "14299ad4-270d-4c03-808d-3cb263b0489e"
+  },
+  "designationId": "f61f64de-69c7-4021-9d43-19ac4f6979d7",
+  "locationId": "5858f55b-2379-4ddb-a456-9cee52df72ee",
+  "gradeId": "d4ec1ef5-15b2-477b-8f4c-17dbf0030908",
+  "costCenterId": "1539af9e-c7dd-4079-a1ed-8fba6565e4fd",
+  "shifts": {
+    "dayShiftId": "d6a3dd3c-0f33-4267-b066-7d65f4a11c32",
+    "nightShiftId": "14c5e8f2-b70e-480d-a1fe-112db28aec76"
+  },
+  "roles": {
+    "superAdmin": "superadmin@company.com",
+    "hrAdmin": "hradmin@company.com",
+    "deptManager": "enghod@company.com",
+    "employee": "engemp1@company.com"
+  }
+}

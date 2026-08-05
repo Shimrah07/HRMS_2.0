@@ -393,6 +393,8 @@ public class Employee : BaseEntity
     public Guid? CostCenterId { get; set; }
     public Guid? ReportingManagerId { get; set; }
     public Guid? L2ReportingManagerId { get; set; }
+    public Guid? L3ReportingManagerId { get; set; }
+    public Guid? L4ReportingManagerId { get; set; }
     public Guid? FunctionalManagerId { get; set; }
     public Guid? BusinessUnitId { get; set; }
     public Guid? DivisionId { get; set; }
@@ -414,7 +416,9 @@ public class Employee : BaseEntity
     public EmploymentType EmploymentType { get; set; } = EmploymentType.FullTime;
     public EmploymentStatus EmploymentStatus { get; set; } = EmploymentStatus.Active;
     public string? ProfilePhoto { get; set; }
+    public string? RecruitmentSource { get; set; }
     public bool IsActive { get; set; } = true;
+    public Guid? CandidateId { get; set; }
 
     public Company Company { get; set; } = null!;
     public Department Department { get; set; } = null!;
@@ -432,6 +436,8 @@ public class Employee : BaseEntity
     public JobFunction? JobFunction { get; set; }
     public Employee? ReportingManager { get; set; }
     public Employee? L2ReportingManager { get; set; }
+    public Employee? L3ReportingManager { get; set; }
+    public Employee? L4ReportingManager { get; set; }
     public Employee? FunctionalManager { get; set; }
     public ShiftMaster? Shift { get; set; }
     public ICollection<Employee> DirectReports { get; set; } = new List<Employee>();
@@ -539,6 +545,8 @@ public class ShiftMaster : BaseEntity
     public TimeOnly StartTime { get; set; }
     public TimeOnly EndTime { get; set; }
     public int GracePeriodMins { get; set; }
+    public int BreakMins { get; set; } = 60;
+    public decimal HalfDayThresholdHrs { get; set; } = 4.0m;
     public bool IsNightShift { get; set; }
     public string WeeklyOffDays { get; set; } = "Saturday,Sunday";
     public bool IsActive { get; set; } = true;
@@ -577,6 +585,7 @@ public class AttendanceRecord : BaseEntity
 {
     public Guid AttendanceId { get; set; } = Guid.NewGuid();
     public Guid EmployeeId { get; set; }
+    public Guid? ShiftId { get; set; }
     public DateOnly AttendanceDate { get; set; }
     public DateTime? CheckIn { get; set; }
     public DateTime? CheckOut { get; set; }
@@ -588,8 +597,55 @@ public class AttendanceRecord : BaseEntity
     public decimal? Longitude { get; set; }
     public string? Remarks { get; set; }
     public bool IsRegularized { get; set; }
+    public bool IsFrozen { get; set; }
 
     public Employee Employee { get; set; } = null!;
+    public ShiftMaster? Shift { get; set; }
+}
+
+public class PunchLog : BaseEntity
+{
+    public Guid PunchId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public string? DeviceId { get; set; }
+    public AttendanceSource Source { get; set; }
+    public PunchType PunchType { get; set; }
+    public DateTime PunchTimestamp { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    public bool IsFlagged { get; set; }
+    public string? FlagReason { get; set; }
+
+    public Employee Employee { get; set; } = null!;
+}
+
+public class EmployeeEmploymentHistory : BaseEntity
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public Guid? DeptId { get; set; }
+    public Guid? DesignationId { get; set; }
+    public Guid? GradeId { get; set; }
+    public Guid? LocationId { get; set; }
+    public Guid? CostCenterId { get; set; }
+    public Guid? ReportingManagerId { get; set; }
+    public Guid? L2ReportingManagerId { get; set; }
+    public string? EmploymentType { get; set; }
+    public Guid? ShiftId { get; set; }
+    public PayrollGroup? PayrollGroup { get; set; }
+    public int? NoticePeriodDays { get; set; }
+    public DateOnly EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+
+    public Employee Employee { get; set; } = null!;
+    public Department? Department { get; set; }
+    public Designation? Designation { get; set; }
+    public GradeMaster? Grade { get; set; }
+    public Location? Location { get; set; }
+    public CostCenter? CostCenter { get; set; }
+    public Employee? ReportingManager { get; set; }
+    public Employee? L2ReportingManager { get; set; }
+    public ShiftMaster? Shift { get; set; }
 }
 
 public class AttendanceRegularization : BaseEntity
@@ -607,6 +663,17 @@ public class AttendanceRegularization : BaseEntity
 
     public Employee Employee { get; set; } = null!;
     public User? ApprovedByUser { get; set; }
+}
+
+public class CompOffLedger : BaseEntity
+{
+    public Guid LedgerId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public DateOnly EarnedDate { get; set; }
+    public DateOnly ExpiryDate { get; set; }
+    public CompOffStatus Status { get; set; } = CompOffStatus.Available;
+
+    public Employee Employee { get; set; } = null!;
 }
 
 // ─── Leave ────────────────────────────────────────────────────────────────────
@@ -682,6 +749,11 @@ public class SalaryComponent : BaseEntity
     public string ComponentCode { get; set; } = string.Empty;
     public ComponentType ComponentType { get; set; }
     public CalculationType CalculationType { get; set; }
+    public ComponentGroup Group { get; set; } = ComponentGroup.SalaryStructure;
+    public CalculationBasis CalculationBasis { get; set; } = CalculationBasis.PercentOfCTC;
+    public decimal? DefaultPercentage { get; set; }
+    public ApplicableTo ApplicableTo { get; set; } = ApplicableTo.Both;
+    public bool IsBalancingComponent { get; set; } = false;
     public bool IsStatutory { get; set; }
     public bool IsTaxable { get; set; }
     public bool IsActive { get; set; } = true;
@@ -737,6 +809,35 @@ public class EmployeeSalary : BaseEntity
     public User? RevisedByUser { get; set; }
 }
 
+public class EmployeeSalaryStructure : BaseEntity
+{
+    public Guid StructureId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public decimal AnnualCTC { get; set; }
+    public DateOnly EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+    public bool IsActive { get; set; } = true;
+
+    public Employee Employee { get; set; } = null!;
+    public ICollection<EmployeeSalaryComponentAllocation> Allocations { get; set; } = new List<EmployeeSalaryComponentAllocation>();
+}
+
+public class EmployeeSalaryComponentAllocation : BaseEntity
+{
+    public Guid AllocationId { get; set; } = Guid.NewGuid();
+    public Guid StructureId { get; set; }
+    public Guid ComponentId { get; set; }
+    public ComponentGroup Group { get; set; }
+    public AllocationInputMode InputMode { get; set; } = AllocationInputMode.Percent;
+    public decimal? Percentage { get; set; }
+    public decimal AnnualAmount { get; set; }
+    public decimal MonthlyAmount { get; set; }
+    public bool IsBalancingComponent { get; set; }
+
+    public EmployeeSalaryStructure Structure { get; set; } = null!;
+    public SalaryComponent Component { get; set; } = null!;
+}
+
 public class PayrollRun : BaseEntity
 {
     public Guid PayrollRunId { get; set; } = Guid.NewGuid();
@@ -744,20 +845,28 @@ public class PayrollRun : BaseEntity
     public int Month { get; set; }
     public int Year { get; set; }
     public PayrollStatus Status { get; set; } = PayrollStatus.Draft;
+    public PayrollRunType RunType { get; set; } = PayrollRunType.Regular;
     public Guid ProcessedBy { get; set; }
     public DateTime? ProcessedAt { get; set; }
     public Guid? ApprovedBy { get; set; }
     public DateTime? ApprovedAt { get; set; }
+    public DateTime? LockedAt { get; set; }
+    public Guid? LockedBy { get; set; }
     public DateTime? DisbursedAt { get; set; }
     public decimal TotalGross { get; set; }
     public decimal TotalDeductions { get; set; }
     public decimal TotalNetPay { get; set; }
+    public decimal TotalCTC { get; set; }
     public int TotalEmployees { get; set; }
+    public string? Notes { get; set; }
+    /// <summary>Attendance freeze confirmed before payroll calculation</summary>
+    public bool AttendanceFrozen { get; set; } = false;
 
     public Company Company { get; set; } = null!;
     public User ProcessedByUser { get; set; } = null!;
     public User? ApprovedByUser { get; set; }
     public ICollection<PayrollDetail> PayrollDetails { get; set; } = new List<PayrollDetail>();
+    public ICollection<PayrollAuditLog> AuditLogs { get; set; } = new List<PayrollAuditLog>();
 }
 
 public class PayrollDetail : BaseEntity
@@ -817,7 +926,175 @@ public class TaxDeclaration : BaseEntity
     public User? ApprovedByUser { get; set; }
 }
 
+// ─── Payroll Audit Log ─────────────────────────────────────────────────────
+public class PayrollAuditLog
+{
+    public Guid AuditId { get; set; } = Guid.NewGuid();
+    public Guid? PayrollRunId { get; set; }
+    public string Action { get; set; } = string.Empty;
+    public string? Details { get; set; }
+    public Guid PerformedBy { get; set; }
+    public DateTime PerformedAt { get; set; } = DateTime.UtcNow;
+
+    public PayrollRun? PayrollRun { get; set; }
+    public User PerformedByUser { get; set; } = null!;
+}
+
+// ─── Statutory Deduction Configuration ────────────────────────────────────
+public class StatutoryDeductionConfig : BaseEntity
+{
+    public Guid ConfigId { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    /// <summary>State code e.g. MH, KA, DL, TN</summary>
+    public string WorkState { get; set; } = "MH";
+    public bool PFApplicable { get; set; } = true;
+    /// <summary>If true, PF is on actual Basic+DA; if false, capped at ₹15,000</summary>
+    public bool PFHigherBasis { get; set; } = false;
+    public decimal PFWageCeiling { get; set; } = 15000m;
+    public bool ESIApplicable { get; set; } = true;
+    public decimal ESIGrossLimit { get; set; } = 21000m;
+    public bool PTApplicable { get; set; } = true;
+    public bool LWFApplicable { get; set; } = false;
+    public decimal LWFEmployeeAmount { get; set; } = 0m;
+    public decimal LWFEmployerAmount { get; set; } = 0m;
+    /// <summary>Divisor policy: ActualDays or Fixed30</summary>
+    public LopDivisorPolicy LopDivisor { get; set; } = LopDivisorPolicy.Fixed30;
+
+    public Company Company { get; set; } = null!;
+}
+
+// ─── Professional Tax Slabs ────────────────────────────────────────────────
+public class ProfessionalTaxSlab
+{
+    public Guid SlabId { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    public string StateCode { get; set; } = "MH";
+    /// <summary>Monthly gross salary lower bound (0 for first slab)</summary>
+    public decimal FromAmount { get; set; }
+    /// <summary>Monthly gross salary upper bound (null = no upper limit)</summary>
+    public decimal? ToAmount { get; set; }
+    public decimal MonthlyPTAmount { get; set; }
+    /// <summary>Override for February (Maharashtra charges ₹300 in Feb)</summary>
+    public decimal? FebruaryOverride { get; set; }
+
+    public Company Company { get; set; } = null!;
+}
+
+// ─── Investment Declaration (Form 12BB) ───────────────────────────────────
+public class InvestmentDeclaration : BaseEntity
+{
+    public Guid DeclarationId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public string FinancialYear { get; set; } = string.Empty; // e.g. "2025-2026"
+    public TaxRegime TaxRegime { get; set; } = TaxRegime.New;
+    // 80C
+    public decimal Section80C { get; set; } = 0m;
+    // 80D
+    public decimal Section80D { get; set; } = 0m;
+    // 80E
+    public decimal Section80E { get; set; } = 0m;
+    // 80G
+    public decimal Section80G { get; set; } = 0m;
+    // HRA
+    public bool HraRentedHouse { get; set; } = false;
+    public decimal HraClaimAmount { get; set; } = 0m;
+    public string? LandlordName { get; set; }
+    public string? RentedCity { get; set; }
+    public bool IsMetroCity { get; set; } = false;
+    // Home loan (Sec 24)
+    public decimal HomeLoanInterest { get; set; } = 0m;
+    // Previous employer income
+    public decimal PreviousEmployerIncome { get; set; } = 0m;
+    public decimal PreviousEmployerTds { get; set; } = 0m;
+    public ProofStatus ProofStatus { get; set; } = ProofStatus.Pending;
+    public DateTime? ProofSubmittedAt { get; set; }
+    public Guid? VerifiedBy { get; set; }
+
+    public Employee Employee { get; set; } = null!;
+    public User? VerifiedByUser { get; set; }
+}
+
+// ─── Bank Disbursement Record ──────────────────────────────────────────────
+public class BankDisbursementRecord : BaseEntity
+{
+    public Guid DisbursementId { get; set; } = Guid.NewGuid();
+    public Guid PayrollRunId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public string BankAccountNo { get; set; } = string.Empty;
+    public string IfscCode { get; set; } = string.Empty;
+    public string BankName { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public PaymentMode PaymentMode { get; set; } = PaymentMode.NEFT;
+    public DisbursementStatus Status { get; set; } = DisbursementStatus.Pending;
+    public string? TxnRefNo { get; set; }
+    public DateTime? CreditedAt { get; set; }
+    public string? FailureReason { get; set; }
+    public bool IsOnHold { get; set; } = false;
+    public string? HoldReason { get; set; }
+
+    public PayrollRun PayrollRun { get; set; } = null!;
+    public Employee Employee { get; set; } = null!;
+}
+
+// ─── Payroll Documents ─────────────────────────────────────────────────────
+public class PayrollDocument : BaseEntity
+{
+    public Guid DocumentId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public Guid? CompanyId { get; set; }
+    public PayrollDocumentType DocumentType { get; set; }
+    /// <summary>e.g. "2025-01" for payslip, "2025-2026" for Form16</summary>
+    public string Period { get; set; } = string.Empty;
+    public string? FilePath { get; set; }
+    public string? FileName { get; set; }
+    public long? FileSizeBytes { get; set; }
+    public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDelivered { get; set; } = false;
+
+    public Employee Employee { get; set; } = null!;
+}
+
+// ─── Sector Payroll Config ─────────────────────────────────────────────────
+public class SectorPayrollConfig : BaseEntity
+{
+    public Guid ConfigId { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    public SectorType Sector { get; set; } = SectorType.General;
+    public bool OvertimeEnabled { get; set; } = false;
+    public decimal OvertimeMultiplier { get; set; } = 2.0m; // Factories Act: 2x
+    public bool PieceRateEnabled { get; set; } = false;
+    public bool IncentivePayout { get; set; } = false;
+    public bool ESOPEnabled { get; set; } = false;
+    public bool OnCallAllowanceEnabled { get; set; } = false;
+    public bool TripBasedPayEnabled { get; set; } = false;
+    /// <summary>Pay months in year (Education sector: 10 or 12)</summary>
+    public int PayMonths { get; set; } = 12;
+    public string? CustomConfigJson { get; set; }
+
+    public Company Company { get; set; } = null!;
+}
+
+// ─── Variable Pay Input ────────────────────────────────────────────────────
+public class VariablePayInput : BaseEntity
+{
+    public Guid InputId { get; set; } = Guid.NewGuid();
+    public Guid PayrollRunId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public string InputType { get; set; } = string.Empty; // Incentive, Bonus, Reimbursement, Arrears
+    public decimal Amount { get; set; }
+    public string? Remarks { get; set; }
+    public Guid SubmittedBy { get; set; }
+    public bool IsApproved { get; set; } = false;
+    public Guid? ApprovedBy { get; set; }
+
+    public PayrollRun PayrollRun { get; set; } = null!;
+    public Employee Employee { get; set; } = null!;
+    public User SubmittedByUser { get; set; } = null!;
+    public User? ApprovedByUser { get; set; }
+}
+
 // ─── Recruitment ──────────────────────────────────────────────────────────────
+
 
 public class JobRequisition : BaseEntity
 {
@@ -855,6 +1132,9 @@ public class JobRequisition : BaseEntity
     public string? InternalHiringRemarks { get; set; }
     public Guid? CurrentApproverId { get; set; }
     public int CurrentApprovalLevel { get; set; } = 0;
+    public Guid? CancelledBy { get; set; }
+    public DateTime? CancelledOn { get; set; }
+    public string? CancelReason { get; set; }
 
     public Company Company { get; set; } = null!;
     public Department? Department { get; set; }
@@ -898,6 +1178,16 @@ public class JobPosting : BaseEntity
     public DateOnly? ExpiryDate { get; set; }
     public bool ShowSalary { get; set; } = false; // Deprecated flag
     public JobPostingStatus Status { get; set; } = JobPostingStatus.Draft;
+
+    // Publisher tracking
+    public Guid? PublishedById { get; set; }
+    public User? PublishedByUser { get; set; }
+
+    // Extensibility fields for career portals/job boards
+    public string? WorkMode { get; set; } = "Onsite"; // Onsite, Remote, Hybrid
+    public string? LocationName { get; set; }
+    public string? ExternalLink { get; set; }
+    public string? MetadataJson { get; set; }
 
     // Enterprise ATS Sourcing Schema
     public string? JobCategory { get; set; }
@@ -948,6 +1238,10 @@ public class Candidate : BaseEntity
     public string? CandidateTags { get; set; }
     public CandidateStatus CandidateStatus { get; set; } = CandidateStatus.Active;
     public DateTime? LastApplicationDate { get; set; }
+    public bool IsBlacklisted { get; set; } = false;
+    public string? BlacklistReason { get; set; }
+    public Guid? BlacklistedBy { get; set; }
+    public DateTime? BlacklistedAt { get; set; }
 
     public DateOnly? DateOfBirth { get; set; }
     public string? LinkedIn { get; set; }
@@ -971,12 +1265,26 @@ public class JobApplication : BaseEntity
     public ApplicationStage CurrentStage { get; set; } = ApplicationStage.Applied;
     public string? RejectionReason { get; set; }
     public decimal? AiMatchScore { get; set; }
+    public string TimelineEventsJson { get; set; } = "[]";
+    public string NotesJson { get; set; } = "[]";
+
+    // The HR Admin / Super Admin who added this candidate.
+    // Auto-populated on creation. Null when submitted via Careers Portal.
+    public Guid? AssignedRecruiterId { get; set; }
 
     public JobRequisition Requisition { get; set; } = null!;
     public Candidate Candidate { get; set; } = null!;
+    public User? AssignedRecruiter { get; set; }
     public ICollection<InterviewRound> InterviewRounds { get; set; } = new List<InterviewRound>();
     public ICollection<OfferLetter> OfferLetters { get; set; } = new List<OfferLetter>();
+
+    public bool? TechnicalApproved { get; set; }
+    public bool? HrApproved { get; set; }
+    public bool? ManagerApproved { get; set; }
+    public string StageDataJson { get; set; } = "{}";
+    public string Status { get; set; } = "Active";
 }
+
 
 public class JobPostingQuestion : BaseEntity
 {
@@ -1029,10 +1337,11 @@ public class CandidateAnswer : BaseEntity
 public class InterviewRound : BaseEntity
 {
     public Guid RoundId { get; set; } = Guid.NewGuid();
-    public Guid AppId { get; set; }
+    public Guid? AppId { get; set; }
     public string RoundName { get; set; } = string.Empty;
     public string? RoundType { get; set; }
     public DateTime ScheduledAt { get; set; }
+    public int? DurationMinutes { get; set; }
     public Guid InterviewerId { get; set; }
     public string? Venue { get; set; }
     public string? MeetingLink { get; set; }
@@ -1041,7 +1350,19 @@ public class InterviewRound : BaseEntity
     public string? Feedback { get; set; }
     public DateTime? CompletedAt { get; set; }
 
-    public JobApplication JobApplication { get; set; } = null!;
+    // General Interview & Extra Fields
+    public bool IsGeneralInterview { get; set; } = false;
+    public string? Category { get; set; }
+    public string? CandidateName { get; set; }
+    public string? CandidateEmail { get; set; }
+    public string? CandidatePhone { get; set; }
+    public string? Company { get; set; }
+    public string? Department { get; set; }
+    public string? Notes { get; set; }
+    public string? AttachmentsJson { get; set; }
+    public string? ChecklistJson { get; set; }
+
+    public JobApplication? JobApplication { get; set; }
     public Employee Interviewer { get; set; } = null!;
     public ICollection<InterviewRoundPanelist> Panelists { get; set; } = new List<InterviewRoundPanelist>();
 }
@@ -1136,6 +1457,7 @@ public class OfferLetter : BaseEntity
     public DateTime? AcceptedAt { get; set; }
 
     public JobApplication JobApplication { get; set; } = null!;
+    public OfferCtcBreakup? CtcBreakup { get; set; }
 }
 
 // ─── Performance ──────────────────────────────────────────────────────────────
@@ -1380,4 +1702,73 @@ public class EmailTemplate : BaseEntity
     public bool IsActive { get; set; } = true;
 
     public Company Company { get; set; } = null!;
+}
+
+public enum PendingApplicationStatus
+{
+    Pending,
+    Approved,
+    Rejected
+}
+
+public class PendingApplication : BaseEntity
+{
+    public Guid PendingAppId { get; set; } = Guid.NewGuid();
+    public Guid JobId { get; set; }
+    
+    public string FirstName { get; set; } = string.Empty;
+    public string? LastName { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    
+    public string? CurrentCompany { get; set; }
+    public string? CurrentDesignation { get; set; }
+    public decimal? CurrentCTC { get; set; }
+    public decimal? ExpectedCTC { get; set; }
+    public int? NoticePeriodDays { get; set; }
+    public decimal? TotalExperience { get; set; }
+    public string? Source { get; set; }
+    public string? ResumeFilePath { get; set; }
+    public Guid? ReferralEmployeeId { get; set; }
+    
+    public PendingApplicationStatus Status { get; set; } = PendingApplicationStatus.Pending;
+    public DateTime AppliedDate { get; set; } = DateTime.UtcNow;
+    public string? RejectionReason { get; set; }
+    
+    public JobPosting JobPosting { get; set; } = null!;
+    public Employee? ReferralEmployee { get; set; }
+}
+
+public class PendingEmployeeChange : BaseEntity
+{
+    public Guid ChangeId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public Guid RequestedBy { get; set; }
+    public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
+    public string FieldCategory { get; set; } = "Identity";
+    public string FieldName { get; set; } = string.Empty;
+    public string? OldValue { get; set; }
+    public string? NewValue { get; set; }
+    public string Status { get; set; } = "Pending"; // Pending, Approved, Rejected
+    public Guid? ReviewedBy { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public string? RejectionReason { get; set; }
+
+    public Employee Employee { get; set; } = null!;
+}
+
+public class OfferCtcBreakup : BaseEntity
+{
+    public Guid BreakupId { get; set; } = Guid.NewGuid();
+    public Guid OfferId { get; set; }
+    public decimal Basic { get; set; }
+    public decimal HRA { get; set; }
+    public decimal SpecialAllowance { get; set; }
+    public decimal PFEmployer { get; set; }
+    public decimal Gratuity { get; set; }
+    public decimal Insurance { get; set; }
+    public decimal GrossMonthly { get; set; }
+    public decimal AnnualCTC { get; set; }
+
+    public OfferLetter OfferLetter { get; set; } = null!;
 }

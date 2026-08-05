@@ -1,17 +1,21 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import {
   Card, Table, Tag, Button, Space, Select, Drawer, Form, Input, DatePicker,
   InputNumber, Switch, Descriptions, Divider, Popconfirm, Tooltip, Row, Col,
-  Statistic, Typography, message, Alert, Badge, List
+  Statistic, Typography, message, Alert, Badge, List, Modal, Upload, AutoComplete, Spin
 } from 'antd'
 import {
   PlusOutlined, EditOutlined, EyeOutlined, StopOutlined, DeleteOutlined,
   SendOutlined, GlobalOutlined, InfoCircleOutlined, CalendarOutlined,
-  TeamOutlined, FileTextOutlined, GiftOutlined
+  TeamOutlined, FileTextOutlined, GiftOutlined, EnvironmentOutlined, LinkOutlined,
+  UserAddOutlined, CheckCircleOutlined, UploadOutlined, UserOutlined
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { recruitmentService } from '../../services/recruitmentService'
+import { organizationService } from '../../services/organizationService'
+import { employeeService } from '../../services/employeeService'
 import PageHeader from '../../components/common/PageHeader'
 import EmptyState from '../../components/common/EmptyState'
 import { usePermission } from '../../hooks/usePermission'
@@ -46,9 +50,13 @@ const PERKS_BENEFITS = [
 const getStatusTag = (status) => {
   switch (status) {
     case 'Draft': return <Tag color="default">Draft</Tag>
-    case 'Active': return <Tag color="success">Active</Tag>
+    case 'Published': return <Tag color="success">Published</Tag>
+    case 'Paused': return <Tag color="warning">Paused</Tag>
     case 'Closed': return <Tag color="error">Closed</Tag>
-    case 'Expired': return <Tag color="warning">Expired</Tag>
+    case 'Archived': return <Tag color="purple">Archived</Tag>
+    // Backward compatibility fallbacks
+    case 'Active': return <Tag color="success">Published</Tag>
+    case 'Expired': return <Tag color="error">Closed</Tag>
     default: return <Tag>{status}</Tag>
   }
 }
@@ -57,14 +65,131 @@ export default function JobOpeningsPage() {
   const queryClient = useQueryClient()
   const { isDarkMode } = useUIStore()
   const { can } = usePermission()
-  const { hasRole } = useAuth()
+  const { hasRole, user } = useAuth()
+  const navigate = useNavigate()
 
-  // RBAC Controls
-  const isHRorAdmin = hasRole(ROLES.SUPER_ADMIN) || hasRole(ROLES.HR_ADMIN) || hasRole(ROLES.HR_MANAGER) || hasRole(ROLES.RECRUITMENT_MANAGER)
+  // RBAC: Only SUPER_ADMIN and HR_ADMIN can create, edit, delete or publish jobs
+  const canPublish = hasRole(ROLES.SUPER_ADMIN) || hasRole(ROLES.HR_ADMIN)
 
-  const [filters, setFilters] = useState({ status: undefined })
+  const [filters, setFilters] = useState({ status: undefined, departmentId: undefined, hiringManagerId: undefined })
   const [detailDrawer, setDetailDrawer] = useState({ open: false, record: null })
   const [formDrawer, setFormDrawer] = useState({ open: false, record: null, reqRecord: null })
+
+  // ── Add Candidate Modal state ──────────────────────────────────────────────────
+  const [addCandidateModal, setAddCandidateModal] = useState({ open: false, posting: null })
+  const [addForm] = Form.useForm()
+  const [addSubmitting, setAddSubmitting] = useState(false)
+  const [candidateSearch, setCandidateSearch] = useState('')
+  const [lookupResults, setLookupResults] = useState([])
+  const [lookupLoading, setLookupLoading] = useState(false)
+  const [existingCandidate, setExistingCandidate] = useState(null) // filled when found
+  const [resumeFile, setResumeFile] = useState(null)
+  const lookupTimer = useRef(null)
+
+  const openAddCandidateModal = (posting) => {
+    setAddCandidateModal({ open: true, posting })
+    setExistingCandidate(null)
+    setCandidateSearch('')
+    setLookupResults([])
+    setResumeFile(null)
+    addForm.resetFields()
+  }
+
+  const closeAddCandidateModal = () => {
+    setAddCandidateModal({ open: false, posting: null })
+    setExistingCandidate(null)
+    setCandidateSearch('')
+    setLookupResults([])
+    setResumeFile(null)
+    addForm.resetFields()
+  }
+
+  // Debounced candidate lookup
+  const handleSearchChange = (val) => {
+    setCandidateSearch(val)
+    setExistingCandidate(null)
+    if (lookupTimer.current) clearTimeout(lookupTimer.current)
+    if (!val || val.trim().length < 2) {
+      setLookupResults([])
+      return
+    }
+    lookupTimer.current = setTimeout(async () => {
+      setLookupLoading(true)
+      try {
+        const res = await recruitmentService.lookupCandidate(val.trim())
+        setLookupResults(res?.data || [])
+      } catch { setLookupResults([]) }
+      finally { setLookupLoading(false) }
+    }, 400)
+  }
+
+  const handleSelectExisting = (candidateId) => {
+    const found = lookupResults.find(c => c.candidateId === candidateId)
+    if (!found) return
+    setExistingCandidate(found)
+    setCandidateSearch(found.fullName)
+    setLookupResults([])
+    // Pre-fill professional fields (editable); identity fields are locked via disabled prop
+    addForm.setFieldsValue({
+      firstName: found.fullName.split(' ')[0] || '',
+      lastName: found.fullName.split(' ').slice(1).join(' ') || '',
+      email: found.email,
+      phone: found.phone || '',
+      currentCompany: found.currentCompany || '',
+      currentDesignation: found.currentDesignation || '',
+      currentCTC: found.currentCTC,
+      expectedCTC: found.expectedCTC,
+      noticePeriodDays: found.noticePeriodDays,
+      totalExperience: found.totalExperience,
+      source: found.source || undefined
+    })
+  }
+
+  const handleAddCandidate = async () => {
+    try {
+      await addForm.validateFields()
+    } catch { return }
+
+    const values = addForm.getFieldsValue()
+    const formData = new FormData()
+
+    if (existingCandidate) {
+      formData.append('existingCandidateId', existingCandidate.candidateId)
+    }
+    formData.append('email', existingCandidate ? existingCandidate.email : (values.email || ''))
+    formData.append('phone', existingCandidate ? (existingCandidate.phone || '') : (values.phone || ''))
+    if (!existingCandidate) {
+      formData.append('firstName', values.firstName || '')
+      formData.append('lastName', values.lastName || '')
+    }
+    if (values.currentCompany) formData.append('currentCompany', values.currentCompany)
+    if (values.currentDesignation) formData.append('currentDesignation', values.currentDesignation)
+    if (values.currentCTC != null) formData.append('currentCTC', values.currentCTC)
+    if (values.expectedCTC != null) formData.append('expectedCTC', values.expectedCTC)
+    if (values.noticePeriodDays != null) formData.append('noticePeriodDays', values.noticePeriodDays)
+    if (values.totalExperience != null) formData.append('totalExperience', values.totalExperience)
+    formData.append('source', 'ManualHR')
+    if (resumeFile) formData.append('resumeFile', resumeFile)
+
+    setAddSubmitting(true)
+    try {
+      const res = await recruitmentService.addCandidateToJob(addCandidateModal.posting.jobId, formData)
+      if (res.success) {
+        message.success(res.message || 'Candidate added successfully!')
+        closeAddCandidateModal()
+        queryClient.invalidateQueries({ queryKey: ['postings'] })
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.title
+      if (err.response?.status === 409) {
+        message.warning(msg || 'This candidate has already applied for this job.')
+      } else {
+        message.error(msg || 'Failed to add candidate.')
+      }
+    } finally {
+      setAddSubmitting(false)
+    }
+  }
 
   // Queries
   const { data: postingsData, isLoading } = useQuery({
@@ -72,22 +197,36 @@ export default function JobOpeningsPage() {
     queryFn: () => recruitmentService.getAdminPostings(filters)
   })
 
-  // Load ONLY Approved MRFs for selection
+  // Load Department and Employee lists for filters
+  const { data: deptsData } = useQuery({
+    queryKey: ['departments'],
+    queryFn: () => organizationService.getDepartments(),
+    select: (r) => r?.data || []
+  })
+
+  const { data: employeesData } = useQuery({
+    queryKey: ['active-employees'],
+    queryFn: () => employeeService.getEmployees({ status: 'Active' })
+  })
+
+  // Load ONLY Approved MRFs for selection (exclude already posted ones)
   const { data: approvedMrfsData } = useQuery({
     queryKey: ['approved-requisitions'],
-    queryFn: () => recruitmentService.getRequisitions({ status: 'Approved' }),
-    enabled: isHRorAdmin
+    queryFn: () => recruitmentService.getRequisitions({ status: 'Approved', excludePosted: true }),
+    enabled: canPublish
   })
 
   const postings = postingsData?.data || []
   const approvedMrfs = approvedMrfsData?.data || []
+  const departments = deptsData || []
+  const employees = employeesData?.data || []
 
   // Mutations
   const publishMutation = useMutation({
     mutationFn: recruitmentService.publishPosting,
     onSuccess: (res) => {
       if (res.success) {
-        message.success('Job posting is now active and live.')
+        message.success('Job posting is now Published and live.')
         queryClient.invalidateQueries({ queryKey: ['postings'] })
       }
     }
@@ -107,7 +246,7 @@ export default function JobOpeningsPage() {
     mutationFn: recruitmentService.closePosting,
     onSuccess: (res) => {
       if (res.success) {
-        message.success('Job posting is now closed.')
+        message.success('Job posting is now Closed.')
         queryClient.invalidateQueries({ queryKey: ['postings'] })
       }
     }
@@ -128,6 +267,7 @@ export default function JobOpeningsPage() {
     {
       title: 'Job Title',
       key: 'jobTitle',
+      minWidth: 180,
       render: (_, r) => (
         <span 
           style={{ fontWeight: 600, color: 'var(--color-primary-light)', cursor: 'pointer' }}
@@ -138,74 +278,93 @@ export default function JobOpeningsPage() {
       )
     },
     {
-      title: 'MRF Code',
+      title: 'Created from MRF',
       dataIndex: 'mrfNumber',
       key: 'mrfNumber',
-      render: (v) => <span style={{ fontFamily: 'monospace' }}>{v || '-'}</span>
+      minWidth: 130,
+      render: (v) => <span style={{ fontFamily: 'monospace', fontWeight: 500 }}>{v || '-'}</span>
     },
-    { title: 'Department', dataIndex: 'departmentName', key: 'departmentName' },
-    { title: 'Designation', dataIndex: 'designationName', key: 'designationName' },
-    { 
-      title: 'Posted Date', 
-      dataIndex: 'postedAt', 
-      key: 'postedAt',
-      render: (v) => dayjs(v).format('DD MMM YYYY')
-    },
-    { 
-      title: 'Expiry Date', 
-      dataIndex: 'expiryDate', 
-      key: 'expiryDate',
-      render: (v) => v ? dayjs(v).format('DD MMM YYYY') : '-'
-    },
-    {
-      title: 'Published Channels',
-      dataIndex: 'publishingChannels',
-      key: 'channels',
-      render: (v) => {
-        if (!v || !v.length) return '-'
-        return (
-          <Space size={[4, 4]} wrap>
-            {v.map(c => <Tag color="blue" style={{ margin: 0 }} key={c}>{c}</Tag>)}
-          </Space>
-        )
-      }
-    },
+    { title: 'Department', dataIndex: 'departmentName', key: 'departmentName', minWidth: 130 },
+    { title: 'Designation', dataIndex: 'designationName', key: 'designationName', minWidth: 140 },
+    { title: 'Hiring Manager', dataIndex: 'hiringManagerName', key: 'hiringManagerName', minWidth: 140 },
+    { title: 'Vacancies', dataIndex: 'noOfPositions', key: 'noOfPositions', minWidth: 100, align: 'center' },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
+      minWidth: 110,
       render: (v) => getStatusTag(v)
+    },
+    { 
+      title: 'Published Date', 
+      dataIndex: 'postedAt', 
+      key: 'postedAt',
+      minWidth: 130,
+      render: (v, r) => r.status === 'Draft' ? '-' : (v ? dayjs(v).format('DD MMM YYYY') : '-')
+    },
+    { title: 'Published By', dataIndex: 'publishedByName', key: 'publishedByName', minWidth: 140 },
+    {
+      title: 'Applicants',
+      dataIndex: 'applicantCount',
+      key: 'applicantCount',
+      minWidth: 100,
+      align: 'center',
+      render: (v, r) => (
+        <Tooltip title="View applicants for this job">
+          <Badge
+            count={v || 0}
+            showZero
+            style={{ backgroundColor: (v > 0) ? '#8B5CF6' : '#ccc', cursor: 'pointer' }}
+            onClick={() => navigate(`/recruitment/candidates?jobId=${r.jobId}`)}
+          />
+        </Tooltip>
+      )
     },
     {
       title: 'Actions',
       key: 'actions',
+      minWidth: 240,
       render: (_, r) => (
-        <Space size="middle">
-          {r.status === 'Draft' && can(PERMISSIONS.RECRUITMENT.EDIT) && (
+        <Space size="small">
+          {canPublish && r.status === 'Draft' && (
             <Popconfirm title="Publish this job posting live?" onConfirm={() => publishMutation.mutate(r.jobId)}>
               <Button size="small" type="primary" ghost icon={<SendOutlined />}>Publish</Button>
             </Popconfirm>
           )}
 
-          {r.status === 'Active' && can(PERMISSIONS.RECRUITMENT.EDIT) && (
+          {canPublish && (r.status === 'Published' || r.status === 'Active') && (
+            <Tooltip title="Add Candidate to this Job">
+              <Button
+                size="small"
+                type="primary"
+                icon={<UserAddOutlined />}
+                onClick={() => openAddCandidateModal(r)}
+                style={{ background: '#22C55E', borderColor: '#22C55E', color: '#fff', fontWeight: 600 }}
+              >
+                Add Candidate
+              </Button>
+            </Tooltip>
+          )}
+
+          {canPublish && (r.status === 'Published' || r.status === 'Active') && (
             <Popconfirm title="Unpublish this job posting to Draft?" onConfirm={() => unpublishMutation.mutate(r.jobId)}>
               <Button size="small" type="dashed" icon={<StopOutlined style={{ color: '#FAA71A' }} />}>Unpublish</Button>
             </Popconfirm>
           )}
 
-          {r.status === 'Active' && can(PERMISSIONS.RECRUITMENT.EDIT) && (
+          {canPublish && (r.status === 'Published' || r.status === 'Active') && (
             <Popconfirm title="Close this job posting?" onConfirm={() => closeMutation.mutate(r.jobId)}>
               <Button size="small" danger ghost icon={<StopOutlined />}>Close</Button>
             </Popconfirm>
           )}
 
-          {can(PERMISSIONS.RECRUITMENT.EDIT) && (
+          {canPublish && (
             <Tooltip title="Edit Posting Details">
               <Button size="small" type="text" icon={<EditOutlined style={{ color: '#FAA71A' }} />} onClick={() => setFormDrawer({ open: true, record: r, reqRecord: null })} />
             </Tooltip>
           )}
 
-          {can(PERMISSIONS.RECRUITMENT.EDIT) && (
+          {canPublish && (
             <Tooltip title="Delete Posting">
               <Popconfirm title="Delete this job posting permanently?" onConfirm={() => deleteMutation.mutate(r.jobId)} okButtonProps={{ danger: true }}>
                 <Button size="small" type="text" danger icon={<DeleteOutlined />} />
@@ -224,7 +383,7 @@ export default function JobOpeningsPage() {
   // Stats summaries
   const stats = {
     total: postings.length,
-    active: postings.filter(p => p.status === 'Active').length,
+    published: postings.filter(p => p.status === 'Published' || p.status === 'Active').length,
     drafts: postings.filter(p => p.status === 'Draft').length,
     closed: postings.filter(p => p.status === 'Closed').length
   }
@@ -232,11 +391,11 @@ export default function JobOpeningsPage() {
   return (
     <div style={{ padding: '0 24px 24px' }}>
       <PageHeader
-        title="Job Openings Management"
-        subtitle="Create public job opening postings from approved manpower requisitions."
-        breadcrumbs={[{ label: 'Home', path: '/dashboard' }, { label: 'Recruitment Hub', path: '/recruitment' }, { label: 'Job Openings' }]}
+        title="Job Openings"
+        subtitle="Create, publish, and manage external job postings from approved manpower requisitions (MRFs)."
+        breadcrumbs={[{ label: 'Home', path: '/dashboard' }, { label: 'Recruitment' }, { label: 'Job Openings' }]}
         extra={
-          isHRorAdmin && (
+          canPublish && (
             <Space>
               {approvedMrfs.length === 0 ? (
                 <Tooltip title="No approved manpower requisitions available to create job postings.">
@@ -266,7 +425,7 @@ export default function JobOpeningsPage() {
       />
 
       {/* Warnings & Alerts */}
-      {isHRorAdmin && approvedMrfs.length === 0 && (
+      {canPublish && approvedMrfs.length === 0 && (
         <Alert
           message="No Approved Requisitions Available"
           description="You cannot create new Job Postings because there are no Approved Manpower Requisitions (MRFs) in the database. Please raise and approve an MRF first."
@@ -285,7 +444,7 @@ export default function JobOpeningsPage() {
         </Col>
         <Col span={6}>
           <Card bordered={false} style={{ background: 'var(--color-bg-container)', border: 'var(--border-glass)', borderRadius: 12 }}>
-            <Statistic title="Active Postings" value={stats.active} prefix={<SendOutlined style={{ color: '#22C55E' }} />} />
+            <Statistic title="Published Postings" value={stats.published} prefix={<SendOutlined style={{ color: '#22C55E' }} />} />
           </Card>
         </Col>
         <Col span={6}>
@@ -305,28 +464,46 @@ export default function JobOpeningsPage() {
         style={{ background: 'var(--color-bg-container)', border: 'var(--border-glass)', borderRadius: 16 }}
         bodyStyle={{ padding: 20 }}
       >
-        <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: 16, flexWrap: 'wrap' }}>
           <Select 
             placeholder="Filter Status" 
             style={{ width: 180 }}
             allowClear
-            onChange={(v) => setFilters({ status: v })}
+            onChange={(v) => setFilters(prev => ({ ...prev, status: v }))}
             options={[
               { value: 'Draft', label: 'Draft' },
-              { value: 'Active', label: 'Active' },
+              { value: 'Published', label: 'Published' },
+              { value: 'Paused', label: 'Paused' },
               { value: 'Closed', label: 'Closed' },
-              { value: 'Expired', label: 'Expired' }
+              { value: 'Archived', label: 'Archived' }
             ]}
+          />
+          <Select 
+            placeholder="Filter Department" 
+            style={{ width: 200 }}
+            allowClear
+            onChange={(v) => setFilters(prev => ({ ...prev, departmentId: v }))}
+            options={departments.map(d => ({ value: d.deptId, label: d.deptName }))}
+          />
+          <Select 
+            placeholder="Filter Hiring Manager" 
+            style={{ width: 220 }}
+            allowClear
+            onChange={(v) => setFilters(prev => ({ ...prev, hiringManagerId: v }))}
+            options={employees.map(e => ({ value: e.employeeId, label: `${e.firstName} ${e.lastName}` }))}
           />
         </div>
 
-        <Table
-          columns={columns}
-          dataSource={postings}
-          rowKey="jobId"
-          loading={isLoading}
-          locale={{ emptyText: <EmptyState title="No job openings found" /> }}
-        />
+        <div style={{ overflowX: 'auto' }}>
+          <Table
+            columns={columns}
+            dataSource={postings}
+            rowKey="jobId"
+            loading={isLoading}
+            scroll={{ x: 'max-content' }}
+            locale={{ emptyText: <EmptyState title="No job openings found" /> }}
+          />
+        </div>
       </Card>
 
       {/* Create/Edit Form Drawer */}
@@ -348,9 +525,197 @@ export default function JobOpeningsPage() {
         record={detailDrawer.record}
         onClose={() => setDetailDrawer({ open: false, record: null })}
       />
+
+      {/* ── Smart Add Candidate Modal ──────────────────────────────────────────── */}
+      <Modal
+        open={addCandidateModal.open}
+        onCancel={closeAddCandidateModal}
+        title={
+          <Space>
+            <UserAddOutlined style={{ color: '#22C55E' }} />
+            <span style={{ fontWeight: 700 }}>
+              Add Candidate — {addCandidateModal.posting?.jobTitle}
+            </span>
+          </Space>
+        }
+        width={680}
+        footer={[
+          <Button key="cancel" onClick={closeAddCandidateModal}>Cancel</Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={addSubmitting}
+            onClick={handleAddCandidate}
+            style={{ background: '#22C55E', borderColor: '#22C55E' }}
+          >
+            Add Candidate
+          </Button>
+        ]}
+        destroyOnClose
+      >
+        {/* Search bar */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 13 }}>
+            🔍 Search existing candidate by Name, Email, or Mobile
+          </div>
+          <AutoComplete
+            style={{ width: '100%' }}
+            value={candidateSearch}
+            onChange={handleSearchChange}
+            onSelect={(val, opt) => handleSelectExisting(opt.key)}
+            options={lookupResults.map(c => ({
+              key: c.candidateId,
+              value: c.candidateId,
+              label: (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 600 }}>{c.fullName}</span>
+                  <span style={{ fontSize: 11, opacity: 0.6 }}>{c.email} • {c.phone || '—'}</span>
+                </div>
+              )
+            }))}
+            notFoundContent={lookupLoading ? <Spin size="small" /> : null}
+            placeholder="Type name, email, or mobile to search existing candidates..."
+            allowClear
+            onClear={() => { setExistingCandidate(null); addForm.resetFields() }}
+          />
+        </div>
+
+        {/* Existing candidate badge */}
+        {existingCandidate && (
+          <Alert
+            type="success"
+            showIcon
+            icon={<CheckCircleOutlined />}
+            style={{ marginBottom: 20, borderRadius: 8 }}
+            message={
+              <span>
+                <strong>Existing Candidate Found</strong> — {existingCandidate.fullName}
+              </span>
+            }
+            description={
+              <span style={{ fontSize: 12 }}>
+                {existingCandidate.email} • {existingCandidate.phone || '—'}<br />
+                Identity is locked. You can update the professional details below before submitting.
+              </span>
+            }
+          />
+        )}
+
+        <Form form={addForm} layout="vertical">
+          {/* Identity fields — locked for existing candidates */}
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="firstName"
+                label="First Name"
+                rules={!existingCandidate ? [{ required: true, message: 'Required' }] : []}
+              >
+                <Input
+                  disabled={!!existingCandidate}
+                  placeholder="First Name"
+                  prefix={existingCandidate ? '🔒' : <UserOutlined />}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="lastName" label="Last Name">
+                <Input disabled={!!existingCandidate} placeholder="Last Name" prefix={existingCandidate ? '🔒' : null} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="email"
+                label="Email"
+                rules={!existingCandidate ? [{ required: true, type: 'email', message: 'Valid email required' }] : []}
+              >
+                <Input disabled={!!existingCandidate} placeholder="Email" prefix={existingCandidate ? '🔒' : null} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="phone"
+                label="Mobile"
+                rules={!existingCandidate ? [{ pattern: /^\d{10}$/, message: '10-digit number' }] : []}
+              >
+                <Input disabled={!!existingCandidate} placeholder="Mobile" prefix={existingCandidate ? '🔒' : null} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider style={{ margin: '8px 0 16px', borderColor: '#22C55E22' }}>
+            <span style={{ fontSize: 11, color: '#22C55E', fontWeight: 600 }}>Professional Details — Always Editable</span>
+          </Divider>
+
+          {/* Professional fields — always editable */}
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="currentCompany" label="Current Company">
+                <Input placeholder="e.g. Infosys" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="currentDesignation" label="Current Designation">
+                <Input placeholder="e.g. Senior Engineer" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item name="currentCTC" label="Current CTC (₹)">
+                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="expectedCTC" label="Expected CTC (₹)">
+                <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="noticePeriodDays" label="Notice Period (Days)">
+                <InputNumber style={{ width: '100%' }} min={0} max={180} placeholder="0" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="totalExperience" label="Years of Experience">
+                <InputNumber style={{ width: '100%' }} min={0} step={0.5} placeholder="0" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* Resume upload */}
+          <Form.Item label="Resume (PDF / DOC)">
+            <Upload
+              beforeUpload={(file) => { setResumeFile(file); return false }}
+              onRemove={() => setResumeFile(null)}
+              maxCount={1}
+              accept=".pdf,.doc,.docx"
+              fileList={resumeFile ? [{ uid: '-1', name: resumeFile.name, status: 'done' }] : []}
+            >
+              <Button icon={<UploadOutlined />}>Upload Resume</Button>
+            </Upload>
+          </Form.Item>
+
+          {/* Recruiter info — non-editable */}
+          <div style={{
+            background: isDarkMode ? '#1a1a2e' : '#f0fdf4',
+            border: '1px solid #22C55E44',
+            borderRadius: 8,
+            padding: '10px 14px',
+            fontSize: 13,
+            color: isDarkMode ? '#86efac' : '#166534'
+          }}>
+            👤 Recruiter will be assigned to: <strong>You ({user?.firstName} {user?.lastName})</strong>
+          </div>
+        </Form>
+      </Modal>
     </div>
   )
 }
+
 
 // ─── Job Posting Form Drawer ────────────────────────────────────────────────
 function JobPostingFormDrawer({ open, record, reqRecord, approvedMrfs, onClose, onSuccess }) {
@@ -371,6 +736,9 @@ function JobPostingFormDrawer({ open, record, reqRecord, approvedMrfs, onClose, 
           jobCategory: record.jobCategory,
           industry: record.industry,
           employmentType: record.employmentType,
+          workMode: record.workMode || undefined,
+          locationName: record.locationName || '',
+          externalLink: record.externalLink || '',
           experienceMin: record.experienceMin,
           experienceMax: record.experienceMax,
           showSalaryRange: record.showSalaryRange,
@@ -383,7 +751,8 @@ function JobPostingFormDrawer({ open, record, reqRecord, approvedMrfs, onClose, 
           rolesAndResponsibilities: record.rolesAndResponsibilities || '',
           requirements: record.requirements || '',
           skillsRequired: record.skillsRequired || '',
-          benefits: record.benefits || ''
+          benefits: record.benefits || '',
+          metadataJson: record.metadataJson || ''
         })
         setSelectedMrf({
           jobTitle: record.internalJobTitle,
@@ -424,6 +793,9 @@ function JobPostingFormDrawer({ open, record, reqRecord, approvedMrfs, onClose, 
         jobCategory: values.jobCategory || null,
         industry: values.industry || null,
         employmentType: values.employmentType || null,
+        workMode: values.workMode || null,
+        locationName: values.locationName || null,
+        externalLink: values.externalLink || null,
         experienceMin: values.experienceMin || null,
         experienceMax: values.experienceMax || null,
         showSalaryRange: !!values.showSalaryRange,
@@ -436,7 +808,8 @@ function JobPostingFormDrawer({ open, record, reqRecord, approvedMrfs, onClose, 
         rolesAndResponsibilities: values.rolesAndResponsibilities || '',
         requirements: values.requirements || '',
         skillsRequired: values.skillsRequired || '',
-        benefits: values.benefits || ''
+        benefits: values.benefits || '',
+        metadataJson: values.metadataJson || null
       }
 
       let res
@@ -530,6 +903,32 @@ function JobPostingFormDrawer({ open, record, reqRecord, approvedMrfs, onClose, 
             </Form.Item>
           </Col>
         </Row>
+
+        <Divider orientation="left" style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>Career Portal Settings</Divider>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="workMode" label="Work Mode">
+              <Select placeholder="Select Work Mode" dropdownStyle={{ background: isDarkMode ? '#1c1e3d' : '#fff' }}>
+                <Option value="OnSite">Onsite</Option>
+                <Option value="Remote">Remote</Option>
+                <Option value="Hybrid">Hybrid</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="locationName" label="Location Name">
+              <Input placeholder="e.g. Bengaluru, India" style={{ borderRadius: 6 }} />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Form.Item name="externalLink" label="External Apply Link">
+          <Input placeholder="e.g. https://careers.company.com/job-apply/123" style={{ borderRadius: 6 }} />
+        </Form.Item>
+
+        <Form.Item name="metadataJson" label="Custom Portal Metadata (JSON format)">
+          <Input.TextArea rows={2} placeholder='e.g. { "hiring_urgency": "High", "featured": true }' style={{ borderRadius: 6 }} />
+        </Form.Item>
 
         <Form.Item name="industry" label="Industry Sector" rules={[{ required: true, message: 'Industry sector is required' }]}>
           <Input placeholder="e.g. Information Technology / FinTech" style={{ borderRadius: 6 }} />
@@ -626,15 +1025,13 @@ function JobPostingDetailsDrawer({ open, record, onClose }) {
 
   const applications = appsData?.data || []
 
-  // Compute live stage metrics counts
+  // Compute live stage metrics counts (exact 5 ATS stages: Applied, Screening, Interview, Offer, Hired)
   const stageStats = {
-    total: applications.length,
-    screening: applications.filter(a => a.currentStage === 'Screening').length,
-    shortlisted: applications.filter(a => a.currentStage === 'Shortlisted').length,
-    interview: applications.filter(a => ['InterviewL1', 'InterviewL2', 'HRInterview'].includes(a.currentStage)).length,
-    offer: applications.filter(a => a.currentStage === 'Offer').length,
-    joined: applications.filter(a => a.currentStage === 'Joined').length,
-    rejected: applications.filter(a => a.currentStage === 'Rejected').length
+    applied: applications.filter(a => ['Applied', 'New', 'Submitted'].includes(a.currentStage) || !a.currentStage).length,
+    screening: applications.filter(a => ['Screening', 'Shortlisted'].includes(a.currentStage)).length,
+    interview: applications.filter(a => ['Interview', 'InterviewL1', 'InterviewL2', 'HRInterview'].includes(a.currentStage)).length,
+    offer: applications.filter(a => ['Offer', 'OfferExtended', 'OfferAccepted'].includes(a.currentStage)).length,
+    hired: applications.filter(a => ['Hired', 'Joined'].includes(a.currentStage)).length
   }
 
   return (
@@ -646,36 +1043,31 @@ function JobPostingDetailsDrawer({ open, record, onClose }) {
       onClose={onClose}
     >
       {/* Live Stage Counts */}
-      <h5 style={{ fontWeight: 700, marginBottom: 12 }}><TeamOutlined /> Sourcing Stage Metrics</h5>
-      <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
-        <Col span={8}>
-          <Card size="small" style={{ background: 'rgba(255,255,255,0.01)', border: 'var(--border-glass)', textAlign: 'center' }}>
-            <Statistic title="Total Applied" value={stageStats.total} />
+      <h5 style={{ fontWeight: 700, marginBottom: 12 }}><TeamOutlined /> ATS Recruitment Funnel</h5>
+      <Row gutter={[8, 8]} style={{ marginBottom: 24 }}>
+        <Col span={4}>
+          <Card size="small" style={{ background: 'rgba(255,255,255,0.01)', border: 'var(--border-glass)', textAlign: 'center', padding: '4px 0' }}>
+            <Statistic title={<span style={{ fontSize: 11 }}>Applied</span>} value={stageStats.applied} valueStyle={{ fontSize: 18, fontWeight: 700 }} />
           </Card>
         </Col>
-        <Col span={8}>
-          <Card size="small" style={{ background: 'rgba(255,255,255,0.01)', border: 'var(--border-glass)', textAlign: 'center' }}>
-            <Statistic title="Screening" value={stageStats.screening} />
+        <Col span={5}>
+          <Card size="small" style={{ background: 'rgba(255,255,255,0.01)', border: 'var(--border-glass)', textAlign: 'center', padding: '4px 0' }}>
+            <Statistic title={<span style={{ fontSize: 11 }}>Screening</span>} value={stageStats.screening} valueStyle={{ fontSize: 18, fontWeight: 700 }} />
           </Card>
         </Col>
-        <Col span={8}>
-          <Card size="small" style={{ background: 'rgba(255,255,255,0.01)', border: 'var(--border-glass)', textAlign: 'center' }}>
-            <Statistic title="Shortlisted" value={stageStats.shortlisted} />
+        <Col span={5}>
+          <Card size="small" style={{ background: 'rgba(255,255,255,0.01)', border: 'var(--border-glass)', textAlign: 'center', padding: '4px 0' }}>
+            <Statistic title={<span style={{ fontSize: 11 }}>Interview</span>} value={stageStats.interview} valueStyle={{ fontSize: 18, fontWeight: 700 }} />
           </Card>
         </Col>
-        <Col span={8}>
-          <Card size="small" style={{ background: 'rgba(255,255,255,0.01)', border: 'var(--border-glass)', textAlign: 'center' }}>
-            <Statistic title="Interviews" value={stageStats.interview} />
+        <Col span={5}>
+          <Card size="small" style={{ background: 'rgba(255,255,255,0.01)', border: 'var(--border-glass)', textAlign: 'center', padding: '4px 0' }}>
+            <Statistic title={<span style={{ fontSize: 11 }}>Offer</span>} value={stageStats.offer} valueStyle={{ fontSize: 18, fontWeight: 700 }} />
           </Card>
         </Col>
-        <Col span={8}>
-          <Card size="small" style={{ background: 'rgba(255,255,255,0.01)', border: 'var(--border-glass)', textAlign: 'center' }}>
-            <Statistic title="Offers" value={stageStats.offer} />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card size="small" style={{ background: 'rgba(255,255,255,0.01)', border: 'var(--border-glass)', textAlign: 'center' }}>
-            <Statistic title="Joined" value={stageStats.joined} />
+        <Col span={5}>
+          <Card size="small" style={{ background: 'rgba(255,255,255,0.01)', border: 'var(--border-glass)', textAlign: 'center', padding: '4px 0' }}>
+            <Statistic title={<span style={{ fontSize: 11 }}>Hired</span>} value={stageStats.hired} valueStyle={{ fontSize: 18, fontWeight: 700, color: '#22C55E' }} />
           </Card>
         </Col>
       </Row>
@@ -685,14 +1077,27 @@ function JobPostingDetailsDrawer({ open, record, onClose }) {
         <Descriptions.Item label="Internal MRF Title">{record.internalJobTitle || '-'}</Descriptions.Item>
         <Descriptions.Item label="Department">{record.departmentName || '-'}</Descriptions.Item>
         <Descriptions.Item label="Designation">{record.designationName || '-'}</Descriptions.Item>
+        <Descriptions.Item label="Hiring Manager">{record.hiringManagerName || '-'}</Descriptions.Item>
         <Descriptions.Item label="Grade">{record.gradeName || '-'}</Descriptions.Item>
         <Descriptions.Item label="Status">{getStatusTag(record.status)}</Descriptions.Item>
         <Descriptions.Item label="Employment Type">{record.employmentType || '-'}</Descriptions.Item>
         <Descriptions.Item label="Job Category">{record.jobCategory || '-'}</Descriptions.Item>
+        <Descriptions.Item label="Work Mode">
+          <Tag color="cyan"><EnvironmentOutlined /> {record.workMode || 'Not Specified'}</Tag>
+        </Descriptions.Item>
+        <Descriptions.Item label="Location Name">{record.locationName || '-'}</Descriptions.Item>
+        <Descriptions.Item label="External Apply Link">
+          {record.externalLink ? (
+            <a href={record.externalLink} target="_blank" rel="noreferrer">
+              <LinkOutlined /> Visit External Link
+            </a>
+          ) : '-'}
+        </Descriptions.Item>
         <Descriptions.Item label="Show Salary Range">{record.showSalaryRange ? 'Yes' : 'No'}</Descriptions.Item>
         <Descriptions.Item label="Show Company Name">{record.showCompanyName ? 'Yes' : 'No'}</Descriptions.Item>
         <Descriptions.Item label="Posted At">{dayjs(record.postedAt).format('DD MMM YYYY HH:mm')}</Descriptions.Item>
         <Descriptions.Item label="Expiry Date">{record.expiryDate ? dayjs(record.expiryDate).format('DD MMM YYYY') : '-'}</Descriptions.Item>
+        <Descriptions.Item label="Published By">{record.publishedByName || '-'}</Descriptions.Item>
       </Descriptions>
 
       {record.perksAndBenefitsList?.length > 0 && (

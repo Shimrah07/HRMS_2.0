@@ -245,6 +245,26 @@ public class ProbationController : ControllerBase
 
                 return Ok(ApiResponse<object>.Ok(null, $"Employee probation successfully extended by {request.ExtensionDays.Value} days."));
             }
+            else if (action == "PIP")
+            {
+                _context.AuditLogs.Add(new AuditLog
+                {
+                    AuditLogId = Guid.NewGuid(),
+                    UserId = _currentUser.UserId,
+                    Action = "AssignPIP",
+                    TableName = "Employees",
+                    RecordId = employee.EmployeeId.ToString(),
+                    NewValues = System.Text.Json.JsonSerializer.Serialize(new { Status = "PIP", Remarks = request.Comments }),
+                    IPAddress = clientIp,
+                    UserAgent = userAgent,
+                    CreatedAt = DateTime.UtcNow
+                });
+
+                await _context.SaveChangesAsync(ct);
+                await transaction.CommitAsync(ct);
+
+                return Ok(ApiResponse<object>.Ok(null, "Employee successfully placed on Performance Improvement Plan (PIP)."));
+            }
             else if (action == "SEPARATE")
             {
                 employee.IsActive = false;

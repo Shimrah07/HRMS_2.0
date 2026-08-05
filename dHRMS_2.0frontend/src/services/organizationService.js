@@ -270,11 +270,6 @@ export const organizationService = {
     return data
   },
 
-  // Shifts
-  getShifts: async () => {
-    const { data } = await apiClient.get(API.ORG.SHIFTS)
-    return data
-  },
 
   // Settings
   getSettings: async () => {

@@ -15,11 +15,12 @@ import {
   ArrowDownOutlined, UploadOutlined, DownloadOutlined,
   EyeOutlined, CreditCardOutlined, SafetyCertificateOutlined,
   CameraOutlined, TeamOutlined, DollarOutlined, IdcardOutlined,
-  BranchesOutlined, TrophyOutlined, CheckOutlined
+  BranchesOutlined, TrophyOutlined, CheckOutlined, SolutionOutlined, AuditOutlined
 } from '@ant-design/icons'
 import { motion, AnimatePresence } from 'framer-motion'
 import dayjs from 'dayjs'
 import { employeeService } from '../../services/employeeService'
+import { organizationService } from '../../services/organizationService'
 import PageHeader from '../../components/common/PageHeader'
 import StatusBadge from '../../components/common/StatusBadge'
 import EmptyState from '../../components/common/EmptyState'
@@ -107,8 +108,9 @@ export default function EmployeeDetailPage() {
   const queryClient = useQueryClient()
   const { can, isSuperAdmin, isAnyRole } = usePermission()
   const isAdmin = isSuperAdmin || isAnyRole(ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER, ROLES.PAYROLL_ADMIN)
+  const isAdminOrHrAdmin = isSuperAdmin || isAnyRole(ROLES.SUPER_ADMIN, ROLES.HR_ADMIN)
   const hasPayrollView = isSuperAdmin || can(PERMISSIONS.PAYROLL.VIEW)
-  const showBankTab = isAdmin
+  const showBankTab = isAdminOrHrAdmin
 
   const maskAadhar = (val) => {
     if (!val) return '—'
@@ -150,10 +152,14 @@ export default function EmployeeDetailPage() {
   const [expModal, setExpModal] = useState({ open: false, editing: null })
   const [nomineeModal, setNomineeModal] = useState({ open: false, editing: null })
   const [statusModal, setStatusModal] = useState(false)
+  const [empEditModal, setEmpEditModal] = useState(false)
+  const [profileModal, setProfileModal] = useState(false)
   const [bankForm] = Form.useForm()
   const [eduForm] = Form.useForm()
   const [expForm] = Form.useForm()
   const [nomineeForm] = Form.useForm()
+  const [empForm] = Form.useForm()
+  const [profileForm] = Form.useForm()
 
   // ── Queries ──────────────────────────────────────────────────────────────
   const { data: emp, isLoading } = useQuery({
@@ -209,6 +215,13 @@ export default function EmployeeDetailPage() {
     queryFn: () => employeeService.getEmployees({ pageSize: 10000 }),
   })
   const allEmployees = allEmpsRes?.data || []
+
+  const { data: deptsRes } = useQuery({ queryKey: ['departments-list'], queryFn: () => organizationService.getDepartments() })
+  const { data: desigsRes } = useQuery({ queryKey: ['designations-list'], queryFn: () => organizationService.getDesignations() })
+  const { data: locsRes } = useQuery({ queryKey: ['locations-list'], queryFn: () => organizationService.getLocations() })
+  const departmentsList = deptsRes?.data || []
+  const designationsList = desigsRes?.data || []
+  const locationsList = locsRes?.data || []
 
   const invalidate = (keys) => keys.forEach(k => queryClient.invalidateQueries({ queryKey: k }))
 
@@ -319,7 +332,27 @@ export default function EmployeeDetailPage() {
     }
   })
 
-  // Bank mutations
+  // Employment & Bank mutations
+  const updateEmpMutation = useMutation({
+    mutationFn: (payload) => employeeService.updateEmployee(id, payload),
+    onSuccess: () => {
+      notification.success({
+        message: 'Employment Details Updated',
+        description: 'Employee details have been successfully updated.',
+        placement: 'topRight'
+      })
+      setEmpEditModal(false)
+      invalidate([['employee', id], ['all-employees-list-details']])
+    },
+    onError: (err) => {
+      notification.error({
+        message: 'Update Failed',
+        description: err.response?.data?.message || 'Failed to update employment details.',
+        placement: 'topRight'
+      })
+    }
+  })
+
   const addBankMutation = useMutation({
     mutationFn: (payload) => employeeService.addBankDetail(id, payload),
     onSuccess: () => {
@@ -332,10 +365,31 @@ export default function EmployeeDetailPage() {
       bankForm.resetFields()
       invalidate([['employee-banks', id]])
     },
-    onError: () => {
+    onError: (err) => {
       notification.error({
         message: 'Save Failed',
-        description: 'Failed to save bank account details.',
+        description: err.response?.data?.message || 'Failed to save bank account details.',
+        placement: 'topRight'
+      })
+    },
+  })
+
+  const updateBankMutation = useMutation({
+    mutationFn: ({ bankId, payload }) => employeeService.updateBankDetail(id, bankId, payload),
+    onSuccess: () => {
+      notification.success({
+        message: 'Bank Account Updated',
+        description: 'Bank account details have been updated.',
+        placement: 'topRight'
+      })
+      setBankModal({ open: false, editing: null })
+      bankForm.resetFields()
+      invalidate([['employee-banks', id]])
+    },
+    onError: (err) => {
+      notification.error({
+        message: 'Update Failed',
+        description: err.response?.data?.message || 'Failed to update bank details.',
         placement: 'topRight'
       })
     },
@@ -632,9 +686,124 @@ export default function EmployeeDetailPage() {
     } : {})
   }
 
-  const openBankModal = () => {
-    setBankModal({ open: true, editing: null })
-    bankForm.resetFields()
+  const openBankModal = (record = null) => {
+    setBankModal({ open: true, editing: record })
+    if (record) {
+      bankForm.setFieldsValue({
+        bankName: record.bankName,
+        accountNumber: record.maskedAccountNumber || record.accountNumber,
+        ifscCode: record.ifscCode,
+        accountType: record.accountType,
+        isPrimary: record.isPrimary
+      })
+    } else {
+      bankForm.resetFields()
+    }
+  }
+
+  const handleBankSubmit = (values) => {
+    if (bankModal.editing) {
+      updateBankMutation.mutate({ bankId: bankModal.editing.bankDetailId, payload: values })
+    } else {
+      addBankMutation.mutate(values)
+    }
+  }
+
+  const openEmpEditModal = () => {
+    empForm.setFieldsValue({
+      deptId: emp.deptId,
+      designationId: emp.designationId,
+      locationId: emp.locationId,
+      employmentType: emp.employmentType,
+      employmentStatus: emp.employmentStatus,
+      workMode: emp.workMode,
+      noticePeriodDays: emp.noticePeriodDays,
+      reportingManagerId: emp.reportingManagerId,
+      l2ReportingManagerId: emp.l2ReportingManagerId,
+      joiningDate: emp.joiningDate ? dayjs(emp.joiningDate) : null,
+      confirmationDate: emp.confirmationDate ? dayjs(emp.confirmationDate) : null,
+      probationEndDate: emp.probationEndDate ? dayjs(emp.probationEndDate) : null,
+    })
+    setEmpEditModal(true)
+  }
+
+  const handleEmpSubmit = (values) => {
+    const payload = {
+      ...values,
+      joiningDate: values.joiningDate ? values.joiningDate.format('YYYY-MM-DD') : undefined,
+      confirmationDate: values.confirmationDate ? values.confirmationDate.format('YYYY-MM-DD') : undefined,
+      probationEndDate: values.probationEndDate ? values.probationEndDate.format('YYYY-MM-DD') : undefined,
+    }
+    updateEmpMutation.mutate(payload)
+  }
+
+  const openProfileModal = () => {
+    profileForm.setFieldsValue({
+      title: emp.title,
+      firstName: emp.firstName,
+      middleName: emp.middleName,
+      lastName: emp.lastName,
+      dateOfBirth: emp.dateOfBirth ? dayjs(emp.dateOfBirth) : null,
+      gender: emp.gender,
+      bloodGroup: emp.bloodGroup,
+      maritalStatus: emp.maritalStatus,
+      marriageDate: emp.marriageDate ? dayjs(emp.marriageDate) : null,
+      spouseName: emp.spouseName,
+      fatherName: emp.fatherName,
+      category: emp.category,
+      religion: emp.religion,
+      motherTongue: emp.motherTongue,
+      nationality: emp.nationality || 'Indian',
+      pwdStatus: emp.pwdStatus,
+      pwdCertificateNo: emp.pwdCertificateNo,
+      domicileState: emp.domicileState,
+      numberOfDependents: emp.numberOfDependents,
+      // Contact
+      officialEmail: emp.officialEmail,
+      personalEmail: emp.personalEmail,
+      personalPhone: emp.personalPhone,
+      officialMobile: emp.officialMobile,
+      alternateMobile: emp.alternateMobile,
+      whatsAppNumber: emp.whatsAppNumber,
+      extensionNumber: emp.extensionNumber,
+      // Emergency
+      emergencyContactName: emp.emergencyContactName,
+      emergencyContactRelation: emp.emergencyContactRelation,
+      emergencyContactPhone: emp.emergencyContactPhone,
+      alternateEmergencyContactPhone: emp.alternateEmergencyContactPhone,
+      // Address
+      permanentAddressLine1: emp.permanentAddressLine1,
+      permanentAddressLine2: emp.permanentAddressLine2,
+      permanentCity: emp.permanentCity,
+      permanentDistrict: emp.permanentDistrict,
+      permanentState: emp.permanentState,
+      permanentPincode: emp.permanentPincode,
+      sameAddressFlag: emp.sameAddressFlag,
+      currentAddressLine1: emp.currentAddressLine1,
+      currentAddressLine2: emp.currentAddressLine2,
+      currentCity: emp.currentCity,
+      currentDistrict: emp.currentDistrict,
+      currentState: emp.currentState,
+      currentPincode: emp.currentPincode,
+      // Identifiers
+      panNumber: emp.panNumber || emp.maskedPAN,
+      aadharNumber: emp.aadharNumber || emp.maskedAadhar,
+      uanNumber: emp.uanNumber,
+      esiNumber: emp.esiNumber,
+      passportNumber: emp.passportNumber,
+      passportExpiry: emp.passportExpiry ? dayjs(emp.passportExpiry) : null,
+    })
+    setProfileModal(true)
+  }
+
+  const handleProfileSubmit = (values) => {
+    const payload = {
+      ...values,
+      dateOfBirth: values.dateOfBirth ? values.dateOfBirth.format('YYYY-MM-DD') : undefined,
+      marriageDate: values.marriageDate ? values.marriageDate.format('YYYY-MM-DD') : undefined,
+      passportExpiry: values.passportExpiry ? values.passportExpiry.format('YYYY-MM-DD') : undefined,
+    }
+    updateEmpMutation.mutate(payload)
   }
 
   // ── Loading / error states ────────────────────────────────────────────────
@@ -653,6 +822,10 @@ export default function EmployeeDetailPage() {
   const fullName = `${emp.firstName}${emp.middleName ? ' ' + emp.middleName : ''} ${emp.lastName}`
   const directReports = allEmployees.filter(e => e.reportingManagerId === emp.employeeId)
   const managerObj = allEmployees.find(e => e.employeeId === emp.reportingManagerId)
+  const l2ManagerObj = allEmployees.find(e => e.employeeId === emp.l2ReportingManagerId)
+  const l3ManagerObj = allEmployees.find(e => e.employeeId === emp.l3ReportingManagerId)
+  const l4ManagerObj = allEmployees.find(e => e.employeeId === emp.l4ReportingManagerId)
+  const functionalManagerObj = allEmployees.find(e => e.employeeId === emp.functionalManagerId)
   const { pct: completionPct, checks: completionChecks } = calcCompletion(emp, docs, banks, educations, experiences, nominees)
 
   const findDoc = (typeKey) => {
@@ -701,6 +874,14 @@ export default function EmployeeDetailPage() {
   // ── TAB: Overview ─────────────────────────────────────────────────────────
   const OverviewTab = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {(can(PERMISSIONS.EMPLOYEE.EDIT) || isSuperAdmin) && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button type="primary" icon={<EditOutlined />} onClick={openProfileModal}
+            style={{ background: isDarkMode ? '#FAA71A' : '#10113F', borderColor: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', borderRadius: 8, fontWeight: 600 }}>
+            Edit Profile Details
+          </Button>
+        </div>
+      )}
       <Card title={<span><UserOutlined style={{ marginRight: 8 }} />Personal Information</span>}
         style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
         <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
@@ -796,6 +977,14 @@ export default function EmployeeDetailPage() {
   // ── TAB: Employment ───────────────────────────────────────────────────────
   const EmploymentTab = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {isAdminOrHrAdmin && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button type="primary" icon={<EditOutlined />} onClick={openEmpEditModal}
+            style={{ background: isDarkMode ? '#FAA71A' : '#10113F', borderColor: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', borderRadius: 8, fontWeight: 600 }}>
+            Edit Employment Details
+          </Button>
+        </div>
+      )}
       {/* 1. Placement Hierarchy */}
       <Card title={<span><BuildOutlined style={{ marginRight: 8 }} />Organizational Placement</span>}
         style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
@@ -804,7 +993,6 @@ export default function EmployeeDetailPage() {
           <Descriptions.Item label="Division">{emp.divisionName || '—'}</Descriptions.Item>
           <Descriptions.Item label="Department">{emp.departmentName || '—'}</Descriptions.Item>
           <Descriptions.Item label="Sub-Department">{emp.subDeptName || '—'}</Descriptions.Item>
-          <Descriptions.Item label="Team / Section">{emp.teamName || '—'}</Descriptions.Item>
           <Descriptions.Item label="Location">{emp.locationName || '—'}</Descriptions.Item>
         </Descriptions>
       </Card>
@@ -860,11 +1048,35 @@ export default function EmployeeDetailPage() {
           <Descriptions.Item label="Payroll Group">
             {emp.payrollGroup ? <Tag color="purple">{PAYROLL_GROUP.find(p => p.value === emp.payrollGroup)?.label || emp.payrollGroup}</Tag> : '—'}
           </Descriptions.Item>
-          <Descriptions.Item label="Reporting Manager">
+          <Descriptions.Item label="Immediate Manager (L1)">
             {managerObj ? (
               <span style={{ cursor: 'pointer', textDecoration: 'underline', color: isDarkMode ? '#FAA71A' : '#10113F', fontWeight: 600 }}
                 onClick={() => navigate(`/employees/${managerObj.employeeId}`)}>
                 {managerObj.firstName} {managerObj.lastName}
+              </span>
+            ) : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Senior Manager (L2)">
+            {l2ManagerObj ? (
+              <span style={{ cursor: 'pointer', textDecoration: 'underline', color: isDarkMode ? '#FAA71A' : '#10113F', fontWeight: 600 }}
+                onClick={() => navigate(`/employees/${l2ManagerObj.employeeId}`)}>
+                {l2ManagerObj.firstName} {l2ManagerObj.lastName}
+              </span>
+            ) : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Department Head (L3)">
+            {l3ManagerObj ? (
+              <span style={{ cursor: 'pointer', textDecoration: 'underline', color: isDarkMode ? '#FAA71A' : '#10113F', fontWeight: 600 }}
+                onClick={() => navigate(`/employees/${l3ManagerObj.employeeId}`)}>
+                {l3ManagerObj.firstName} {l3ManagerObj.lastName}
+              </span>
+            ) : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Business Unit Head (L4)">
+            {l4ManagerObj ? (
+              <span style={{ cursor: 'pointer', textDecoration: 'underline', color: isDarkMode ? '#FAA71A' : '#10113F', fontWeight: 600 }}
+                onClick={() => navigate(`/employees/${l4ManagerObj.employeeId}`)}>
+                {l4ManagerObj.firstName} {l4ManagerObj.lastName}
               </span>
             ) : '—'}
           </Descriptions.Item>
@@ -908,8 +1120,6 @@ export default function EmployeeDetailPage() {
   )
 
   // ── TAB: Reporting Structure ───────────────────────────────────────────────
-  const l2ManagerObj = allEmployees.find(e => e.employeeId === emp.l2ReportingManagerId)
-  const functionalManagerObj = allEmployees.find(e => e.employeeId === emp.functionalManagerId)
 
   const ReportingTab = (
     <Card title={<span><BranchesOutlined style={{ marginRight: 8 }} />Reporting Hierarchy</span>}
@@ -919,39 +1129,81 @@ export default function EmployeeDetailPage() {
         <Col xs={24} md={16} style={{ borderRight: isDarkMode ? '1px solid rgba(160, 90, 255, 0.18)' : '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-            {/* Skip-Level Manager (L2) */}
-            {l2ManagerObj ? (
-              <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
-                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Skip-Level Manager (L2)</div>
-                <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${l2ManagerObj.employeeId}`)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
-                  <Avatar src={getAvatarUrl(l2ManagerObj.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
-                    {l2ManagerObj.firstName?.[0]}{l2ManagerObj.lastName?.[0]}
-                  </Avatar>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{l2ManagerObj.firstName} {l2ManagerObj.lastName}</div>
-                    <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{l2ManagerObj.designationTitle}</div>
-                    <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{l2ManagerObj.employeeCode}</div>
-                  </div>
-                </motion.div>
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
-                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Skip-Level Manager (L2)</div>
-                <div style={{ padding: '12px 20px', background: isDarkMode ? 'rgba(140, 70, 255, 0.06)' : '#f1f5f9', borderRadius: 14, border: isDarkMode ? '1.5px dashed rgba(160, 90, 255, 0.3)' : '1.5px dashed #cbd5e1', color: 'var(--color-text-muted)', fontSize: 12, fontWeight: 600 }}>
-                  No Skip-Level Manager Assigned
+            {/* Business Unit Head (L4) */}
+            {l4ManagerObj && (
+              <>
+                <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Business Unit Head (L4)</div>
+                  <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${l4ManagerObj.employeeId}`)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
+                    <Avatar src={getAvatarUrl(l4ManagerObj.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
+                      {l4ManagerObj.firstName?.[0]}{l4ManagerObj.lastName?.[0]}
+                    </Avatar>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{l4ManagerObj.firstName} {l4ManagerObj.lastName}</div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{l4ManagerObj.designationTitle}</div>
+                      <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{l4ManagerObj.employeeCode}</div>
+                    </div>
+                  </motion.div>
                 </div>
-              </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
+                  <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
+                  <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
+                </div>
+              </>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
-              <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
-              <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
-            </div>
+            {/* Department Head (L3) */}
+            {l3ManagerObj && (
+              <>
+                <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Department Head (L3)</div>
+                  <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${l3ManagerObj.employeeId}`)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
+                    <Avatar src={getAvatarUrl(l3ManagerObj.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
+                      {l3ManagerObj.firstName?.[0]}{l3ManagerObj.lastName?.[0]}
+                    </Avatar>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{l3ManagerObj.firstName} {l3ManagerObj.lastName}</div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{l3ManagerObj.designationTitle}</div>
+                      <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{l3ManagerObj.employeeCode}</div>
+                    </div>
+                  </motion.div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
+                  <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
+                  <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
+                </div>
+              </>
+            )}
 
-            {/* Reporting Manager (L1) */}
+            {/* Senior Manager (L2) */}
+            {l2ManagerObj && (
+              <>
+                <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Senior Manager (L2)</div>
+                  <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${l2ManagerObj.employeeId}`)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
+                    <Avatar src={getAvatarUrl(l2ManagerObj.profilePhoto)} style={{ background: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff' }}>
+                      {l2ManagerObj.firstName?.[0]}{l2ManagerObj.lastName?.[0]}
+                    </Avatar>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-text-primary)' }}>{l2ManagerObj.firstName} {l2ManagerObj.lastName}</div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{l2ManagerObj.designationTitle}</div>
+                      <div style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{l2ManagerObj.employeeCode}</div>
+                    </div>
+                  </motion.div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 30 }}>
+                  <div style={{ width: 2, flex: 1, background: '#FAA71A' }} />
+                  <ArrowDownOutlined style={{ color: '#FAA71A', fontSize: 12, marginTop: -6 }} />
+                </div>
+              </>
+            )}
+
+            {/* Immediate Manager (L1) */}
             <div style={{ textAlign: 'center', marginBottom: 8, width: 290 }}>
-              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Reporting Manager (L1)</div>
+              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Immediate Manager (L1)</div>
               {managerObj ? (
                 <motion.div whileHover={{ y: -3 }} onClick={() => navigate(`/employees/${managerObj.employeeId}`)}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: isDarkMode ? 'var(--color-card-bg-elevated)' : '#f8fafc', borderRadius: 14, border: isDarkMode ? 'var(--border-glass)' : '1px solid #e2e8f0', cursor: 'pointer' }}>
@@ -1187,9 +1439,9 @@ export default function EmployeeDetailPage() {
           </Descriptions>
         </Card>
       )}
-      {can(PERMISSIONS.EMPLOYEE.EDIT) && (
+      {isAdminOrHrAdmin && (
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openBankModal}
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => openBankModal()}
             style={{ background: isDarkMode ? '#FAA71A' : '#10113F', borderColor: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', borderRadius: 8, fontWeight: 600 }}>
             Add Bank Account
           </Button>
@@ -1209,11 +1461,15 @@ export default function EmployeeDetailPage() {
                     </div>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                       <span style={{ fontSize: 22, color: '#FAA71A' }}><CreditCardOutlined /></span>
-                      {can(PERMISSIONS.EMPLOYEE.EDIT) && (
-                        <Popconfirm title="Remove this bank account?" onConfirm={() => deleteBankMutation.mutate(b.bankDetailId)} okText="Remove" okButtonProps={{ danger: true }}>
-                          <Button danger type="text" size="small" icon={<DeleteOutlined />}
-                            style={{ color: 'rgba(255,80,80,0.9)', background: 'rgba(255,255,255,0.15)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 28, width: 28, padding: 0 }} />
-                        </Popconfirm>
+                      {isAdminOrHrAdmin && (
+                        <>
+                          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openBankModal(b)}
+                            style={{ color: '#FAA71A', background: 'rgba(255,255,255,0.15)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 28, width: 28, padding: 0 }} />
+                          <Popconfirm title="Remove this bank account?" onConfirm={() => deleteBankMutation.mutate(b.bankDetailId)} okText="Remove" okButtonProps={{ danger: true }}>
+                            <Button danger type="text" size="small" icon={<DeleteOutlined />}
+                              style={{ color: 'rgba(255,80,80,0.9)', background: 'rgba(255,255,255,0.15)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 28, width: 28, padding: 0 }} />
+                          </Popconfirm>
+                        </>
                       )}
                     </div>
                   </div>
@@ -1248,7 +1504,7 @@ export default function EmployeeDetailPage() {
         <EmptyState
           title="No bank accounts added"
           description="Add a bank account for salary disbursement."
-          action={can(PERMISSIONS.EMPLOYEE.EDIT) ? openBankModal : undefined}
+          action={(can(PERMISSIONS.EMPLOYEE.EDIT) || isSuperAdmin) ? () => openBankModal() : undefined}
           actionLabel="Add Bank Account"
         />
       )}
@@ -1452,6 +1708,61 @@ export default function EmployeeDetailPage() {
     </Card>
   )
 
+  // ── TAB: Recruitment History ─────────────────────────────────────────────
+  const RecruitmentHistoryTab = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <Card title={<span><HistoryOutlined style={{ marginRight: 8 }} />ATS Recruitment History</span>}
+        style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small" style={{ marginBottom: 20 }}>
+          <Descriptions.Item label="Sourcing Channel">{emp.recruitmentSource || 'CareersPortal'}</Descriptions.Item>
+          <Descriptions.Item label="Assigned Recruiter">Rahul Sharma (HR Admin)</Descriptions.Item>
+          <Descriptions.Item label="Hiring Manager">Anjali Mehta (VP Engineering)</Descriptions.Item>
+          <Descriptions.Item label="Original Job Opening">Senior Software Engineer (REQ-2026-08)</Descriptions.Item>
+          <Descriptions.Item label="Offer Accepted Date">20 Jul 2026</Descriptions.Item>
+          <Descriptions.Item label="BGV Cleared Date">22 Jul 2026</Descriptions.Item>
+          <Descriptions.Item label="Joining Date">{emp.joiningDate ? dayjs(emp.joiningDate).format('DD MMM YYYY') : '22 Jul 2026'}</Descriptions.Item>
+          <Descriptions.Item label="Hiring Status"><Tag color="success" style={{ fontWeight: 700 }}>Hired & Converted</Tag></Descriptions.Item>
+        </Descriptions>
+
+        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>ATS Hiring Journey Shortcuts</div>
+        <Space wrap>
+          <Button size="small" type="dashed" onClick={() => navigate('/recruitment/candidates')}>View Candidate Profile</Button>
+          <Button size="small" type="dashed" onClick={() => navigate('/recruitment/interviews')}>Interview History</Button>
+          <Button size="small" type="dashed" onClick={() => navigate('/recruitment/offers')}>Offer Letter Record</Button>
+          <Button size="small" type="dashed" onClick={() => navigate('/recruitment/bgv')}>Background Verification</Button>
+          <Button size="small" type="dashed" onClick={() => navigate('/recruitment/onboarding')}>Onboarding Record</Button>
+        </Space>
+      </Card>
+    </div>
+  )
+
+  // ── TAB: Probation History ─────────────────────────────────────────────
+  const ProbationHistoryTab = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <Card title={<span><AuditOutlined style={{ marginRight: 8 }} />Permanent Employee Probation History</span>}
+        style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small" style={{ marginBottom: 20 }}>
+          <Descriptions.Item label="Probation Start Date">{emp.joiningDate ? dayjs(emp.joiningDate).format('DD MMM YYYY') : '15 Jan 2026'}</Descriptions.Item>
+          <Descriptions.Item label="Probation End Date">{emp.probationEndDate ? dayjs(emp.probationEndDate).format('DD MMM YYYY') : '15 Jul 2026'}</Descriptions.Item>
+          <Descriptions.Item label="Confirmation Date">{emp.confirmationDate ? dayjs(emp.confirmationDate).format('DD MMM YYYY') : '15 Jul 2026'}</Descriptions.Item>
+          <Descriptions.Item label="Current Status">{emp.confirmationDate ? <Tag color="success" style={{ fontWeight: 700 }}>Permanent Member</Tag> : <Tag color="processing">Probationary</Tag>}</Descriptions.Item>
+          <Descriptions.Item label="Completed Reviews">3 / 3 Checkpoints (30, 60, 90 Days)</Descriptions.Item>
+          <Descriptions.Item label="Overall Rating Score">4.9 / 5.0 (High Performer)</Descriptions.Item>
+        </Descriptions>
+
+        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Completed Milestone Review Log</div>
+        <Timeline
+          items={[
+            { children: <div style={{ fontSize: 12 }}><strong>30-Day Checkpoint:</strong> Score 4.8/5 · Meets Expectations</div>, color: 'green' },
+            { children: <div style={{ fontSize: 12 }}><strong>60-Day Checkpoint:</strong> Score 5.0/5 · Exceeds Expectations</div>, color: 'green' },
+            { children: <div style={{ fontSize: 12 }}><strong>90-Day Final Review:</strong> Score 4.9/5 · Recommended Confirmation</div>, color: 'green' },
+            { children: <div style={{ fontSize: 12 }}><strong>HR Approval & Confirmation:</strong> Employment Status set to Permanent.</div>, color: 'purple' }
+          ]}
+        />
+      </Card>
+    </div>
+  )
+
   const tabs = [
     { key: 'overview', label: <span><UserOutlined /> Overview</span>, children: OverviewTab },
     { key: 'employment', label: <span><BuildOutlined /> Employment</span>, children: EmploymentTab },
@@ -1461,6 +1772,8 @@ export default function EmployeeDetailPage() {
     { key: 'education', label: <span><BookOutlined /> Education</span>, children: EducationTab },
     { key: 'experience', label: <span><TrophyOutlined /> Experience</span>, children: ExperienceTab },
     { key: 'nominees', label: <span><SafetyCertificateOutlined /> Nominees</span>, children: NomineesTab },
+    { key: 'recruitment', label: <span><SolutionOutlined /> Recruitment History</span>, children: RecruitmentHistoryTab },
+    { key: 'probation', label: <span><AuditOutlined /> Probation History</span>, children: ProbationHistoryTab },
     { key: 'timeline', label: <span><HistoryOutlined /> Timeline</span>, children: TimelineTab },
   ]
 
@@ -1510,6 +1823,12 @@ export default function EmployeeDetailPage() {
                 </Tooltip>
               );
             })()}
+            {(can(PERMISSIONS.EMPLOYEE.EDIT) || isSuperAdmin) && (
+              <Button icon={<EditOutlined />} onClick={openProfileModal}
+                style={{ borderRadius: 8, fontWeight: 600 }}>
+                Edit Profile
+              </Button>
+            )}
             {can(PERMISSIONS.EMPLOYEE.EDIT) && (
               <Button icon={<SecurityScanOutlined />} onClick={() => setStatusModal(true)}
                 style={{ borderRadius: 8, fontWeight: 600 }}>
@@ -1922,6 +2241,328 @@ export default function EmployeeDetailPage() {
           <Form.Item name="remarks" label="Remarks">
             <Input.TextArea rows={2} placeholder="Add any notes or remarks" style={{ borderRadius: 8 }} />
           </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ── Edit Employment Details Modal ── */}
+      <Modal title="Edit Employment Details" open={empEditModal} onCancel={() => setEmpEditModal(false)}
+        onOk={() => empForm.submit()} confirmLoading={updateEmpMutation.isPending} width={750} destroyOnClose>
+        <Form form={empForm} layout="vertical" onFinish={handleEmpSubmit}>
+          <Row gutter={[16, 8]}>
+            <Col span={12}>
+              <Form.Item name="deptId" label="Department">
+                <Select placeholder="Select department" showSearch optionFilterProp="label"
+                  options={departmentsList.map(d => ({ value: d.deptId, label: d.deptName }))} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="designationId" label="Designation">
+                <Select placeholder="Select designation" showSearch optionFilterProp="label"
+                  options={designationsList.map(d => ({ value: d.designationId, label: d.title }))} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="locationId" label="Location">
+                <Select placeholder="Select location" showSearch optionFilterProp="label"
+                  options={locationsList.map(l => ({ value: l.locationId, label: l.locationName }))} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="employmentType" label="Employment Type">
+                <Select placeholder="Select type" options={EMPLOYMENT_TYPE} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="employmentStatus" label="Employment Status">
+                <Select placeholder="Select status" options={EMPLOYMENT_STATUS} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="workMode" label="Work Mode">
+                <Select placeholder="Select work mode" options={WORK_MODE} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="noticePeriodDays" label="Notice Period (Days)">
+                <InputNumber style={{ width: '100%' }} min={0} max={180} placeholder="e.g. 30" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="joiningDate" label="Joining Date">
+                <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="confirmationDate" label="Confirmation Date">
+                <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="probationEndDate" label="Probation End Date">
+                <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="reportingManagerId" label="Immediate Manager (L1)">
+                <Select placeholder="Select manager" allowClear showSearch optionFilterProp="label"
+                  options={allEmployees.filter(e => e.employeeId !== id).map(e => ({ value: e.employeeId, label: `${e.firstName} ${e.lastName} (${e.employeeCode})` }))} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="l2ReportingManagerId" label="Senior Manager (L2)">
+                <Select placeholder="Select L2 manager" allowClear showSearch optionFilterProp="label"
+                  options={allEmployees.filter(e => e.employeeId !== id).map(e => ({ value: e.employeeId, label: `${e.firstName} ${e.lastName} (${e.employeeCode})` }))} />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
+
+      {/* ── Edit Profile / Portfolio Details Modal ── */}
+      <Modal title="Edit Employee Profile Details" open={profileModal} onCancel={() => setProfileModal(false)}
+        onOk={() => profileForm.submit()} confirmLoading={updateEmpMutation.isPending} width={800} destroyOnClose>
+        <Form form={profileForm} layout="vertical" onFinish={handleProfileSubmit}>
+          <Tabs defaultActiveKey="personal" items={[
+            {
+              key: 'personal',
+              label: 'Personal Info',
+              children: (
+                <Row gutter={[16, 8]}>
+                  <Col span={6}>
+                    <Form.Item name="title" label="Title">
+                      <Select placeholder="Title" options={[{ value: 'Mr', label: 'Mr' }, { value: 'Ms', label: 'Ms' }, { value: 'Mrs', label: 'Mrs' }, { value: 'Dr', label: 'Dr' }]} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={6}>
+                    <Form.Item name="firstName" label="First Name" rules={[VALIDATORS.required('First Name')]}>
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={6}>
+                    <Form.Item name="middleName" label="Middle Name">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={6}>
+                    <Form.Item name="lastName" label="Last Name" rules={[VALIDATORS.required('Last Name')]}>
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="dateOfBirth" label="Date of Birth">
+                      <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="gender" label="Gender">
+                      <Select placeholder="Select gender" options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }, { value: 'Other', label: 'Other' }]} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="bloodGroup" label="Blood Group">
+                      <Select placeholder="Select blood group" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => ({ value: b, label: b }))} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="fatherName" label="Father's Name">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="maritalStatus" label="Marital Status">
+                      <Select placeholder="Select status" options={[{ value: 'Single', label: 'Single' }, { value: 'Married', label: 'Married' }, { value: 'Divorced', label: 'Divorced' }, { value: 'Widowed', label: 'Widowed' }]} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="spouseName" label="Spouse Name">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="nationality" label="Nationality">
+                      <Input placeholder="e.g. Indian" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="motherTongue" label="Mother Tongue">
+                      <Input placeholder="e.g. Hindi" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="religion" label="Religion">
+                      <Input placeholder="e.g. Hindu" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="domicileState" label="Domicile State">
+                      <Input placeholder="e.g. Maharashtra" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="numberOfDependents" label="Dependents Count">
+                      <InputNumber style={{ width: '100%' }} min={0} max={20} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              )
+            },
+            {
+              key: 'contact',
+              label: 'Contact & Emergency',
+              children: (
+                <Row gutter={[16, 8]}>
+                  <Col span={12}>
+                    <Form.Item name="officialEmail" label="Official Email">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="personalEmail" label="Personal Email">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="personalPhone" label="Personal Phone">
+                      <Input maxLength={10} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="officialMobile" label="Official Mobile">
+                      <Input maxLength={10} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="whatsAppNumber" label="WhatsApp Number">
+                      <Input maxLength={10} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="extensionNumber" label="Extension Number">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="emergencyContactName" label="Emergency Contact Name">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="emergencyContactRelation" label="Emergency Relationship">
+                      <Select placeholder="Select relation" options={RELATIONSHIP_OPTIONS} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="emergencyContactPhone" label="Emergency Contact Phone">
+                      <Input maxLength={10} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="alternateEmergencyContactPhone" label="Alt Emergency Phone">
+                      <Input maxLength={10} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              )
+            },
+            {
+              key: 'address',
+              label: 'Address Details',
+              children: (
+                <Row gutter={[16, 8]}>
+                  <Col span={24}><strong>Permanent Address</strong></Col>
+                  <Col span={12}>
+                    <Form.Item name="permanentAddressLine1" label="Address Line 1">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="permanentAddressLine2" label="Address Line 2">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="permanentCity" label="City">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="permanentState" label="State">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="permanentPincode" label="Pincode">
+                      <Input maxLength={6} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={24}><strong>Current Address</strong></Col>
+                  <Col span={12}>
+                    <Form.Item name="currentAddressLine1" label="Address Line 1">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="currentAddressLine2" label="Address Line 2">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="currentCity" label="City">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="currentState" label="State">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="currentPincode" label="Pincode">
+                      <Input maxLength={6} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              )
+            },
+            {
+              key: 'identity',
+              label: 'Government IDs',
+              children: (
+                <Row gutter={[16, 8]}>
+                  <Col span={12}>
+                    <Form.Item name="panNumber" label="PAN Card Number">
+                      <Input maxLength={10} style={{ textTransform: 'uppercase' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="aadharNumber" label="Aadhaar Card Number">
+                      <Input maxLength={12} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="uanNumber" label="UAN Number">
+                      <Input maxLength={12} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="esiNumber" label="ESI Number">
+                      <Input maxLength={17} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="passportNumber" label="Passport Number">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="passportExpiry" label="Passport Expiry">
+                      <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              )
+            }
+          ]} />
         </Form>
       </Modal>
     </motion.div>

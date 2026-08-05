@@ -50,48 +50,77 @@ const NAV_GROUPS = [
     key: 'people',
     label: 'PEOPLE',
     items: [
-      { key: '/employees', icon: <TeamOutlined />,      label: 'Employees',      permission: PERMISSIONS.EMPLOYEE.VIEW, hideForEmployee: true },
-      { key: '/org-chart', icon: <ApartmentOutlined />, label: 'Org Chart',      permission: PERMISSIONS.EMPLOYEE.VIEW, hideForEmployee: true },
+      { key: '/employees', icon: <TeamOutlined />, label: 'Employees', permission: PERMISSIONS.EMPLOYEE.VIEW, hideForEmployee: true },
+      { key: '/org-chart', icon: <ApartmentOutlined />, label: 'Org Chart', permission: PERMISSIONS.EMPLOYEE.VIEW, hideForEmployee: true },
     ],
   },
   {
     key: 'organization',
     label: 'ORGANIZATION',
     items: [
-      { key: '/organization/departments',  icon: <BankOutlined />,   label: 'Departments',  permission: PERMISSIONS.COMPANY_SETUP.VIEW },
+      { key: '/organization/departments', icon: <BankOutlined />, label: 'Departments', permission: PERMISSIONS.COMPANY_SETUP.VIEW },
       { key: '/organization/designations', icon: <SafetyOutlined />, label: 'Designations', permission: PERMISSIONS.COMPANY_SETUP.VIEW },
-      { key: '/organization/locations',    icon: <GlobalOutlined />, label: 'Locations',    permission: PERMISSIONS.COMPANY_SETUP.VIEW },
+      { key: '/organization/locations', icon: <GlobalOutlined />, label: 'Locations', permission: PERMISSIONS.COMPANY_SETUP.VIEW },
     ],
   },
   {
     key: 'workforce',
     label: 'WORKFORCE',
     items: [
-      { key: '/attendance', icon: <ClockCircleOutlined />, label: 'Attendance', permission: PERMISSIONS.ATTENDANCE.VIEW },
-      { key: '/leave',      icon: <CalendarOutlined />,    label: 'Leave',      permission: PERMISSIONS.LEAVE.VIEW },
-      { key: '/payroll',    icon: <DollarOutlined />,      label: 'Payroll',    permission: PERMISSIONS.PAYROLL.VIEW },
+      { 
+        key: '/attendance', 
+        icon: <ClockCircleOutlined />, 
+        label: 'Attendance', 
+        permission: null, // All authenticated users see attendance (own tab)
+        children: [
+          { key: '/attendance', label: 'My Attendance', permission: null },
+          { key: '/attendance/team', label: 'Team Attendance', permission: PERMISSIONS.ATTENDANCE.APPROVE, hideForEmployee: true },
+          { key: '/attendance/regularizations', label: 'Regularization Queue', permission: PERMISSIONS.ATTENDANCE.APPROVE, hideForEmployee: true },
+          { key: '/attendance/shifts', label: 'Shift & Roster', permission: PERMISSIONS.COMPANY_SETUP.VIEW, hideForEmployee: true },
+          { key: '/attendance/overtime', label: 'Overtime & Comp-Off', permission: PERMISSIONS.ATTENDANCE.APPROVE, hideForEmployee: true },
+          { key: '/attendance/freeze', label: 'Attendance Freeze', permission: PERMISSIONS.COMPANY_SETUP.VIEW, hideForEmployee: true },
+          { key: '/attendance/reports', label: 'Reports & Analytics', permission: PERMISSIONS.ATTENDANCE.EXPORT, hideForEmployee: true }
+        ]
+      },
+      { key: '/leave', icon: <CalendarOutlined />, label: 'Leave', permission: PERMISSIONS.LEAVE.VIEW },
+      {
+        key: '/payroll',
+        icon: <DollarOutlined />,
+        label: 'Payroll',
+        permission: PERMISSIONS.PAYROLL.VIEW,
+        children: [
+          { key: '/payroll', label: 'My Payslips', permission: PERMISSIONS.PAYROLL.VIEW },
+          { key: '/payroll/dashboard', label: 'Payroll Dashboard', permission: PERMISSIONS.PAYROLL.VIEW, hideForEmployee: true },
+          { key: '/payroll/salary-config', label: 'Salary Structure Builder', permission: PERMISSIONS.PAYROLL.CONFIGURE, hideForEmployee: true },
+          { key: '/payroll/runs', label: 'Processing Engine', permission: PERMISSIONS.PAYROLL.PROCESS, hideForEmployee: true },
+          { key: '/payroll/statutory', label: 'Statutory & Compliance', permission: PERMISSIONS.PAYROLL.CONFIGURE, hideForEmployee: true },
+          { key: '/payroll/tax-declaration', label: 'Tax Declarations (Form 12BB)', permission: PERMISSIONS.PAYROLL.VIEW },
+          { key: '/payroll/disbursement', label: 'Disbursement Gateway', permission: PERMISSIONS.PAYROLL.DISBURSE, hideForEmployee: true },
+        ]
+      },
     ],
   },
   {
     key: 'growth',
     label: 'GROWTH',
     items: [
-      { key: '/performance',  icon: <RocketOutlined />, label: 'Performance',  permission: PERMISSIONS.PERFORMANCE.VIEW },
+      { key: '/performance', icon: <RocketOutlined />, label: 'Performance', permission: PERMISSIONS.PERFORMANCE.VIEW },
       {
         key: '/recruitment',
         icon: <BookOutlined />,
         label: 'Recruitment',
         permission: PERMISSIONS.RECRUITMENT.VIEW,
+        hideForEmployee: true,
         children: [
-          { key: '/recruitment', label: 'Manpower Requisition' },
+          { key: '/recruitment', label: 'Manpower Requisitions' },
           { key: '/recruitment/jobs', label: 'Job Openings' },
-          { key: '/recruitment/candidates', label: 'Candidate Database' },
-          { key: '/recruitment/pipeline', label: 'ATS Pipeline' },
+          { key: '/recruitment/candidates', label: 'Candidates' },
+          { key: '/recruitment/applications', label: 'Applications' },
           { key: '/recruitment/interviews', label: 'Interviews' },
-          { key: '/recruitment/offers', label: 'CTC & Offers' },
-          { key: '/recruitment/onboarding', label: 'Onboarding Tasks' },
-          { key: '/recruitment/probation', label: 'Probation Tracking' },
-          { key: '/recruitment/confirmation', label: 'Confirmations' }
+          { key: '/recruitment/offers', label: 'Offers' },
+          { key: '/recruitment/bgv', label: 'Background Verification' },
+          { key: '/recruitment/onboarding', label: 'Onboarding' },
+          { key: '/recruitment/probation', label: 'Probation' }
         ]
       },
     ],
@@ -100,25 +129,24 @@ const NAV_GROUPS = [
     key: 'admin',
     label: 'ADMINISTRATION',
     items: [
-      { key: '/users',         icon: <UserOutlined />,    label: 'Users & Roles', permission: PERMISSIONS.USER_MANAGEMENT.VIEW },
-      { key: '/notifications', icon: <BellOutlined />,    label: 'Notifications', permission: null },
-      { key: '/settings',      icon: <SettingOutlined />, label: 'Settings',      permission: PERMISSIONS.COMPANY_SETUP.VIEW },
+      { key: '/users', icon: <UserOutlined />, label: 'Users & Roles', permission: PERMISSIONS.USER_MANAGEMENT.VIEW, hideForEmployee: true },
+      { key: '/notifications', icon: <BellOutlined />, label: 'Notifications', permission: null },
+      { key: '/settings', icon: <SettingOutlined />, label: 'Settings', permission: PERMISSIONS.COMPANY_SETUP.VIEW, hideForEmployee: true },
     ],
   },
 ]
 
 export default function Sidebar() {
-  const navigate   = useNavigate()
-  const location   = useLocation()
+  const navigate = useNavigate()
+  const location = useLocation()
   const { sidebarCollapsed, toggleSidebar } = useUIStore()
   const { can, isSuperAdmin } = usePermission()
   const { roles } = useAuthStore()
-  const [recruitmentOpen, setRecruitmentOpen] = useState(true)
+  const [openMenus, setOpenMenus] = useState(['/recruitment', '/attendance'])
 
-  const isEmployee = roles.includes('EMPLOYEE') && !roles.some(r =>
-    ['SUPER_ADMIN', 'HR_ADMIN', 'HR_MANAGER', 'HR_EXEC', 'PAYROLL_ADMIN', 'IT_ADMIN',
-     'REPORTING_MGR', 'DEPT_MANAGER', 'COMPLIANCE_OFFICER', 'AUDITOR', 'FINANCE_VIEWER'].includes(r)
-  )
+  const toggleMenu = (key) => {
+    setOpenMenus(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])
+  }
 
   const isActive = (key) => location.pathname === key || location.pathname.startsWith(key + '/')
 
@@ -126,26 +154,23 @@ export default function Sidebar() {
     ...group,
     items: group.items
       .filter((item) => {
-        // Hide employee-specific items for non-employees (they already have employee list access)
-        if (item.selfOnly && !isEmployee) return false
-        // Hide HR-only items from pure employees
-        if (item.hideForEmployee && isEmployee) return false
-        // Check permission
-        if (item.permission === null) return true
-        return isSuperAdmin || can(item.permission)
+        // Top-level: if item has no permission, show to all authenticated users
+        if (!item.permission) return true
+        // SUPER_ADMIN sees everything
+        if (isSuperAdmin) return true
+        return can(item.permission)
       })
-      .map((item) => {
-        if (item.children) {
-          const isHRRole = roles.some(r => ['SUPER_ADMIN', 'HR_ADMIN', 'HR_MANAGER', 'RECRUITMENT_MANAGER'].includes(r));
-          return {
-            ...item,
-            children: isHRRole 
-              ? item.children 
-              : item.children.filter(child => child.key === '/recruitment')
-          };
-        }
-        return item;
-      })
+      .map((item) => ({
+        ...item,
+        // Filter children strictly by their required permission code
+        children: item.children
+          ? item.children.filter((child) => {
+              if (!child.permission) return true
+              if (isSuperAdmin) return true
+              return can(child.permission)
+            })
+          : undefined
+      }))
   })).filter((group) => group.items.length > 0)
 
   return (
@@ -259,7 +284,7 @@ export default function Sidebar() {
             {group.items.map((item) => {
               const active = isActive(item.key)
               const hasChildren = item.children && item.children.length > 0
-              const isMenuOpen = item.key === '/recruitment' ? recruitmentOpen : false
+              const isMenuOpen = openMenus.includes(item.key)
 
               const navItem = (
                 <div
@@ -269,14 +294,14 @@ export default function Sidebar() {
                   aria-current={active ? 'page' : undefined}
                   onClick={() => {
                     if (hasChildren) {
-                      setRecruitmentOpen(!recruitmentOpen)
+                      toggleMenu(item.key)
                     }
                     navigate(item.key)
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       if (hasChildren) {
-                        setRecruitmentOpen(!recruitmentOpen)
+                        toggleMenu(item.key)
                       }
                       navigate(item.key)
                     }
@@ -464,7 +489,7 @@ export default function Sidebar() {
         >
           {sidebarCollapsed
             ? <MenuUnfoldOutlined style={{ fontSize: 15 }} />
-            : <MenuFoldOutlined  style={{ fontSize: 15 }} />
+            : <MenuFoldOutlined style={{ fontSize: 15 }} />
           }
         </div>
       </div>

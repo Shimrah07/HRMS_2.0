@@ -95,11 +95,11 @@ public class UpdateEmployeeRequestValidator : AbstractValidator<UpdateEmployeeRe
 {
     public UpdateEmployeeRequestValidator()
     {
-        RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100);
-        RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);
-        RuleFor(x => x.DeptId).NotEmpty();
-        RuleFor(x => x.DesignationId).NotEmpty();
-        RuleFor(x => x.LocationId).NotEmpty();
+        RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100).When(x => !string.IsNullOrEmpty(x.FirstName));
+        RuleFor(x => x.LastName).NotEmpty().MaximumLength(100).When(x => !string.IsNullOrEmpty(x.LastName));
+        RuleFor(x => x.DeptId).Must(id => id.Value != Guid.Empty).WithMessage("Department cannot be empty.").When(x => x.DeptId.HasValue);
+        RuleFor(x => x.DesignationId).Must(id => id.Value != Guid.Empty).WithMessage("Designation cannot be empty.").When(x => x.DesignationId.HasValue);
+        RuleFor(x => x.LocationId).Must(id => id.Value != Guid.Empty).WithMessage("Location cannot be empty.").When(x => x.LocationId.HasValue);
     }
 }
 

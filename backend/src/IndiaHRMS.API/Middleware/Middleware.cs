@@ -1,5 +1,6 @@
 using IndiaHRMS.Shared;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Text.Json;
 using System.Linq;
@@ -10,11 +11,13 @@ public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
+    private readonly Microsoft.Extensions.Hosting.IHostEnvironment _env;
 
-    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
+    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger, Microsoft.Extensions.Hosting.IHostEnvironment env)
     {
         _next = next;
         _logger = logger;
+        _env = env;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -31,26 +34,60 @@ public class ExceptionHandlingMiddleware
 
     private async Task HandleExceptionAsync(HttpContext context, Exception ex)
     {
-        _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
+        // 1. Log the complete exception
+        _logger.LogError(ex, "Unhandled exception occurred during request execution: {Message}", ex.Message);
 
-        var (statusCode, message) = ex switch
+        // 2. Resolve status code and standard message
+        var statusCode = ex switch
         {
-            ArgumentNullException or ArgumentException => (HttpStatusCode.BadRequest, ex.Message),
-            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "Unauthorized access."),
-            KeyNotFoundException => (HttpStatusCode.NotFound, ex.Message),
-            InvalidOperationException => (HttpStatusCode.Conflict, ex.Message),
-            NotImplementedException => (HttpStatusCode.NotImplemented, "Feature not implemented."),
-            _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred. Please try again later.")
+            ArgumentNullException or ArgumentException => HttpStatusCode.BadRequest,
+            UnauthorizedAccessException => HttpStatusCode.Unauthorized,
+            KeyNotFoundException => HttpStatusCode.NotFound,
+            InvalidOperationException => HttpStatusCode.Conflict,
+            NotImplementedException => HttpStatusCode.NotImplemented,
+            _ => HttpStatusCode.InternalServerError
         };
 
-        context.Response.ContentType = "application/json";
+        // Determine error message detail based on environment and exception status
+        string detail;
+        if (_env.IsDevelopment())
+        {
+            detail = ex.Message;
+        }
+        else
+        {
+            detail = statusCode == HttpStatusCode.InternalServerError 
+                ? "An unexpected error occurred. Please try again later." 
+                : ex.Message;
+        }
+
+        var title = statusCode switch
+        {
+            HttpStatusCode.BadRequest => "Bad Request",
+            HttpStatusCode.Unauthorized => "Unauthorized",
+            HttpStatusCode.NotFound => "Not Found",
+            HttpStatusCode.Conflict => "Conflict",
+            HttpStatusCode.NotImplemented => "Not Implemented",
+            _ => "Internal Server Error"
+        };
+
+        // 3. Return a ProblemDetails hybrid response
+        var errorResponse = new
+        {
+            success = false,
+            errors = new List<string> { detail },
+            status = (int)statusCode,
+            title = title,
+            detail = detail,
+            instance = context.Request.Path.ToString(),
+            traceId = context.TraceIdentifier,
+            stackTrace = _env.IsDevelopment() ? ex.StackTrace : null
+        };
+
+        context.Response.ContentType = "application/problem+json";
         context.Response.StatusCode = (int)statusCode;
 
-        var traceId = context.TraceIdentifier;
-        var response = ApiResponse<object>.Fail(message);
-        response.TraceId = traceId;
-
-        await context.Response.WriteAsync(JsonSerializer.Serialize(response, new JsonSerializerOptions
+        await context.Response.WriteAsync(JsonSerializer.Serialize(errorResponse, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         }));
@@ -94,7 +131,7 @@ public class AuditMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, IndiaHRMS.Infrastructure.Data.AppDbContext dbContext)
+    public async Task InvokeAsync(HttpContext context)
     {
         await _next(context);
 
@@ -107,8 +144,11 @@ public class AuditMiddleware
                 var userIdClaim = context.User.FindFirst("uid")?.Value;
                 if (Guid.TryParse(userIdClaim, out var userId))
                 {
+                    using var scope = context.RequestServices.CreateScope();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<IndiaHRMS.Infrastructure.Data.AppDbContext>();
+
                     // Verify that the user exists in the database to prevent foreign key violations
-                    var userExists = dbContext.Users.Any(u => u.UserId == userId);
+                    var userExists = await dbContext.Users.AnyAsync(u => u.UserId == userId);
                     if (userExists)
                     {
                         var auditLog = new Domain.Entities.AuditLog

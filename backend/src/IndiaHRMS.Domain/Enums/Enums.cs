@@ -88,11 +88,96 @@ public enum LeaveStatus
 public enum PayrollStatus
 {
     Draft,
-    Processing,
-    PendingApproval,
+    InputsLocked,
+    Calculated,
+    UnderReview,
     Approved,
+    Locked,
     Disbursed,
-    Cancelled
+    Closed,
+    OnHold,
+    Rejected
+}
+
+public enum PayrollRunType
+{
+    Regular,
+    Supplementary,
+    Arrears,
+    FullAndFinal,
+    Bonus,
+    MidMonthAdvance
+}
+
+public enum ProofStatus
+{
+    Pending,
+    Submitted,
+    Verified,
+    Rejected
+}
+
+public enum DisbursementStatus
+{
+    Pending,
+    Success,
+    Failed,
+    OnHold,
+    Reprocessing
+}
+
+public enum PayrollDocumentType
+{
+    Payslip,
+    Form16,
+    Form16A,
+    Form24Q,
+    SalaryCertificate,
+    CTCBreakupLetter,
+    PFECR,
+    ESIReturn,
+    BankFile,
+    GLExport
+}
+
+public enum StatutoryDeductionType
+{
+    PF,
+    ESI,
+    PT,
+    LWF,
+    NPS,
+    VPF,
+    TDS,
+    Gratuity
+}
+
+public enum LopDivisorPolicy
+{
+    ActualDays,
+    Fixed30
+}
+
+public enum SectorType
+{
+    Manufacturing,
+    IT,
+    Retail,
+    Healthcare,
+    Construction,
+    Transport,
+    Education,
+    Government,
+    General
+}
+
+public enum PaymentMode
+{
+    NEFT,
+    RTGS,
+    IMPS,
+    Cash,
+    Cheque
 }
 
 public enum AttendanceStatus
@@ -105,7 +190,8 @@ public enum AttendanceStatus
     WFH,
     HalfDay,
     LatePresent,
-    OnDuty
+    OnDuty,
+    MissingPunch
 }
 
 public enum AttendanceSource
@@ -115,6 +201,19 @@ public enum AttendanceSource
     Manual,
     WebApp,
     SystemGenerated
+}
+
+public enum PunchType
+{
+    In,
+    Out
+}
+
+public enum CompOffStatus
+{
+    Available,
+    Utilized,
+    Expired
 }
 
 public enum SeparationType
@@ -256,6 +355,7 @@ public enum ApplicationStage
     HRInterview,
     Offer,
     BackgroundCheck,
+    Onboarding,
     Joined,
     Rejected,
     Withdrawn
@@ -377,7 +477,8 @@ public enum MotherTongue
     Tamil,
     Telugu,
     Urdu,
-    Other
+    Other,
+    English
 }
 
 public enum BankVerificationStatus
@@ -390,9 +491,10 @@ public enum BankVerificationStatus
 public enum JobPostingStatus
 {
     Draft,
-    Active,
+    Published,
+    Paused,
     Closed,
-    Expired
+    Archived
 }
 
 public enum CandidateStatus
@@ -409,6 +511,7 @@ public enum CandidateStatus
 public enum CandidateSource
 {
     CareerPortal,
+    CareersPortal,
     EmployeeReferral,
     LinkedIn,
     Naukri,
@@ -417,5 +520,9 @@ public enum CandidateSource
     Consultancy,
     WalkIn,
     InternalTransfer,
+    CSVImport,
+    ManualHREntry,
+    ManualHR,
+    ResumeParser,
     Other
 }

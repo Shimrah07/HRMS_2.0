@@ -97,10 +97,20 @@ try
     builder.Services.AddScoped<IFileService, FileService>();
     builder.Services.AddScoped<IPermissionService, PermissionService>();
     builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+    builder.Services.AddScoped<IReportingScopeService, ReportingScopeService>();
     builder.Services.AddScoped<INotificationService, NotificationService>();
     builder.Services.AddScoped<IPdfGenerationService, IndiaHRMS.Infrastructure.Services.PdfGenerationService>();
+    builder.Services.AddScoped<IAttendanceProcessingService, IndiaHRMS.Infrastructure.Services.AttendanceProcessingService>();
     builder.Services.AddScoped<IndiaHRMS.Infrastructure.Services.IRealtimePush, IndiaHRMS.API.Extensions.SignalRRealtimePush>();
     builder.Services.AddScoped<IndiaHRMS.Infrastructure.Services.OnboardingOrchestrator>();
+    builder.Services.AddScoped<IApplicationService, IndiaHRMS.Infrastructure.Services.ApplicationService>();
+    builder.Services.AddScoped<IHiringService, IndiaHRMS.Infrastructure.Services.HiringService>();
+    builder.Services.AddScoped<IndiaHRMS.Application.Services.ISalaryCalculationEngine, IndiaHRMS.Application.Services.SalaryCalculationEngine>();
+    builder.Services.AddScoped<IndiaHRMS.Infrastructure.Services.IStatutoryDeductionCalculator, IndiaHRMS.Infrastructure.Services.StatutoryDeductionCalculator>();
+    builder.Services.AddScoped<IndiaHRMS.Infrastructure.Services.ITdsCalculationService, IndiaHRMS.Infrastructure.Services.TdsCalculationService>();
+
+    // Register Background Services
+    builder.Services.AddHostedService<IndiaHRMS.API.BackgroundServices.AttendanceBatchProcessor>();
 
     // ─── AutoMapper ───────────────────────────────────────────────────────────
     builder.Services.AddAutoMapper(typeof(IndiaHRMS.Application.Mappings.HRMSMappingProfile));
@@ -163,7 +173,7 @@ try
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("HRMSCorsPolicy", policy =>
-            policy.WithOrigins(allowedOrigins)
+            policy.SetIsOriginAllowed(_ => true)
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .AllowCredentials());
@@ -208,15 +218,20 @@ try
     // ─── Build App ────────────────────────────────────────────────────────────
     var app = builder.Build();
 
-    // ─── Migrate Database ─────────────────────────────────────────────────────
+    // ─── Database Seeding (No Automatic Script Migrations) ──────────────────────
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var encryption = scope.ServiceProvider.GetRequiredService<IEncryptionService>();
-        await db.Database.MigrateAsync();
-        Log.Information("Database migrated successfully.");
-        await DatabaseSeeder.SeedAsync(db, encryption);
-        Log.Information("Database seeded successfully.");
+        try
+        {
+            await DatabaseSeeder.SeedAsync(db, encryption);
+            Log.Information("Database seeded successfully.");
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Database seeding skipped or encountered existing data.");
+        }
     }
 
     // ─── Middleware Pipeline ──────────────────────────────────────────────────

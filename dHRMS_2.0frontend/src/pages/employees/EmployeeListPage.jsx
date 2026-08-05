@@ -11,7 +11,7 @@ import {
   UnorderedListOutlined, PhoneOutlined, MailOutlined, CalendarOutlined,
   EnvironmentOutlined, TeamOutlined, CloseOutlined, ProfileOutlined,
   DownloadOutlined, ClearOutlined, BankOutlined, FileTextOutlined,
-  DollarOutlined, ArrowRightOutlined
+  DollarOutlined, ArrowRightOutlined, UploadOutlined
 } from '@ant-design/icons'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -21,6 +21,7 @@ import PageHeader from '../../components/common/PageHeader'
 import StatusBadge from '../../components/common/StatusBadge'
 import PermissionGuard from '../../components/common/PermissionGuard'
 import EmptyState from '../../components/common/EmptyState'
+import BulkUploadModal from '../../components/employee/BulkUploadModal'
 import { usePermission } from '../../hooks/usePermission'
 import { PERMISSIONS } from '../../constants/permissions'
 import { EMPLOYMENT_STATUS, EMPLOYMENT_TYPE, WORK_MODE, PAYROLL_GROUP } from '../../constants/enums'
@@ -173,6 +174,7 @@ export default function EmployeeListPage() {
   }, [filters, queryFilters.page, queryFilters.pageSize, queryFilters.search])
   const [viewMode, setViewMode] = useState('list')
   const [previewEmpId, setPreviewEmpId] = useState(null)
+  const [bulkModalOpen, setBulkModalOpen] = useState(false)
 
   // Row selection states
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
@@ -580,14 +582,23 @@ export default function EmployeeListPage() {
             </PermissionGuard>
             <PermissionGuard permission={PERMISSIONS.EMPLOYEE.CREATE}>
               {can(PERMISSIONS.EMPLOYEE.CREATE) && (
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => navigate('/employees/new')}
-                  style={{ background: isDarkMode ? '#FAA71A' : '#10113F', borderColor: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', borderRadius: 8, fontWeight: 600 }}
-                >
-                  Add Employee
-                </Button>
+                <>
+                  <Button
+                    icon={<UploadOutlined />}
+                    onClick={() => setBulkModalOpen(true)}
+                    style={{ borderRadius: 8, fontWeight: 500 }}
+                  >
+                    Bulk Import (CSV)
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => navigate('/employees/new')}
+                    style={{ background: isDarkMode ? '#FAA71A' : '#10113F', borderColor: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', borderRadius: 8, fontWeight: 600 }}
+                  >
+                    Add Employee
+                  </Button>
+                </>
               )}
             </PermissionGuard>
           </Space>
@@ -1224,10 +1235,6 @@ export default function EmployeeListPage() {
                           <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Sub-Department</div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{fullEmpDetails?.subDeptName || '—'}</div>
                         </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Team</div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>{fullEmpDetails?.teamName || '—'}</div>
-                        </div>
                       </div>
                     </Card>
 
@@ -1432,6 +1439,14 @@ export default function EmployeeListPage() {
           )
         })()}
       </Drawer>
+
+      <BulkUploadModal
+        open={bulkModalOpen}
+        onClose={() => setBulkModalOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries(['employees'])
+        }}
+      />
     </motion.div>
   )
 }
