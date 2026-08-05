@@ -240,30 +240,41 @@ export default function Sidebar({ isMobile }) {
       .map((item) => {
         if (item.children) {
           const isHRRole = roles.some(r => ['SUPER_ADMIN', 'HR_ADMIN', 'HR_MANAGER', 'RECRUITMENT_MANAGER'].includes(r));
-          const isOrgAdmin = roles.some(r => ['SUPER_ADMIN', 'HR_ADMIN', 'IT_ADMIN', 'COO'].includes(r));
+          const isAdminRole = roles.some(r => ['SUPER_ADMIN', 'HR_ADMIN', 'IT_ADMIN', 'COO', 'PAYROLL_ADMIN', 'COMPLIANCE_OFFICER', 'FINANCE_VIEWER', 'AUDITOR'].includes(r));
           const isReportingMgr = roles.includes('REPORTING_MGR') || roles.includes('DEPT_MANAGER');
-          const isPayrollOrCompliance = roles.some(r => ['PAYROLL_ADMIN', 'COMPLIANCE_OFFICER'].includes(r));
           const isPureEmployee = isEmployee;
+
+          // Admin-only attendance pages
+          const attendanceAdminOnly = ['/attendance/freeze', '/attendance/shifts'];
 
           return {
             ...item,
             children: item.children.filter(child => {
+              // ── Recruitment ─────────────────────────────────────────
               if (child.key.startsWith('/recruitment')) {
                 if (isHRRole) return true;
                 return child.key === '/recruitment' || child.key === '/recruitment/jobs';
               }
-              
+
+              // ── Attendance ──────────────────────────────────────────
               if (child.key.startsWith('/attendance')) {
-                if (isPayrollOrCompliance) return child.key === '/attendance/reports';
-                if (roles.includes('HR_ADMIN') || roles.includes('SUPER_ADMIN')) return true;
-                if (isPureEmployee) return child.key === '/attendance' || child.key === '/attendance/overtime';
-                if (isReportingMgr) {
-                  const allowedForMgr = ['/attendance', '/attendance/team', '/attendance/regularizations', '/attendance/overtime', '/attendance/reports'];
-                  return allowedForMgr.includes(child.key);
+                // Pure employees: only own attendance + overtime
+                if (isPureEmployee) {
+                  return child.key === '/attendance' || child.key === '/attendance/overtime';
                 }
-                if (isOrgAdmin) return child.key !== '/attendance/freeze';
-                return false;
+                // Reporting managers: no admin-only pages
+                if (isReportingMgr && !isAdminRole) {
+                  return !attendanceAdminOnly.includes(child.key);
+                }
+                // All other roles (admin, finance, compliance, auditor, etc.): show all
+                return true;
               }
+
+              // ── Payroll ─────────────────────────────────────────────
+              if (child.key.startsWith('/payroll')) {
+                return true; // permission already checked at item level
+              }
+
               return true;
             })
           };
