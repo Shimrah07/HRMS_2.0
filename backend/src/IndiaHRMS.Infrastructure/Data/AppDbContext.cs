@@ -67,6 +67,14 @@ public class AppDbContext : DbContext
     public DbSet<PayrollDetail> PayrollDetails => Set<PayrollDetail>();
     public DbSet<PayrollComponentValue> PayrollComponentValues => Set<PayrollComponentValue>();
     public DbSet<TaxDeclaration> TaxDeclarations => Set<TaxDeclaration>();
+    public DbSet<ProfessionalTaxSlab> ProfessionalTaxSlabs => Set<ProfessionalTaxSlab>();
+    public DbSet<StatutoryDeductionConfig> StatutoryDeductionConfigs => Set<StatutoryDeductionConfig>();
+    public DbSet<PayrollAuditLog> PayrollAuditLogs => Set<PayrollAuditLog>();
+    public DbSet<VariablePayInput> VariablePayInputs => Set<VariablePayInput>();
+    public DbSet<EmployeeSalaryStructure> EmployeeSalaryStructures => Set<EmployeeSalaryStructure>();
+    public DbSet<EmployeeSalaryComponentAllocation> EmployeeSalaryComponentAllocations => Set<EmployeeSalaryComponentAllocation>();
+    public DbSet<InvestmentDeclaration> InvestmentDeclarations => Set<InvestmentDeclaration>();
+    public DbSet<PayrollDocument> PayrollDocuments => Set<PayrollDocument>();
 
     // ─── Recruitment ──────────────────────────────────────────────────────────
     public DbSet<JobRequisition> JobRequisitions => Set<JobRequisition>();

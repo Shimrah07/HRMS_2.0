@@ -551,8 +551,8 @@ public class HRMSMappingProfile : Profile
             .ForMember(d => d.AssignedRecruiterName, o => o.MapFrom(s => s.AssignedRecruiter != null ? $"{s.AssignedRecruiter.FirstName} {s.AssignedRecruiter.LastName}" : null))
             .ForMember(d => d.InterviewDate, o => o.MapFrom(s => s.InterviewRounds.Any() ? s.InterviewRounds.Max(r => r.ScheduledAt) : (DateTime?)null))
             .ForMember(d => d.Source, o => o.MapFrom(s => s.Candidate.Source.HasValue ? s.Candidate.Source.Value.ToString() : null))
-            .ForMember(d => d.IsBlacklisted, o => o.MapFrom(s => s.Candidate.IsBlacklisted))
-            .ForMember(d => d.BlacklistReason, o => o.MapFrom(s => s.Candidate.BlacklistReason))
+            .ForMember(d => d.IsBlacklisted, o => o.Ignore())
+            .ForMember(d => d.BlacklistReason, o => o.Ignore())
             .ForMember(d => d.Candidate, o => o.MapFrom(s => s.Candidate));
 
         CreateMap<InterviewRound, InterviewRoundDto>()
@@ -566,15 +566,14 @@ public class HRMSMappingProfile : Profile
         CreateMap<OfferLetter, OfferLetterDto>()
             .ForMember(d => d.CandidateName, o => o.MapFrom(s => $"{s.JobApplication.Candidate.FirstName} {s.JobApplication.Candidate.LastName}"))
             .ForMember(d => d.JobTitle, o => o.MapFrom(s => s.JobApplication.Requisition.JobTitle))
-            // Sprint 3.4 — CTC breakdown fields from OfferCtcBreakups
-            .ForMember(d => d.Basic,             o => o.MapFrom(s => s.CtcBreakup != null ? (decimal?)s.CtcBreakup.Basic             : null))
-            .ForMember(d => d.HRA,               o => o.MapFrom(s => s.CtcBreakup != null ? (decimal?)s.CtcBreakup.HRA               : null))
-            .ForMember(d => d.SpecialAllowance,  o => o.MapFrom(s => s.CtcBreakup != null ? (decimal?)s.CtcBreakup.SpecialAllowance  : null))
-            .ForMember(d => d.PFEmployer,        o => o.MapFrom(s => s.CtcBreakup != null ? (decimal?)s.CtcBreakup.PFEmployer        : null))
-            .ForMember(d => d.Gratuity,          o => o.MapFrom(s => s.CtcBreakup != null ? (decimal?)s.CtcBreakup.Gratuity          : null))
-            .ForMember(d => d.Insurance,         o => o.MapFrom(s => s.CtcBreakup != null ? (decimal?)s.CtcBreakup.Insurance         : null))
-            .ForMember(d => d.GrossMonthly,      o => o.MapFrom(s => s.CtcBreakup != null ? (decimal?)s.CtcBreakup.GrossMonthly      : null))
-            .ForMember(d => d.AnnualCTC,         o => o.MapFrom(s => s.CtcBreakup != null ? (decimal?)s.CtcBreakup.AnnualCTC         : null));
+            .ForMember(d => d.Basic,             o => o.Ignore())
+            .ForMember(d => d.HRA,               o => o.Ignore())
+            .ForMember(d => d.SpecialAllowance,  o => o.Ignore())
+            .ForMember(d => d.PFEmployer,        o => o.Ignore())
+            .ForMember(d => d.Gratuity,          o => o.Ignore())
+            .ForMember(d => d.Insurance,         o => o.Ignore())
+            .ForMember(d => d.GrossMonthly,      o => o.Ignore())
+            .ForMember(d => d.AnnualCTC,         o => o.Ignore());
 
         CreateMap<BGVRecord, BGVRecordDto>();
         CreateMap<OnboardingProcess, OnboardingProcessDto>()

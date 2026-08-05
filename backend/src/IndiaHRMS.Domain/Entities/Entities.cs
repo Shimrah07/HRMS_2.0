@@ -798,6 +798,11 @@ public class SalaryComponent : BaseEntity
     public string ComponentCode { get; set; } = string.Empty;
     public ComponentType ComponentType { get; set; }
     public CalculationType CalculationType { get; set; }
+    public ComponentGroup Group { get; set; } = ComponentGroup.SalaryStructure;
+    public CalculationBasis CalculationBasis { get; set; } = CalculationBasis.PercentOfCTC;
+    public decimal? DefaultPercentage { get; set; }
+    public ApplicableTo ApplicableTo { get; set; } = ApplicableTo.Both;
+    public bool IsBalancingComponent { get; set; } = false;
     public bool IsStatutory { get; set; }
     public bool IsTaxable { get; set; }
     public bool IsActive { get; set; } = true;
@@ -860,20 +865,27 @@ public class PayrollRun : BaseEntity
     public int Month { get; set; }
     public int Year { get; set; }
     public PayrollStatus Status { get; set; } = PayrollStatus.Draft;
+    public PayrollRunType RunType { get; set; } = PayrollRunType.Regular;
     public Guid ProcessedBy { get; set; }
     public DateTime? ProcessedAt { get; set; }
     public Guid? ApprovedBy { get; set; }
     public DateTime? ApprovedAt { get; set; }
+    public DateTime? LockedAt { get; set; }
+    public Guid? LockedBy { get; set; }
     public DateTime? DisbursedAt { get; set; }
     public decimal TotalGross { get; set; }
     public decimal TotalDeductions { get; set; }
     public decimal TotalNetPay { get; set; }
+    public decimal TotalCTC { get; set; }
     public int TotalEmployees { get; set; }
+    public string? Notes { get; set; }
+    public bool AttendanceFrozen { get; set; } = false;
 
     public Company Company { get; set; } = null!;
     public User ProcessedByUser { get; set; } = null!;
     public User? ApprovedByUser { get; set; }
     public ICollection<PayrollDetail> PayrollDetails { get; set; } = new List<PayrollDetail>();
+    public ICollection<PayrollAuditLog> AuditLogs { get; set; } = new List<PayrollAuditLog>();
 }
 
 public class PayrollDetail : BaseEntity
@@ -931,6 +943,140 @@ public class TaxDeclaration : BaseEntity
 
     public Employee Employee { get; set; } = null!;
     public User? ApprovedByUser { get; set; }
+}
+
+public class PayrollAuditLog
+{
+    public Guid AuditId { get; set; } = Guid.NewGuid();
+    public Guid? PayrollRunId { get; set; }
+    public string Action { get; set; } = string.Empty;
+    public string? Details { get; set; }
+    public Guid PerformedBy { get; set; }
+    public DateTime PerformedAt { get; set; } = DateTime.UtcNow;
+
+    public PayrollRun? PayrollRun { get; set; }
+    public User PerformedByUser { get; set; } = null!;
+}
+
+public class VariablePayInput : BaseEntity
+{
+    public Guid InputId { get; set; } = Guid.NewGuid();
+    public Guid PayrollRunId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public string InputType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string? Remarks { get; set; }
+    public Guid SubmittedBy { get; set; }
+    public bool IsApproved { get; set; } = false;
+    public Guid? ApprovedBy { get; set; }
+
+    public PayrollRun PayrollRun { get; set; } = null!;
+    public Employee Employee { get; set; } = null!;
+    public User SubmittedByUser { get; set; } = null!;
+    public User? ApprovedByUser { get; set; }
+}
+
+public class EmployeeSalaryStructure : BaseEntity
+{
+    public Guid StructureId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public decimal AnnualCTC { get; set; }
+    public DateOnly EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+    public bool IsActive { get; set; } = true;
+
+    public Employee Employee { get; set; } = null!;
+    public ICollection<EmployeeSalaryComponentAllocation> Allocations { get; set; } = new List<EmployeeSalaryComponentAllocation>();
+}
+
+public class EmployeeSalaryComponentAllocation : BaseEntity
+{
+    public Guid AllocationId { get; set; } = Guid.NewGuid();
+    public Guid StructureId { get; set; }
+    public Guid ComponentId { get; set; }
+    public ComponentGroup Group { get; set; }
+    public AllocationInputMode InputMode { get; set; } = AllocationInputMode.Percent;
+    public decimal? Percentage { get; set; }
+    public decimal AnnualAmount { get; set; }
+    public decimal MonthlyAmount { get; set; }
+    public bool IsBalancingComponent { get; set; }
+
+    public EmployeeSalaryStructure Structure { get; set; } = null!;
+    public SalaryComponent Component { get; set; } = null!;
+}
+
+public class InvestmentDeclaration : BaseEntity
+{
+    public Guid DeclarationId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public string FinancialYear { get; set; } = string.Empty;
+    public TaxRegime TaxRegime { get; set; } = TaxRegime.New;
+    public decimal Section80C { get; set; } = 0m;
+    public decimal Section80D { get; set; } = 0m;
+    public decimal Section80E { get; set; } = 0m;
+    public decimal Section80G { get; set; } = 0m;
+    public bool HraRentedHouse { get; set; } = false;
+    public decimal HraClaimAmount { get; set; } = 0m;
+    public string? LandlordName { get; set; }
+    public string? RentedCity { get; set; }
+    public bool IsMetroCity { get; set; } = false;
+    public decimal HomeLoanInterest { get; set; } = 0m;
+    public decimal PreviousEmployerIncome { get; set; } = 0m;
+    public decimal PreviousEmployerTds { get; set; } = 0m;
+    public ProofStatus ProofStatus { get; set; } = ProofStatus.Pending;
+    public DateTime? ProofSubmittedAt { get; set; }
+    public Guid? VerifiedBy { get; set; }
+
+    public Employee Employee { get; set; } = null!;
+    public User? VerifiedByUser { get; set; }
+}
+
+public class ProfessionalTaxSlab
+{
+    public Guid SlabId { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    public string StateCode { get; set; } = "MH";
+    public decimal FromAmount { get; set; }
+    public decimal? ToAmount { get; set; }
+    public decimal MonthlyPTAmount { get; set; }
+    public decimal? FebruaryOverride { get; set; }
+
+    public Company Company { get; set; } = null!;
+}
+
+public class StatutoryDeductionConfig : BaseEntity
+{
+    public Guid ConfigId { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    public string WorkState { get; set; } = "MH";
+    public bool PFApplicable { get; set; } = true;
+    public bool PFHigherBasis { get; set; } = false;
+    public decimal PFWageCeiling { get; set; } = 15000m;
+    public bool ESIApplicable { get; set; } = true;
+    public decimal ESIGrossLimit { get; set; } = 21000m;
+    public bool PTApplicable { get; set; } = true;
+    public bool LWFApplicable { get; set; } = false;
+    public decimal LWFEmployeeAmount { get; set; } = 0m;
+    public decimal LWFEmployerAmount { get; set; } = 0m;
+    public LopDivisorPolicy LopDivisor { get; set; } = LopDivisorPolicy.Fixed30;
+
+    public Company Company { get; set; } = null!;
+}
+
+public class PayrollDocument : BaseEntity
+{
+    public Guid DocumentId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public Guid? CompanyId { get; set; }
+    public PayrollDocumentType DocumentType { get; set; }
+    public string Period { get; set; } = string.Empty;
+    public string? FilePath { get; set; }
+    public string? FileName { get; set; }
+    public long? FileSizeBytes { get; set; }
+    public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDelivered { get; set; } = false;
+
+    public Employee Employee { get; set; } = null!;
 }
 
 // ─── Recruitment ──────────────────────────────────────────────────────────────
