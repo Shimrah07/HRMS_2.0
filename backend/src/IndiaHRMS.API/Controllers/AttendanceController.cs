@@ -348,20 +348,15 @@ public class AttendanceController : ControllerBase
             var reqTimeIst = r.RequestedCheckIn.HasValue 
                 ? TimeZoneInfo.ConvertTimeFromUtc(r.RequestedCheckIn.Value, GetIstTimeZone()) 
                 : (DateTime?)null;
-            .OrderBy(r => r.AttendanceDate)
-            .ToListAsync(ct);
 
-        var result = list.Select(r => new
-        {
-            key = r.AttendanceId.ToString(),
-            date = r.AttendanceDate.ToString("dd MMM yyyy"),
-            day = r.AttendanceDate.DayOfWeek.ToString(),
-            checkIn = r.CheckIn.HasValue ? TimeZoneInfo.ConvertTimeFromUtc(r.CheckIn.Value, GetIstTimeZone()).ToString("hh:mm tt") : "—",
-            checkOut = r.CheckOut.HasValue ? TimeZoneInfo.ConvertTimeFromUtc(r.CheckOut.Value, GetIstTimeZone()).ToString("hh:mm tt") : "—",
-            workingHours = $"{r.WorkingHours:F1} hrs",
-            status = r.Status.ToString(),
-            source = r.Source.ToString(),
-            isRegularized = r.IsRegularized
+            return new
+            {
+                key = r.RegId.ToString(),
+                date = r.AttendanceDate.ToString("dd MMM yyyy"),
+                requestTime = reqTimeIst?.ToString("hh:mm tt") ?? "—",
+                reason = r.Reason,
+                status = r.Status
+            };
         }).ToList();
 
         return Ok(ApiResponse<object>.Ok(result));
