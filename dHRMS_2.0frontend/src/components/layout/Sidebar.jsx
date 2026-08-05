@@ -22,6 +22,10 @@ import {
   DollarOutlined,
   ClockCircleOutlined,
   GlobalOutlined,
+  LaptopOutlined,
+  AuditOutlined,
+  WalletOutlined,
+  BuildOutlined,
 } from '@ant-design/icons'
 import useUIStore from '../../store/uiStore'
 import useAuthStore from '../../store/authStore'
@@ -97,7 +101,23 @@ const NAV_GROUPS = [
           { key: '/leave/reports', label: 'Reports & Analytics' }
         ]
       },
-      { key: '/payroll', icon: <DollarOutlined />, label: 'Payroll', permission: PERMISSIONS.PAYROLL.VIEW },
+      { 
+        key: '/payroll', 
+        icon: <DollarOutlined />, 
+        label: 'Payroll', 
+        permission: PERMISSIONS.PAYROLL.VIEW,
+        children: [
+          { key: '/payroll', label: 'Dashboard & Overview' },
+          { key: '/payroll/run', label: 'Payroll Run' },
+          { key: '/payroll/salary-structure', label: 'Salary Structure' },
+          { key: '/payroll/statutory', label: 'Statutory Deductions' },
+          { key: '/payroll/tax-declarations', label: 'Tax Declarations' },
+          { key: '/payroll/tax-approvals', label: 'IT Declaration Approvals' },
+          { key: '/payroll/disbursement', label: 'Disbursement' },
+          { key: '/payroll/reimbursements', label: 'Reimbursements' },
+          { key: '/payroll/loans', label: 'Loans & Advances' },
+        ]
+      },
       { 
         key: '/travel-expense', 
         icon: <RocketOutlined />, 
@@ -127,6 +147,27 @@ const NAV_GROUPS = [
           { key: '/exit-management/documents', label: 'Exit Documents' },
           { key: '/exit-management/sector-rules', label: 'Sector Rules' },
           { key: '/exit-management/analytics', label: 'Attrition Analytics' }
+        ]
+      },
+    ],
+  },
+
+  {
+    key: 'assets',
+    label: 'ASSETS',
+    items: [
+      {
+        key: '/assets',
+        icon: <LaptopOutlined />,
+        label: 'Asset Management',
+        permission: PERMISSIONS.COMPANY_SETUP.VIEW,
+        children: [
+          { key: '/assets', label: 'Asset Inventory' },
+          { key: '/assets/assignments', label: 'Assignments' },
+          { key: '/assets/requests', label: 'Asset Requests' },
+          { key: '/assets/maintenance', label: 'Maintenance & AMC' },
+          { key: '/assets/disposal', label: 'Disposal & Write-off' },
+          { key: '/assets/reports', label: 'Reports & Audit' },
         ]
       },
     ],
@@ -173,7 +214,7 @@ export default function Sidebar({ isMobile }) {
   const { sidebarCollapsed, toggleSidebar, mobileDrawerOpen, closeMobileDrawer } = useUIStore()
   const { can, isSuperAdmin } = usePermission()
   const { roles } = useAuthStore()
-  const [openMenus, setOpenMenus] = useState(['/recruitment', '/attendance', '/leave', '/travel-expense', '/exit-management'])
+  const [openMenus, setOpenMenus] = useState(['/recruitment', '/attendance', '/leave', '/travel-expense', '/exit-management', '/payroll'])
 
 
   const toggleMenu = (key) => {

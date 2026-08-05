@@ -33,6 +33,15 @@ const UserManagementPage = lazy(() => import('../pages/users/UserManagementPage'
 const NotificationsPage = lazy(() => import('../pages/notifications/NotificationsPage'))
 const SettingsPage = lazy(() => import('../pages/settings/SettingsPage'))
 const PayrollPage = lazy(() => import('../pages/payroll/PayrollPage'))
+const PayrollDashboardPage = lazy(() => import('../pages/payroll/PayrollDashboardPage'))
+const PayrollRunPage = lazy(() => import('../pages/payroll/PayrollRunPage'))
+const SalaryStructurePage = lazy(() => import('../pages/payroll/SalaryStructurePage'))
+const StatutoryDeductionsPage = lazy(() => import('../pages/payroll/StatutoryDeductionsPage'))
+const TaxDeclarationPage = lazy(() => import('../pages/payroll/TaxDeclarationPage'))
+const TaxDeclarationApprovalPage = lazy(() => import('../pages/payroll/TaxDeclarationApprovalPage'))
+const DisbursementPage = lazy(() => import('../pages/payroll/DisbursementPage'))
+const ReimbursementsPage = lazy(() => import('../pages/payroll/ReimbursementsPage'))
+const EmployeeLoansPage = lazy(() => import('../pages/payroll/EmployeeLoansPage'))
 const AttendancePage = lazy(() => import('../pages/attendance/AttendancePage'))
 const ShiftMasterPage = lazy(() => import('../pages/attendance/ShiftMasterPage'))
 const TeamAttendancePage = lazy(() => import('../pages/attendance/TeamAttendancePage'))
@@ -148,7 +157,21 @@ const router = createBrowserRouter([
       { path: 'users', element: <ProtectedRoute permission={PERMISSIONS.USER_MANAGEMENT.VIEW}>{wrap(UserManagementPage)}</ProtectedRoute> },
       { path: 'notifications', element: <ProtectedRoute>{wrap(NotificationsPage)}</ProtectedRoute> },
       { path: 'settings', element: <ProtectedRoute permission={PERMISSIONS.COMPANY_SETUP.VIEW}>{wrap(SettingsPage)}</ProtectedRoute> },
-      { path: 'payroll', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(PayrollPage)}</ProtectedRoute> },
+      {
+        path: 'payroll',
+        children: [
+          { index: true, element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(PayrollDashboardPage)}</ProtectedRoute> },
+          { path: 'run', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(PayrollRunPage)}</ProtectedRoute> },
+          { path: 'salary-structure', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(SalaryStructurePage)}</ProtectedRoute> },
+          { path: 'statutory', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(StatutoryDeductionsPage)}</ProtectedRoute> },
+          { path: 'tax-declarations', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(TaxDeclarationPage)}</ProtectedRoute> },
+          { path: 'tax-approvals', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(TaxDeclarationApprovalPage)}</ProtectedRoute> },
+          { path: 'disbursement', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(DisbursementPage)}</ProtectedRoute> },
+          { path: 'reimbursements', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(ReimbursementsPage)}</ProtectedRoute> },
+          { path: 'loans', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(EmployeeLoansPage)}</ProtectedRoute> },
+          { path: 'legacy', element: <ProtectedRoute permission={PERMISSIONS.PAYROLL.VIEW}>{wrap(PayrollPage)}</ProtectedRoute> },
+        ]
+      },
       { 
         path: 'attendance', 
         children: [
