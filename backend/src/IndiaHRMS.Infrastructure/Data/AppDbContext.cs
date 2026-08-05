@@ -549,7 +549,6 @@ public class AppDbContext : DbContext
         .OnDelete(DeleteBehavior.Restrict);
 });
 
-        modelBuilder.Entity<SalaryComponent>(e => e.HasKey(x => x.ComponentId));
         modelBuilder.Entity<SalaryStructure>(e => e.HasKey(x => x.StructureId));
         modelBuilder.Entity<PayrollComponentValue>(e => e.HasKey(x => x.ValueId));
         modelBuilder.Entity<TaxDeclaration>(e => e.HasKey(x => x.DeclarationId));
@@ -582,6 +581,101 @@ public class AppDbContext : DbContext
             e.Property(x => x.ESIEmployer).HasColumnType("decimal(10,2)");
             e.HasOne(x => x.PayrollRun).WithMany(x => x.PayrollDetails).HasForeignKey(x => x.PayrollRunId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Employee).WithMany(x => x.PayrollDetails).HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ─── Payroll Extended Entities ─────────────────────────────────────────
+        modelBuilder.Entity<PayrollAuditLog>(e =>
+        {
+            e.HasKey(x => x.AuditId);
+            e.HasOne(x => x.PayrollRun).WithMany(x => x.AuditLogs).HasForeignKey(x => x.PayrollRunId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.PerformedByUser).WithMany().HasForeignKey(x => x.PerformedBy).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<VariablePayInput>(e =>
+        {
+            e.HasKey(x => x.InputId);
+            e.Property(x => x.Amount).HasColumnType("decimal(12,2)");
+            e.HasOne(x => x.PayrollRun).WithMany().HasForeignKey(x => x.PayrollRunId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.SubmittedByUser).WithMany().HasForeignKey(x => x.SubmittedBy).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedBy).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<EmployeeSalaryStructure>(e =>
+        {
+            e.HasKey(x => x.StructureId);
+            e.Property(x => x.AnnualCTC).HasColumnType("decimal(14,2)");
+            e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EmployeeSalaryComponentAllocation>(e =>
+        {
+            e.HasKey(x => x.AllocationId);
+            e.Property(x => x.Percentage).HasColumnType("decimal(5,2)");
+            e.Property(x => x.AnnualAmount).HasColumnType("decimal(14,2)");
+            e.Property(x => x.MonthlyAmount).HasColumnType("decimal(12,2)");
+            e.Property(x => x.InputMode).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Group).HasConversion<string>().HasMaxLength(30);
+            e.HasOne(x => x.Structure).WithMany(x => x.Allocations).HasForeignKey(x => x.StructureId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Component).WithMany().HasForeignKey(x => x.ComponentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InvestmentDeclaration>(e =>
+        {
+            e.HasKey(x => x.DeclarationId);
+            e.HasIndex(x => new { x.EmployeeId, x.FinancialYear }).IsUnique();
+            e.Property(x => x.Section80C).HasColumnType("decimal(12,2)");
+            e.Property(x => x.Section80D).HasColumnType("decimal(12,2)");
+            e.Property(x => x.Section80E).HasColumnType("decimal(12,2)");
+            e.Property(x => x.Section80G).HasColumnType("decimal(12,2)");
+            e.Property(x => x.HraClaimAmount).HasColumnType("decimal(12,2)");
+            e.Property(x => x.HomeLoanInterest).HasColumnType("decimal(12,2)");
+            e.Property(x => x.PreviousEmployerIncome).HasColumnType("decimal(12,2)");
+            e.Property(x => x.PreviousEmployerTds).HasColumnType("decimal(12,2)");
+            e.Property(x => x.TaxRegime).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.ProofStatus).HasConversion<string>().HasMaxLength(20);
+            e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.VerifiedByUser).WithMany().HasForeignKey(x => x.VerifiedBy).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<PayrollDocument>(e =>
+        {
+            e.HasKey(x => x.DocumentId);
+            e.Property(x => x.DocumentType).HasConversion<string>().HasMaxLength(30);
+            e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProfessionalTaxSlab>(e =>
+        {
+            e.HasKey(x => x.SlabId);
+            e.Property(x => x.FromAmount).HasColumnType("decimal(10,2)");
+            e.Property(x => x.ToAmount).HasColumnType("decimal(10,2)");
+            e.Property(x => x.MonthlyPTAmount).HasColumnType("decimal(8,2)");
+            e.Property(x => x.FebruaryOverride).HasColumnType("decimal(8,2)");
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<StatutoryDeductionConfig>(e =>
+        {
+            e.HasKey(x => x.ConfigId);
+            e.HasIndex(x => new { x.CompanyId, x.WorkState }).IsUnique();
+            e.Property(x => x.PFWageCeiling).HasColumnType("decimal(10,2)");
+            e.Property(x => x.ESIGrossLimit).HasColumnType("decimal(10,2)");
+            e.Property(x => x.LWFEmployeeAmount).HasColumnType("decimal(8,2)");
+            e.Property(x => x.LWFEmployerAmount).HasColumnType("decimal(8,2)");
+            e.Property(x => x.LopDivisor).HasConversion<string>().HasMaxLength(20);
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ─── SalaryComponent extended fields ───────────────────────────────────
+        modelBuilder.Entity<SalaryComponent>(e =>
+        {
+            e.HasKey(x => x.ComponentId);
+            e.Property(x => x.Group).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.CalculationBasis).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.ApplicableTo).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.DefaultPercentage).HasColumnType("decimal(5,2)");
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // ─── Notification ──────────────────────────────────────────────────────

@@ -331,6 +331,7 @@ public class InterviewsController : ControllerBase
 
     [HttpPost("{id:guid}/attachments")]
     [Filters.RequirePermission(PermissionCodes.Recruitment.Edit)]
+    [Consumes("multipart/form-data")]
     public async Task<ActionResult<ApiResponse<InterviewRoundDto>>> UploadAttachment(
         Guid id,
         [FromForm] Microsoft.AspNetCore.Http.IFormFile file,
