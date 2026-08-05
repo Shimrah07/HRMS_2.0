@@ -103,6 +103,14 @@ export const API = {
     DELETE: (id) => `${API_BASE}/shifts/${id}`,
   },
 
+  // Shifts
+  SHIFTS: {
+    LIST: `${API_BASE}/shifts`,
+    CREATE: `${API_BASE}/shifts`,
+    UPDATE: (id) => `${API_BASE}/shifts/${id}`,
+    DELETE: (id) => `${API_BASE}/shifts/${id}`,
+  },
+
   // Users
   USERS: {
     LIST: `${API_BASE}/users`,

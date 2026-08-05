@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Card, Descriptions, Avatar, Button, Form, Input, message, Spin,
   Row, Col, Tabs, Tag, Timeline, Modal, Space, Progress, Tooltip, Table,
-  notification, Select, DatePicker
+  notification, Select, DatePicker, InputNumber, Popconfirm
 } from 'antd'
 import {
   EditOutlined, SaveOutlined, UserOutlined, BuildOutlined,
@@ -14,11 +14,12 @@ import {
   CreditCardOutlined, SafetyCertificateOutlined, ArrowDownOutlined, ArrowRightOutlined,
   BranchesOutlined, DollarOutlined, IdcardOutlined, CameraOutlined
 } from '@ant-design/icons'
-import { EMPLOYMENT_TYPE, WORK_MODE, WEEKLY_OFF_PATTERN, PAYROLL_GROUP } from '../../constants/enums'
+import { EMPLOYMENT_STATUS, EMPLOYMENT_TYPE, WORK_MODE, WEEKLY_OFF_PATTERN, PAYROLL_GROUP, BANK_LIST } from '../../constants/enums'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import dayjs from 'dayjs'
 import { employeeService } from '../../services/employeeService'
+import { organizationService } from '../../services/organizationService'
 import useAuthStore from '../../store/authStore'
 import { usePermission } from '../../hooks/usePermission'
 import { PERMISSIONS } from '../../constants/permissions'
@@ -37,12 +38,29 @@ const docTypeMapping = {
   Photo: { label: 'Profile Photo', enumVal: 12, strVal: 'Photo' }
 }
 
+const RELATIONSHIP_OPTIONS = [
+  { value: 'Father', label: 'Father' },
+  { value: 'Mother', label: 'Mother' },
+  { value: 'Spouse', label: 'Spouse' },
+  { value: 'Child', label: 'Child' },
+  { value: 'Sibling', label: 'Sibling' },
+  { value: 'Grandparent', label: 'Grandparent' },
+  { value: 'Other', label: 'Other' },
+]
+
+const ACCOUNT_TYPE_OPTIONS = [
+  { value: 'Savings', label: 'Savings' },
+  { value: 'Current', label: 'Current' },
+  { value: 'Salary', label: 'Salary' },
+]
+
 export default function MyProfilePage() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const { isDarkMode } = useUIStore()
   const queryClient = useQueryClient()
-  const { can, isSuperAdmin } = usePermission()
+  const { can, isSuperAdmin, isAnyRole } = usePermission()
+  const isAdminOrHrAdmin = isSuperAdmin || isAnyRole('SUPER_ADMIN', 'HR_ADMIN')
   const hasPayrollView = isSuperAdmin || can(PERMISSIONS.PAYROLL.VIEW)
   const [editing, setEditing] = useState(false)
   const [form] = Form.useForm()
@@ -138,6 +156,201 @@ export default function MyProfilePage() {
     enabled: !!id
   })
   const allEmployees = allEmpsRes?.data || []
+
+  // Edit Modals and Forms
+  const [empEditModal, setEmpEditModal] = useState(false)
+  const [profileModal, setProfileModal] = useState(false)
+  const [bankModal, setBankModal] = useState({ open: false, editing: null })
+
+  const [empForm] = Form.useForm()
+  const [profileForm] = Form.useForm()
+  const [bankForm] = Form.useForm()
+
+  const { data: deptsRes } = useQuery({ queryKey: ['departments-list'], queryFn: () => organizationService.getDepartments() })
+  const { data: desigsRes } = useQuery({ queryKey: ['designations-list'], queryFn: () => organizationService.getDesignations() })
+  const { data: locsRes } = useQuery({ queryKey: ['locations-list'], queryFn: () => organizationService.getLocations() })
+  const departmentsList = deptsRes?.data || []
+  const designationsList = desigsRes?.data || []
+  const locationsList = locsRes?.data || []
+
+  // Mutations
+  const updateEmpMutation = useMutation({
+    mutationFn: (payload) => employeeService.updateEmployee(id, payload),
+    onSuccess: (res) => {
+      if (res?.success !== false) {
+        notification.success({ message: 'Success', description: 'Employee profile updated successfully.' })
+        setEmpEditModal(false)
+        setProfileModal(false)
+        queryClient.invalidateQueries({ queryKey: ['my-profile'] })
+        queryClient.invalidateQueries({ queryKey: ['employee', id] })
+      }
+    },
+    onError: (err) => {
+      notification.error({ message: 'Update Failed', description: err.response?.data?.message || err.message || 'Error updating profile' })
+    }
+  })
+
+  const addBankMutation = useMutation({
+    mutationFn: (payload) => employeeService.addBankDetail(id, payload),
+    onSuccess: () => {
+      notification.success({ message: 'Bank Account Added', description: 'Bank account details added successfully.' })
+      setBankModal({ open: false, editing: null })
+      queryClient.invalidateQueries({ queryKey: ['employee-banks', id] })
+    },
+    onError: (err) => {
+      notification.error({ message: 'Failed to Add Bank', description: err.response?.data?.message || err.message || 'Error saving bank account' })
+    }
+  })
+
+  const updateBankMutation = useMutation({
+    mutationFn: ({ bankId, payload }) => employeeService.updateBankDetail(id, bankId, payload),
+    onSuccess: () => {
+      notification.success({ message: 'Bank Account Updated', description: 'Bank account details updated successfully.' })
+      setBankModal({ open: false, editing: null })
+      queryClient.invalidateQueries({ queryKey: ['employee-banks', id] })
+    },
+    onError: (err) => {
+      notification.error({ message: 'Failed to Update Bank', description: err.response?.data?.message || err.message || 'Error updating bank account' })
+    }
+  })
+
+  const deleteBankMutation = useMutation({
+    mutationFn: (bankId) => employeeService.deleteBankDetail(id, bankId),
+    onSuccess: () => {
+      notification.success({ message: 'Bank Detail Deleted', description: 'Bank account removed successfully.' })
+      queryClient.invalidateQueries({ queryKey: ['employee-banks', id] })
+    },
+    onError: (err) => {
+      notification.error({ message: 'Delete Failed', description: err.response?.data?.message || err.message || 'Failed to delete bank detail.' })
+    }
+  })
+
+  // Handlers for Modals
+  const openEmpEditModal = () => {
+    empForm.setFieldsValue({
+      deptId: profile.deptId,
+      designationId: profile.designationId,
+      locationId: profile.locationId,
+      employmentType: profile.employmentType,
+      employmentStatus: profile.employmentStatus,
+      workMode: profile.workMode,
+      noticePeriodDays: profile.noticePeriodDays,
+      reportingManagerId: profile.reportingManagerId,
+      l2ReportingManagerId: profile.l2ReportingManagerId,
+      joiningDate: profile.joiningDate ? dayjs(profile.joiningDate) : null,
+      confirmationDate: profile.confirmationDate ? dayjs(profile.confirmationDate) : null,
+      probationEndDate: profile.probationEndDate ? dayjs(profile.probationEndDate) : null,
+    })
+    setEmpEditModal(true)
+  }
+
+  const handleEmpSubmit = (values) => {
+    const payload = {
+      ...values,
+      joiningDate: values.joiningDate ? values.joiningDate.format('YYYY-MM-DD') : undefined,
+      confirmationDate: values.confirmationDate ? values.confirmationDate.format('YYYY-MM-DD') : undefined,
+      probationEndDate: values.probationEndDate ? values.probationEndDate.format('YYYY-MM-DD') : undefined,
+    }
+    updateEmpMutation.mutate(payload)
+  }
+
+  const openProfileModal = () => {
+    profileForm.setFieldsValue({
+      title: profile.title,
+      firstName: profile.firstName,
+      middleName: profile.middleName,
+      lastName: profile.lastName,
+      dateOfBirth: profile.dateOfBirth ? dayjs(profile.dateOfBirth) : null,
+      gender: profile.gender,
+      bloodGroup: profile.bloodGroup,
+      maritalStatus: profile.maritalStatus,
+      marriageDate: profile.marriageDate ? dayjs(profile.marriageDate) : null,
+      spouseName: profile.spouseName,
+      fatherName: profile.fatherName,
+      category: profile.category,
+      religion: profile.religion,
+      motherTongue: profile.motherTongue,
+      nationality: profile.nationality || 'Indian',
+      pwdStatus: profile.pwdStatus,
+      pwdCertificateNo: profile.pwdCertificateNo,
+      domicileState: profile.domicileState,
+      numberOfDependents: profile.numberOfDependents,
+      // Contact
+      officialEmail: profile.officialEmail,
+      personalEmail: profile.personalEmail,
+      personalPhone: profile.personalPhone,
+      officialMobile: profile.officialMobile,
+      alternateMobile: profile.alternateMobile,
+      whatsAppNumber: profile.whatsAppNumber,
+      extensionNumber: profile.extensionNumber,
+      // Emergency
+      emergencyContactName: profile.emergencyContactName,
+      emergencyContactRelation: profile.emergencyContactRelation,
+      emergencyContactPhone: profile.emergencyContactPhone,
+      alternateEmergencyContactPhone: profile.alternateEmergencyContactPhone,
+      // Address
+      permanentAddressLine1: profile.permanentAddressLine1,
+      permanentAddressLine2: profile.permanentAddressLine2,
+      permanentCity: profile.permanentCity,
+      permanentDistrict: profile.permanentDistrict,
+      permanentState: profile.permanentState,
+      permanentPincode: profile.permanentPincode,
+      sameAddressFlag: profile.sameAddressFlag,
+      currentAddressLine1: profile.currentAddressLine1,
+      currentAddressLine2: profile.currentAddressLine2,
+      currentCity: profile.currentCity,
+      currentDistrict: profile.currentDistrict,
+      currentState: profile.currentState,
+      currentPincode: profile.currentPincode,
+      // Identifiers
+      panNumber: profile.panNumber || profile.maskedPAN,
+      aadharNumber: profile.aadharNumber || profile.maskedAadhar,
+      uanNumber: profile.uanNumber,
+      esiNumber: profile.esiNumber,
+      passportNumber: profile.passportNumber,
+      passportExpiry: profile.passportExpiry ? dayjs(profile.passportExpiry) : null,
+    })
+    setProfileModal(true)
+  }
+
+  const handleProfileSubmit = (values) => {
+    const payload = {
+      ...values,
+      dateOfBirth: values.dateOfBirth ? values.dateOfBirth.format('YYYY-MM-DD') : undefined,
+      marriageDate: values.marriageDate ? values.marriageDate.format('YYYY-MM-DD') : undefined,
+      passportExpiry: values.passportExpiry ? values.passportExpiry.format('YYYY-MM-DD') : undefined,
+    }
+    updateEmpMutation.mutate(payload)
+  }
+
+  const openBankModal = (record = null) => {
+    if (record) {
+      bankForm.setFieldsValue({
+        bankName: record.bankName,
+        accountNumber: record.accountNumber || record.maskedAccountNumber,
+        ifscCode: record.ifscCode,
+        accountType: record.accountType || 'Salary',
+        isPrimary: record.isPrimary ?? true,
+      })
+      setBankModal({ open: true, editing: record })
+    } else {
+      bankForm.resetFields()
+      bankForm.setFieldsValue({ accountType: 'Salary', isPrimary: (banks || []).length === 0 })
+      setBankModal({ open: true, editing: null })
+    }
+  }
+
+  const handleBankSubmit = (values) => {
+    const payload = {
+      ...values,
+      ifscCode: values.ifscCode?.toUpperCase()
+    }
+    if (bankModal.editing) {
+      updateBankMutation.mutate({ bankId: bankModal.editing.bankDetailId, payload })
+    } else {
+      addBankMutation.mutate(payload)
+    }
+  }
 
   // Local CRUD for Education and Experience
   const [education, setEducation] = useState([])
@@ -620,6 +833,14 @@ export default function MyProfilePage() {
             </Card>
           ) : (
             <>
+              {(can(PERMISSIONS.EMPLOYEE.EDIT) || isSuperAdmin) && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button type="primary" icon={<EditOutlined />} onClick={openProfileModal}
+                    style={{ background: isDarkMode ? '#FAA71A' : '#10113F', borderColor: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', borderRadius: 8, fontWeight: 600 }}>
+                    Edit Profile Details
+                  </Button>
+                </div>
+              )}
               <Card title="Personal Information" style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
                 <Descriptions column={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} bordered size="small">
                   <Descriptions.Item label="Title">{profile.title || '—'}</Descriptions.Item>
@@ -716,6 +937,14 @@ export default function MyProfilePage() {
       label: <span><BuildOutlined /> Employment</span>,
       children: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {isAdminOrHrAdmin && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button type="primary" icon={<EditOutlined />} onClick={openEmpEditModal}
+                style={{ background: isDarkMode ? '#FAA71A' : '#10113F', borderColor: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', borderRadius: 8, fontWeight: 600 }}>
+                Edit Employment Details
+              </Button>
+            </div>
+          )}
           {/* 1. Placement Hierarchy */}
           <Card title={<span><BuildOutlined style={{ marginRight: 8 }} />Organizational Placement</span>}
             style={{ borderRadius: 12, border: 'var(--border-glass)', background: 'var(--color-card-bg)' }}>
@@ -1172,6 +1401,14 @@ export default function MyProfilePage() {
       label: <span><BankOutlined /> Bank Details</span>,
       children: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {isAdminOrHrAdmin && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => openBankModal()}
+                style={{ background: isDarkMode ? '#FAA71A' : '#10113F', borderColor: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', borderRadius: 8, fontWeight: 600 }}>
+                Add Bank Account
+              </Button>
+            </div>
+          )}
           {banks && banks.length > 0 ? (
             <Row gutter={[16, 16]}>
               {banks.map((b) => (
@@ -1192,7 +1429,17 @@ export default function MyProfilePage() {
                         <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Corporate Bank</div>
                         <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2, color: '#ffffff' }}>{b.bankName}</div>
                       </div>
-                      <span style={{ fontSize: 22, color: '#FAA71A' }}><CreditCardOutlined /></span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 20, color: '#FAA71A' }}><CreditCardOutlined /></span>
+                        {isAdminOrHrAdmin && (
+                          <>
+                            <Button size="small" type="text" icon={<EditOutlined style={{ color: '#fff' }} />} onClick={() => openBankModal(b)} />
+                            <Popconfirm title="Delete Bank Account?" description="Are you sure you want to delete this bank record?" onConfirm={() => deleteBankMutation.mutate(b.bankDetailId)} okText="Delete" cancelText="Cancel" okButtonProps={{ danger: true }}>
+                              <Button size="small" type="text" danger icon={<DeleteOutlined style={{ color: '#ff4d4f' }} />} />
+                            </Popconfirm>
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     <div style={{ zIndex: 1 }}>
@@ -1386,24 +1633,17 @@ export default function MyProfilePage() {
         title="My Profile"
         breadcrumbs={[{ label: 'Home', path: '/dashboard' }, { label: 'My Profile' }]}
         actions={
-          editing ? (
-            <Space>
-              <Button onClick={() => { setEditing(false); setLocalPhotoUrl(null) }} style={{ borderRadius: 8 }}>Cancel</Button>
-              <Button type="primary" icon={<SaveOutlined />} loading={updateMutation.isPending} onClick={handleSave}
-                style={{ borderRadius: 8, fontWeight: 600 }}>Save Changes</Button>
-            </Space>
-          ) : (
-            <Button icon={<EditOutlined />} onClick={() => {
-              setEditing(true)
-              form.setFieldsValue({
-                ...profile,
-                dateOfBirth: profile.dateOfBirth ? dayjs(profile.dateOfBirth) : undefined,
-                marriageDate: profile.marriageDate ? dayjs(profile.marriageDate) : undefined,
-              })
-            }} style={{ borderRadius: 8 }}>
-              Edit Personal Info
+          <Space>
+            {isAdminOrHrAdmin && (
+              <Button icon={<EditOutlined />} onClick={openEmpEditModal} style={{ borderRadius: 8, fontWeight: 600 }}>
+                Edit Employment Details
+              </Button>
+            )}
+            <Button type="primary" icon={<EditOutlined />} onClick={openProfileModal}
+              style={{ background: isDarkMode ? '#FAA71A' : '#10113F', borderColor: isDarkMode ? '#FAA71A' : '#10113F', color: isDarkMode ? '#10113F' : '#fff', borderRadius: 8, fontWeight: 600 }}>
+              Edit Profile
             </Button>
-          )
+          </Space>
         }
       />
 
@@ -1618,6 +1858,354 @@ export default function MyProfilePage() {
           </Form.Item>
           <Form.Item name="details" label="Roles & Responsibilities (Optional)">
             <Input.TextArea rows={4} placeholder="Describe your key achievements and core duties..." style={{ borderRadius: 8 }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ── Edit Employment Details Modal ── */}
+      <Modal title="Edit Employment Details" open={empEditModal} onCancel={() => setEmpEditModal(false)}
+        onOk={() => empForm.submit()} confirmLoading={updateEmpMutation.isPending} width={750} destroyOnClose>
+        <Form form={empForm} layout="vertical" onFinish={handleEmpSubmit}>
+          <Row gutter={[16, 8]}>
+            <Col span={12}>
+              <Form.Item name="deptId" label="Department">
+                <Select placeholder="Select Department" allowClear showSearch optionFilterProp="label"
+                  options={departmentsList.map(d => ({ value: d.deptId, label: d.deptName }))} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="designationId" label="Designation">
+                <Select placeholder="Select Designation" allowClear showSearch optionFilterProp="label"
+                  options={designationsList.map(d => ({ value: d.designationId, label: d.title }))} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="locationId" label="Location">
+                <Select placeholder="Select Location" allowClear showSearch optionFilterProp="label"
+                  options={locationsList.map(l => ({ value: l.locationId, label: l.locationName }))} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="employmentType" label="Employment Type">
+                <Select placeholder="Select Type" options={EMPLOYMENT_TYPE} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="employmentStatus" label="Employment Status">
+                <Select placeholder="Select Status" options={EMPLOYMENT_STATUS} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="workMode" label="Work Mode">
+                <Select placeholder="Select Work Mode" options={WORK_MODE} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="noticePeriodDays" label="Notice Period (Days)">
+                <InputNumber style={{ width: '100%' }} min={0} max={365} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="joiningDate" label="Joining Date">
+                <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="confirmationDate" label="Confirmation Date">
+                <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="probationEndDate" label="Probation End Date">
+                <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="reportingManagerId" label="Immediate Manager (L1)">
+                <Select placeholder="Select manager" allowClear showSearch optionFilterProp="label"
+                  options={allEmployees.filter(e => e.employeeId !== id).map(e => ({ value: e.employeeId, label: `${e.firstName} ${e.lastName} (${e.employeeCode})` }))} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="l2ReportingManagerId" label="Senior Manager (L2)">
+                <Select placeholder="Select L2 manager" allowClear showSearch optionFilterProp="label"
+                  options={allEmployees.filter(e => e.employeeId !== id).map(e => ({ value: e.employeeId, label: `${e.firstName} ${e.lastName} (${e.employeeCode})` }))} />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
+
+      {/* ── Edit Profile Details Modal ── */}
+      <Modal title="Edit Profile Details" open={profileModal} onCancel={() => setProfileModal(false)}
+        onOk={() => profileForm.submit()} confirmLoading={updateEmpMutation.isPending} width={800} destroyOnClose>
+        <Form form={profileForm} layout="vertical" onFinish={handleProfileSubmit}>
+          <Tabs defaultActiveKey="personal" items={[
+            {
+              key: 'personal',
+              label: 'Personal Info',
+              children: (
+                <Row gutter={[16, 8]}>
+                  <Col span={6}>
+                    <Form.Item name="title" label="Title">
+                      <Select placeholder="Title" options={[{ value: 'Mr', label: 'Mr' }, { value: 'Ms', label: 'Ms' }, { value: 'Mrs', label: 'Mrs' }, { value: 'Dr', label: 'Dr' }]} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={6}>
+                    <Form.Item name="firstName" label="First Name" rules={[VALIDATORS.required('First Name')]}>
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={6}>
+                    <Form.Item name="middleName" label="Middle Name">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={6}>
+                    <Form.Item name="lastName" label="Last Name" rules={[VALIDATORS.required('Last Name')]}>
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="dateOfBirth" label="Date of Birth">
+                      <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="gender" label="Gender">
+                      <Select placeholder="Select gender" options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }, { value: 'Other', label: 'Other' }]} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="bloodGroup" label="Blood Group">
+                      <Select placeholder="Select blood group" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => ({ value: b, label: b }))} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="fatherName" label="Father's Name">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="maritalStatus" label="Marital Status">
+                      <Select placeholder="Select status" options={[{ value: 'Single', label: 'Single' }, { value: 'Married', label: 'Married' }, { value: 'Divorced', label: 'Divorced' }, { value: 'Widowed', label: 'Widowed' }]} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="spouseName" label="Spouse Name">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="nationality" label="Nationality">
+                      <Input placeholder="e.g. Indian" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="motherTongue" label="Mother Tongue">
+                      <Input placeholder="e.g. Hindi" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="religion" label="Religion">
+                      <Input placeholder="e.g. Hindu" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="domicileState" label="Domicile State">
+                      <Input placeholder="e.g. Maharashtra" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="numberOfDependents" label="Dependents Count">
+                      <InputNumber style={{ width: '100%' }} min={0} max={20} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              )
+            },
+            {
+              key: 'contact',
+              label: 'Contact & Emergency',
+              children: (
+                <Row gutter={[16, 8]}>
+                  <Col span={12}>
+                    <Form.Item name="officialEmail" label="Official Email">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="personalEmail" label="Personal Email">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="personalPhone" label="Personal Phone">
+                      <Input maxLength={10} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="officialMobile" label="Official Mobile">
+                      <Input maxLength={10} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="whatsAppNumber" label="WhatsApp Number">
+                      <Input maxLength={10} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="extensionNumber" label="Extension Number">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="emergencyContactName" label="Emergency Contact Name">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="emergencyContactRelation" label="Emergency Relationship">
+                      <Select placeholder="Select relation" options={RELATIONSHIP_OPTIONS} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="emergencyContactPhone" label="Emergency Contact Phone">
+                      <Input maxLength={10} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="alternateEmergencyContactPhone" label="Alt Emergency Phone">
+                      <Input maxLength={10} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              )
+            },
+            {
+              key: 'address',
+              label: 'Address Details',
+              children: (
+                <Row gutter={[16, 8]}>
+                  <Col span={24}><strong>Permanent Address</strong></Col>
+                  <Col span={12}>
+                    <Form.Item name="permanentAddressLine1" label="Address Line 1">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="permanentAddressLine2" label="Address Line 2">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="permanentCity" label="City">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="permanentState" label="State">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="permanentPincode" label="Pincode">
+                      <Input maxLength={6} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={24}><strong>Current Address</strong></Col>
+                  <Col span={12}>
+                    <Form.Item name="currentAddressLine1" label="Address Line 1">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="currentAddressLine2" label="Address Line 2">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="currentCity" label="City">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="currentState" label="State">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="currentPincode" label="Pincode">
+                      <Input maxLength={6} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              )
+            },
+            {
+              key: 'identity',
+              label: 'Government IDs',
+              children: (
+                <Row gutter={[16, 8]}>
+                  <Col span={12}>
+                    <Form.Item name="panNumber" label="PAN Card Number">
+                      <Input maxLength={10} style={{ textTransform: 'uppercase' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="aadharNumber" label="Aadhaar Card Number">
+                      <Input maxLength={12} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="uanNumber" label="UAN Number">
+                      <Input maxLength={12} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="esiNumber" label="ESI Number">
+                      <Input maxLength={17} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="passportNumber" label="Passport Number">
+                      <Input />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="passportExpiry" label="Passport Expiry">
+                      <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              )
+            }
+          ]} />
+        </Form>
+      </Modal>
+
+      {/* ── Add / Edit Bank Account Modal ── */}
+      <Modal
+        title={bankModal.editing ? "Edit Bank Account" : "Add Bank Account"}
+        open={bankModal.open}
+        onCancel={() => setBankModal({ open: false, editing: null })}
+        onOk={() => bankForm.submit()}
+        confirmLoading={addBankMutation.isPending || updateBankMutation.isPending}
+        destroyOnClose
+      >
+        <Form form={bankForm} layout="vertical" onFinish={handleBankSubmit}>
+          <Form.Item name="bankName" label="Bank Name" rules={[VALIDATORS.required('Bank Name')]}>
+            <Select placeholder="Select Bank Name" showSearch optionFilterProp="label"
+              options={(BANK_LIST || ['State Bank of India', 'HDFC Bank', 'ICICI Bank', 'Axis Bank', 'Punjab National Bank', 'Bank of Baroda']).map(b => ({ value: b, label: b }))} />
+          </Form.Item>
+          <Form.Item name="accountNumber" label="Account Number" rules={[VALIDATORS.required('Account Number')]}>
+            <Input maxLength={18} placeholder="Enter full bank account number" style={{ borderRadius: 8 }} />
+          </Form.Item>
+          <Form.Item name="ifscCode" label="IFSC Code" rules={[VALIDATORS.required('IFSC Code'), VALIDATORS.ifscCode]}>
+            <Input maxLength={11} placeholder="e.g. SBIN0004321" style={{ borderRadius: 8, textTransform: 'uppercase' }} />
+          </Form.Item>
+          <Form.Item name="accountType" label="Account Type" rules={[VALIDATORS.required('Account Type')]}>
+            <Select options={ACCOUNT_TYPE_OPTIONS} />
           </Form.Item>
         </Form>
       </Modal>

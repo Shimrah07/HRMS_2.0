@@ -335,9 +335,9 @@ public class UpdateEmployeeRequest
     public DateOnly? PassportExpiry { get; set; }
     public string? NPSPRANNumber { get; set; }
     public string? PreviousEmployerPFNumber { get; set; }
-    public Guid DeptId { get; set; }
-    public Guid DesignationId { get; set; }
-    public Guid LocationId { get; set; }
+    public Guid? DeptId { get; set; }
+    public Guid? DesignationId { get; set; }
+    public Guid? LocationId { get; set; }
     public Guid? CostCenterId { get; set; }
     public Guid? ReportingManagerId { get; set; }
     public Guid? L2ReportingManagerId { get; set; }

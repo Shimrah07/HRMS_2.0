@@ -89,11 +89,96 @@ public enum LeaveStatus
 public enum PayrollStatus
 {
     Draft,
-    Processing,
-    PendingApproval,
+    InputsLocked,
+    Calculated,
+    UnderReview,
     Approved,
+    Locked,
     Disbursed,
-    Cancelled
+    Closed,
+    OnHold,
+    Rejected
+}
+
+public enum PayrollRunType
+{
+    Regular,
+    Supplementary,
+    Arrears,
+    FullAndFinal,
+    Bonus,
+    MidMonthAdvance
+}
+
+public enum ProofStatus
+{
+    Pending,
+    Submitted,
+    Verified,
+    Rejected
+}
+
+public enum DisbursementStatus
+{
+    Pending,
+    Success,
+    Failed,
+    OnHold,
+    Reprocessing
+}
+
+public enum PayrollDocumentType
+{
+    Payslip,
+    Form16,
+    Form16A,
+    Form24Q,
+    SalaryCertificate,
+    CTCBreakupLetter,
+    PFECR,
+    ESIReturn,
+    BankFile,
+    GLExport
+}
+
+public enum StatutoryDeductionType
+{
+    PF,
+    ESI,
+    PT,
+    LWF,
+    NPS,
+    VPF,
+    TDS,
+    Gratuity
+}
+
+public enum LopDivisorPolicy
+{
+    ActualDays,
+    Fixed30
+}
+
+public enum SectorType
+{
+    Manufacturing,
+    IT,
+    Retail,
+    Healthcare,
+    Construction,
+    Transport,
+    Education,
+    Government,
+    General
+}
+
+public enum PaymentMode
+{
+    NEFT,
+    RTGS,
+    IMPS,
+    Cash,
+    Cheque
 }
 
 public enum AttendanceStatus
@@ -117,6 +202,12 @@ public enum AttendanceSource
     Manual,
     WebApp,
     SystemGenerated
+}
+
+public enum PunchType
+{
+    In,
+    Out
 }
 
 public enum CompOffStatus

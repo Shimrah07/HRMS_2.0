@@ -14,6 +14,280 @@ public static class DatabaseSeeder
 {
     public static async Task SeedAsync(AppDbContext context, IEncryptionService encryption)
     {
+        try
+        {
+            await context.Database.ExecuteSqlRawAsync(@"
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'EmployeeSalaryStructures')
+                BEGIN
+                    CREATE TABLE EmployeeSalaryStructures (
+                        StructureId UNIQUEIDENTIFIER PRIMARY KEY,
+                        EmployeeId UNIQUEIDENTIFIER NOT NULL,
+                        AnnualCTC DECIMAL(14,2) NOT NULL,
+                        EffectiveFrom DATE NOT NULL,
+                        EffectiveTo DATE NULL,
+                        IsActive BIT NOT NULL DEFAULT 1,
+                        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                        UpdatedAt DATETIME2 NULL,
+                        CreatedBy UNIQUEIDENTIFIER NULL,
+                        UpdatedBy UNIQUEIDENTIFIER NULL
+                    );
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'EmployeeSalaryComponentAllocations')
+                BEGIN
+                    CREATE TABLE EmployeeSalaryComponentAllocations (
+                        AllocationId UNIQUEIDENTIFIER PRIMARY KEY,
+                        StructureId UNIQUEIDENTIFIER NOT NULL,
+                        ComponentId UNIQUEIDENTIFIER NOT NULL,
+                        [Group] INT NOT NULL,
+                        InputMode INT NOT NULL DEFAULT 1,
+                        Percentage DECIMAL(6,2) NULL,
+                        AnnualAmount DECIMAL(14,2) NOT NULL,
+                        MonthlyAmount DECIMAL(12,2) NOT NULL,
+                        IsBalancingComponent BIT NOT NULL DEFAULT 0,
+                        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                        UpdatedAt DATETIME2 NULL,
+                        CreatedBy UNIQUEIDENTIFIER NULL,
+                        UpdatedBy UNIQUEIDENTIFIER NULL
+                    );
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SalaryComponents') AND name = 'Group')
+                BEGIN
+                    ALTER TABLE SalaryComponents ADD [Group] INT NOT NULL DEFAULT 1;
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SalaryComponents') AND name = 'CalculationBasis')
+                BEGIN
+                    ALTER TABLE SalaryComponents ADD CalculationBasis INT NOT NULL DEFAULT 1;
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SalaryComponents') AND name = 'DefaultPercentage')
+                BEGIN
+                    ALTER TABLE SalaryComponents ADD DefaultPercentage DECIMAL(6,2) NULL;
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SalaryComponents') AND name = 'ApplicableTo')
+                BEGIN
+                    ALTER TABLE SalaryComponents ADD ApplicableTo INT NOT NULL DEFAULT 3;
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SalaryComponents') AND name = 'IsBalancingComponent')
+                BEGIN
+                    ALTER TABLE SalaryComponents ADD IsBalancingComponent BIT NOT NULL DEFAULT 0;
+                END;
+            ");
+        }
+        catch { }
+
+        // ─── DDL: New payroll tables (Module 5 advancement) ───────────────────
+        try
+        {
+            await context.Database.ExecuteSqlRawAsync(@"
+                -- PayrollAuditLog
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'PayrollAuditLogs')
+                BEGIN
+                    CREATE TABLE PayrollAuditLogs (
+                        AuditId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                        PayrollRunId UNIQUEIDENTIFIER NULL,
+                        Action NVARCHAR(200) NOT NULL,
+                        Details NVARCHAR(MAX) NULL,
+                        PerformedBy UNIQUEIDENTIFIER NOT NULL,
+                        PerformedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+                    );
+                END;
+
+                -- StatutoryDeductionConfigs
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'StatutoryDeductionConfigs')
+                BEGIN
+                    CREATE TABLE StatutoryDeductionConfigs (
+                        ConfigId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                        CompanyId UNIQUEIDENTIFIER NOT NULL,
+                        WorkState NVARCHAR(5) NOT NULL DEFAULT 'MH',
+                        PFApplicable BIT NOT NULL DEFAULT 1,
+                        PFHigherBasis BIT NOT NULL DEFAULT 0,
+                        PFWageCeiling DECIMAL(10,2) NOT NULL DEFAULT 15000,
+                        ESIApplicable BIT NOT NULL DEFAULT 1,
+                        ESIGrossLimit DECIMAL(10,2) NOT NULL DEFAULT 21000,
+                        PTApplicable BIT NOT NULL DEFAULT 1,
+                        LWFApplicable BIT NOT NULL DEFAULT 0,
+                        LWFEmployeeAmount DECIMAL(10,2) NOT NULL DEFAULT 0,
+                        LWFEmployerAmount DECIMAL(10,2) NOT NULL DEFAULT 0,
+                        LopDivisor INT NOT NULL DEFAULT 1,
+                        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                        UpdatedAt DATETIME2 NULL,
+                        CreatedBy UNIQUEIDENTIFIER NULL,
+                        UpdatedBy UNIQUEIDENTIFIER NULL
+                    );
+                END;
+
+                -- ProfessionalTaxSlabs
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ProfessionalTaxSlabs')
+                BEGIN
+                    CREATE TABLE ProfessionalTaxSlabs (
+                        SlabId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                        CompanyId UNIQUEIDENTIFIER NOT NULL,
+                        StateCode NVARCHAR(5) NOT NULL DEFAULT 'MH',
+                        FromAmount DECIMAL(10,2) NOT NULL,
+                        ToAmount DECIMAL(10,2) NULL,
+                        MonthlyPTAmount DECIMAL(8,2) NOT NULL DEFAULT 0,
+                        FebruaryOverride DECIMAL(8,2) NULL
+                    );
+                END;
+
+                -- InvestmentDeclarations
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'InvestmentDeclarations')
+                BEGIN
+                    CREATE TABLE InvestmentDeclarations (
+                        DeclarationId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                        EmployeeId UNIQUEIDENTIFIER NOT NULL,
+                        FinancialYear NVARCHAR(10) NOT NULL,
+                        TaxRegime INT NOT NULL DEFAULT 0,
+                        Section80C DECIMAL(12,2) NOT NULL DEFAULT 0,
+                        Section80D DECIMAL(10,2) NOT NULL DEFAULT 0,
+                        Section80E DECIMAL(10,2) NOT NULL DEFAULT 0,
+                        Section80G DECIMAL(10,2) NOT NULL DEFAULT 0,
+                        HraRentedHouse BIT NOT NULL DEFAULT 0,
+                        HraClaimAmount DECIMAL(12,2) NOT NULL DEFAULT 0,
+                        LandlordName NVARCHAR(100) NULL,
+                        RentedCity NVARCHAR(100) NULL,
+                        IsMetroCity BIT NOT NULL DEFAULT 0,
+                        HomeLoanInterest DECIMAL(12,2) NOT NULL DEFAULT 0,
+                        PreviousEmployerIncome DECIMAL(12,2) NOT NULL DEFAULT 0,
+                        PreviousEmployerTds DECIMAL(12,2) NOT NULL DEFAULT 0,
+                        ProofStatus INT NOT NULL DEFAULT 0,
+                        ProofSubmittedAt DATETIME2 NULL,
+                        VerifiedBy UNIQUEIDENTIFIER NULL,
+                        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                        UpdatedAt DATETIME2 NULL,
+                        CreatedBy UNIQUEIDENTIFIER NULL,
+                        UpdatedBy UNIQUEIDENTIFIER NULL
+                    );
+                END;
+
+                -- BankDisbursementRecords
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'BankDisbursementRecords')
+                BEGIN
+                    CREATE TABLE BankDisbursementRecords (
+                        DisbursementId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                        PayrollRunId UNIQUEIDENTIFIER NOT NULL,
+                        EmployeeId UNIQUEIDENTIFIER NOT NULL,
+                        BankAccountNo NVARCHAR(30) NOT NULL,
+                        IfscCode NVARCHAR(15) NOT NULL,
+                        BankName NVARCHAR(100) NOT NULL,
+                        Amount DECIMAL(12,2) NOT NULL,
+                        PaymentMode INT NOT NULL DEFAULT 0,
+                        Status INT NOT NULL DEFAULT 0,
+                        TxnRefNo NVARCHAR(80) NULL,
+                        CreditedAt DATETIME2 NULL,
+                        FailureReason NVARCHAR(500) NULL,
+                        IsOnHold BIT NOT NULL DEFAULT 0,
+                        HoldReason NVARCHAR(500) NULL,
+                        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                        UpdatedAt DATETIME2 NULL,
+                        CreatedBy UNIQUEIDENTIFIER NULL,
+                        UpdatedBy UNIQUEIDENTIFIER NULL
+                    );
+                END;
+
+                -- PayrollDocuments
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'PayrollDocuments')
+                BEGIN
+                    CREATE TABLE PayrollDocuments (
+                        DocumentId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                        EmployeeId UNIQUEIDENTIFIER NOT NULL,
+                        CompanyId UNIQUEIDENTIFIER NULL,
+                        DocumentType INT NOT NULL,
+                        Period NVARCHAR(20) NOT NULL,
+                        FilePath NVARCHAR(1000) NULL,
+                        FileName NVARCHAR(200) NULL,
+                        FileSizeBytes BIGINT NULL,
+                        GeneratedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                        IsDelivered BIT NOT NULL DEFAULT 0,
+                        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                        UpdatedAt DATETIME2 NULL,
+                        CreatedBy UNIQUEIDENTIFIER NULL,
+                        UpdatedBy UNIQUEIDENTIFIER NULL
+                    );
+                END;
+
+                -- SectorPayrollConfigs
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SectorPayrollConfigs')
+                BEGIN
+                    CREATE TABLE SectorPayrollConfigs (
+                        ConfigId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                        CompanyId UNIQUEIDENTIFIER NOT NULL,
+                        Sector INT NOT NULL DEFAULT 0,
+                        OvertimeEnabled BIT NOT NULL DEFAULT 0,
+                        OvertimeMultiplier DECIMAL(4,2) NOT NULL DEFAULT 2.0,
+                        PieceRateEnabled BIT NOT NULL DEFAULT 0,
+                        IncentivePayout BIT NOT NULL DEFAULT 0,
+                        ESOPEnabled BIT NOT NULL DEFAULT 0,
+                        OnCallAllowanceEnabled BIT NOT NULL DEFAULT 0,
+                        TripBasedPayEnabled BIT NOT NULL DEFAULT 0,
+                        PayMonths INT NOT NULL DEFAULT 12,
+                        CustomConfigJson NVARCHAR(MAX) NULL,
+                        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                        UpdatedAt DATETIME2 NULL,
+                        CreatedBy UNIQUEIDENTIFIER NULL,
+                        UpdatedBy UNIQUEIDENTIFIER NULL
+                    );
+                END;
+
+                -- VariablePayInputs
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'VariablePayInputs')
+                BEGIN
+                    CREATE TABLE VariablePayInputs (
+                        InputId UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                        PayrollRunId UNIQUEIDENTIFIER NOT NULL,
+                        EmployeeId UNIQUEIDENTIFIER NOT NULL,
+                        InputType NVARCHAR(50) NOT NULL,
+                        Amount DECIMAL(12,2) NOT NULL,
+                        Remarks NVARCHAR(500) NULL,
+                        SubmittedBy UNIQUEIDENTIFIER NOT NULL,
+                        IsApproved BIT NOT NULL DEFAULT 0,
+                        ApprovedBy UNIQUEIDENTIFIER NULL,
+                        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                        UpdatedAt DATETIME2 NULL,
+                        CreatedBy UNIQUEIDENTIFIER NULL,
+                        UpdatedBy UNIQUEIDENTIFIER NULL
+                    );
+                END;
+
+                -- Extend PayrollRuns table with new columns
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('PayrollRuns') AND name = 'RunType')
+                BEGIN
+                    ALTER TABLE PayrollRuns ADD RunType INT NOT NULL DEFAULT 0;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('PayrollRuns') AND name = 'LockedAt')
+                BEGIN
+                    ALTER TABLE PayrollRuns ADD LockedAt DATETIME2 NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('PayrollRuns') AND name = 'LockedBy')
+                BEGIN
+                    ALTER TABLE PayrollRuns ADD LockedBy UNIQUEIDENTIFIER NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('PayrollRuns') AND name = 'TotalCTC')
+                BEGIN
+                    ALTER TABLE PayrollRuns ADD TotalCTC DECIMAL(16,2) NOT NULL DEFAULT 0;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('PayrollRuns') AND name = 'Notes')
+                BEGIN
+                    ALTER TABLE PayrollRuns ADD Notes NVARCHAR(MAX) NULL;
+                END;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('PayrollRuns') AND name = 'AttendanceFrozen')
+                BEGIN
+                    ALTER TABLE PayrollRuns ADD AttendanceFrozen BIT NOT NULL DEFAULT 0;
+                END;
+            ");
+        }
+        catch { }
+
+        if (await context.Companies.AnyAsync())
+        {
+            return;
+        }
+
         // 1. Ensure Company exists
         var company = await context.Companies.FirstOrDefaultAsync();
         if (company == null)

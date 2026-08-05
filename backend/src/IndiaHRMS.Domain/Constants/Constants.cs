@@ -40,6 +40,7 @@ public static class PermissionCodes
         public const string Export = "PAYROLL.EXPORT";
         public const string Generate = "PAYROLL.GENERATE";
         public const string Configure = "PAYROLL.CONFIGURE";
+        public const string Disburse = "PAYROLL.DISBURSE";
     }
 
     public static class Recruitment

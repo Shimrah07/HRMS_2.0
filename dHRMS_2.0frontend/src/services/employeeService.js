@@ -99,6 +99,11 @@ export const employeeService = {
     return data
   },
 
+  updateBankDetail: async (id, bankId, payload) => {
+    const { data } = await apiClient.put(API.EMPLOYEES.BANK_DETAIL(id, bankId), payload)
+    return data
+  },
+
   deleteBankDetail: async (id, bankId) => {
     const { data } = await apiClient.delete(API.EMPLOYEES.BANK_DETAIL(id, bankId))
     return data

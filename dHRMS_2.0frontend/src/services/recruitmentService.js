@@ -346,5 +346,13 @@ export const recruitmentService = {
   applyImport: async (payload) => {
     const { data } = await apiClient.post('/recruitment/import/apply', payload)
     return data
+  },
+  blacklistCandidate: async (id, payload) => {
+    const { data } = await apiClient.post(`/candidates/${id}/blacklist`, payload)
+    return data
+  },
+  unblacklistCandidate: async (id) => {
+    const { data } = await apiClient.post(`/candidates/${id}/unblacklist`)
+    return data
   }
 }

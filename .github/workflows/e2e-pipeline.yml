@@ -1,0 +1,57 @@
+name: HRMS End-to-End Automation Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          SA_PASSWORD: Password123!
+          ACCEPT_EULA: "Y"
+        ports:
+          - 1433:1433
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Node Dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Build & Run Backend Server
+        run: |
+          dotnet build backend/src/IndiaHRMS.API/IndiaHRMS.API.csproj
+          dotnet run --project backend/src/IndiaHRMS.API/IndiaHRMS.API.csproj &
+          sleep 10
+
+      - name: Execute Playwright Automation Test Suite
+        run: npx playwright test --project=api
+
+      - name: Upload Test Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

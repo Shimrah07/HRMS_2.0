@@ -280,6 +280,9 @@ public class CandidateDto
     public string? Skills { get; set; }
     public string? Languages { get; set; }
 
+    public bool IsBlacklisted { get; set; }
+    public string? BlacklistReason { get; set; }
+
     // Latest application enrichment (populated by GetCandidates)
     public string? LatestJobTitle { get; set; }
     public string? LatestDepartmentName { get; set; }
@@ -422,6 +425,8 @@ public class JobApplicationDto
     public string Status { get; set; } = "Active";
     public Guid? EmployeeId { get; set; }
     public string? Source { get; set; }
+    public bool IsBlacklisted { get; set; }
+    public string? BlacklistReason { get; set; }
     public CandidateDto? Candidate { get; set; }
 }
 
@@ -631,6 +636,15 @@ public class OfferLetterDto
     public OfferStatus Status { get; set; }
     public string? LetterFilePath { get; set; }
     public DateTime? AcceptedAt { get; set; }
+    // Sprint 3.4 — CTC breakdown (populated from OfferCtcBreakups table)
+    public decimal? Basic { get; set; }
+    public decimal? HRA { get; set; }
+    public decimal? SpecialAllowance { get; set; }
+    public decimal? PFEmployer { get; set; }
+    public decimal? Gratuity { get; set; }
+    public decimal? Insurance { get; set; }
+    public decimal? GrossMonthly { get; set; }
+    public decimal? AnnualCTC { get; set; }
 }
 
 public class CreateOfferRequest

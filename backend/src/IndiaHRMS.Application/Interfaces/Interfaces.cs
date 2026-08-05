@@ -1,6 +1,12 @@
 using IndiaHRMS.Domain.Entities;
 using IndiaHRMS.Shared;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace IndiaHRMS.Application.Interfaces;
 
@@ -139,9 +145,17 @@ public interface INotificationService
     Task SendToCompanyAsync(Guid companyId, string title, string message, Domain.Enums.NotificationType type);
 }
 
+public interface IReportingScopeService
+{
+    Task<List<Guid>> GetDirectReportIdsAsync(Guid managerId, CancellationToken ct = default);
+    Task<bool> IsDirectReportAsync(Guid managerId, Guid employeeId, CancellationToken ct = default);
+}
+
+
 public interface IPdfGenerationService
 {
     Task<byte[]> GenerateSalarySlipAsync(Guid payrollDetailId, CancellationToken ct = default);
+    Task<byte[]> GenerateSalarySlipByEmployeeAndMonthAsync(Guid employeeId, int year, int month, CancellationToken ct = default);
     Task<byte[]> GenerateForm16Async(Guid employeeId, string financialYear, CancellationToken ct = default);
     Task<byte[]> GenerateOfferLetterAsync(Guid offerId, CancellationToken ct = default);
     Task<byte[]> GenerateExperienceLetterAsync(Guid separationId, CancellationToken ct = default);

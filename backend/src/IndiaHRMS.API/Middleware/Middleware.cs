@@ -1,5 +1,6 @@
 using IndiaHRMS.Shared;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Text.Json;
 using System.Linq;
@@ -130,7 +131,7 @@ public class AuditMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, IndiaHRMS.Infrastructure.Data.AppDbContext dbContext)
+    public async Task InvokeAsync(HttpContext context)
     {
         await _next(context);
 
@@ -143,8 +144,11 @@ public class AuditMiddleware
                 var userIdClaim = context.User.FindFirst("uid")?.Value;
                 if (Guid.TryParse(userIdClaim, out var userId))
                 {
+                    using var scope = context.RequestServices.CreateScope();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<IndiaHRMS.Infrastructure.Data.AppDbContext>();
+
                     // Verify that the user exists in the database to prevent foreign key violations
-                    var userExists = dbContext.Users.Any(u => u.UserId == userId);
+                    var userExists = await dbContext.Users.AnyAsync(u => u.UserId == userId);
                     if (userExists)
                     {
                         var auditLog = new Domain.Entities.AuditLog
