@@ -310,9 +310,21 @@ export default function LeaveApplicationsTab() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="dateRange" label="Date Range" rules={[{ required: true, message: 'Required' }]}>
-                <DatePicker.RangePicker style={{ width: '100%' }} onChange={handleDateChange} />
+              <Form.Item name="dateRange" label="Date Range (Enforces LWD Boundaries)" rules={[{ required: true, message: 'Required' }]}>
+                <DatePicker.RangePicker
+                  style={{ width: '100%' }}
+                  onChange={handleDateChange}
+                  disabledDate={(current) => {
+                    // Check if employee has an active LWD set
+                    const exitLwd = localStorage.getItem('user_confirmed_lwd')
+                    if (exitLwd && current && current.isAfter(dayjs(exitLwd), 'day')) {
+                      return true
+                    }
+                    return false
+                  }}
+                />
               </Form.Item>
+
             </Col>
           </Row>
 

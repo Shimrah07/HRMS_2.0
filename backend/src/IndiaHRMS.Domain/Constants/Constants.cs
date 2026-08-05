@@ -52,14 +52,6 @@ public static class PermissionCodes
         public const string Export = "RECRUITMENT.EXPORT";
     }
 
-    public static class Performance
-    {
-        public const string View = "PERFORMANCE.VIEW";
-        public const string Create = "PERFORMANCE.CREATE";
-        public const string Edit = "PERFORMANCE.EDIT";
-        public const string Approve = "PERFORMANCE.APPROVE";
-        public const string Export = "PERFORMANCE.EXPORT";
-    }
 
     public static class Training
     {
@@ -121,6 +113,16 @@ public static class PermissionCodes
         public const string View = "AUDIT.VIEW";
         public const string Export = "AUDIT.EXPORT";
     }
+
+    public static class Travel
+    {
+        public const string View = "TRAVEL.VIEW";
+        public const string Create = "TRAVEL.CREATE";
+        public const string Approve = "TRAVEL.APPROVE";
+        public const string Disburse = "TRAVEL.DISBURSE";
+        public const string Configure = "TRAVEL.CONFIGURE";
+    }
+
 
     public static class Security
     {

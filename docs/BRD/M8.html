@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRMS - Module 8: Travel & Expense Management</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(17,153,142,0.4);
+            z-index: 9999;
+            transition: all 0.3s;
+        }
+        .print-btn:hover { transform: translateY(-2px); }
+
+        .container { max-width: 1300px; margin: 0 auto; padding: 20px; }
+
+        /* Cover */
+        .cover {
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: white;
+            padding: 60px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .cover::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(17,153,142,0.15) 0%, transparent 70%);
+        }
+        .cover h1 { font-size: 42px; font-weight: 800; background: linear-gradient(90deg,#38ef7d,#11998e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; position: relative; }
+        .cover p { color: #a0aec0; font-size: 18px; margin-top: 10px; position: relative; }
+        .cover-badges { display: flex; justify-content: center; gap: 12px; margin-top: 25px; flex-wrap: wrap; position: relative; }
+        .cover-badge { background: rgba(255,255,255,0.1); padding: 8px 18px; border-radius: 30px; font-size: 12px; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* Section */
+        .section { background: white; border-radius: 16px; margin-bottom: 25px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .section-header { padding: 22px 30px; color: white; display: flex; align-items: center; gap: 15px; }
+        .section-header h2 { font-size: 21px; font-weight: 700; }
+        .section-header p { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+        .section-body { padding: 25px 30px; }
+
+        /* Gradients */
+        .g-green  { background: linear-gradient(135deg,#11998e,#38ef7d); }
+        .g-blue   { background: linear-gradient(135deg,#667eea,#764ba2); }
+        .g-orange { background: linear-gradient(135deg,#f7971e,#ffd200); }
+        .g-red    { background: linear-gradient(135deg,#ff416c,#ff4b2b); }
+        .g-purple { background: linear-gradient(135deg,#4776e6,#8e54e9); }
+        .g-teal   { background: linear-gradient(135deg,#0f2027,#203a43,#2c5364); }
+        .g-pink   { background: linear-gradient(135deg,#ee0979,#ff6a00); }
+        .g-dark   { background: linear-gradient(135deg,#2c3e50,#3498db); }
+        .g-maroon { background: linear-gradient(135deg,#8e0e00,#1f1c18); }
+        .g-lime   { background: linear-gradient(135deg,#56ab2f,#a8e063); }
+        .g-cyan   { background: linear-gradient(135deg,#00b4db,#0083b0); }
+
+        /* Stats */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 12px; margin: 15px 0; }
+        .stat-box { background: white; border-radius: 10px; padding: 15px; text-align: center; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stat-box .num { font-size: 28px; font-weight: 800; background: linear-gradient(135deg,#11998e,#38ef7d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-box .lbl { font-size: 11px; color: #718096; margin-top: 3px; }
+
+        /* Field Table */
+        .field-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 15px 0; }
+        .field-table th { background: #f7fafc; padding: 10px 12px; text-align: left; font-weight: 700; color: #2d3748; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+        .field-table td { padding: 9px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+        .field-table tr:nth-child(even) { background: #fafafa; }
+        .field-table tr:hover { background: #f0fff4; }
+
+        /* Badges */
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+        .b-required    { background: #fed7d7; color: #c53030; }
+        .b-optional    { background: #c6f6d5; color: #276749; }
+        .b-conditional { background: #feebc8; color: #c05621; }
+        .b-text        { background: #e9d8fd; color: #553c9a; }
+        .b-number      { background: #bee3f8; color: #2b6cb0; }
+        .b-date        { background: #fefcbf; color: #744210; }
+        .b-dropdown    { background: #fed7e2; color: #97266d; }
+        .b-file        { background: #c6f6d5; color: #22543d; }
+        .b-radio       { background: #e9d8fd; color: #44337a; }
+        .b-checkbox    { background: #b2f5ea; color: #234e52; }
+        .b-email       { background: #bee3f8; color: #1a365d; }
+        .b-mobile      { background: #feebc8; color: #7b341e; }
+        .b-textarea    { background: #e2e8f0; color: #4a5568; }
+        .b-readonly    { background: #e2e8f0; color: #4a5568; }
+        .b-auto        { background: #c6f6d5; color: #1c4532; }
+        .b-rich        { background: #fef3c7; color: #92400e; }
+        .b-critical    { background: #fc8181; color: #7b0000; }
+        .b-high        { background: #f6ad55; color: #7b341e; }
+        .b-medium      { background: #76e4f7; color: #065666; }
+        .b-low         { background: #9ae6b4; color: #1c4532; }
+        .b-toggle      { background: #d6bcfa; color: #44337a; }
+        .b-rating      { background: #fbd38d; color: #7b341e; }
+
+        /* Form Preview */
+        .form-preview { background: #f8fafc; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; }
+        .form-row { display: grid; gap: 15px; margin-bottom: 15px; }
+        .form-row.col-1 { grid-template-columns: 1fr; }
+        .form-row.col-2 { grid-template-columns: 1fr 1fr; }
+        .form-row.col-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .form-row.col-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        .form-field { display: flex; flex-direction: column; gap: 4px; }
+        .form-field label { font-size: 11px; font-weight: 700; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-field label .req { color: #e53e3e; }
+        .form-field input, .form-field select, .form-field textarea {
+            padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+            font-size: 13px; color: #2d3748; background: white;
+        }
+        .form-field textarea { resize: vertical; min-height: 80px; }
+        .form-field .hint { font-size: 10px; color: #a0aec0; }
+        .form-field .error-msg { font-size: 10px; color: #e53e3e; }
+        .form-section-title {
+            font-size: 13px; font-weight: 800; color: #11998e;
+            padding: 8px 12px; background: linear-gradient(135deg,#e6fffa,#c6f6d5);
+            border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #11998e;
+        }
+
+        /* Flow */
+        .flow-container { overflow-x: auto; padding: 10px 0; }
+        .flow-steps { display: flex; align-items: flex-start; gap: 0; min-width: max-content; }
+        .flow-step {
+            background: white; border: 2px solid #11998e; border-radius: 10px;
+            padding: 12px 14px; text-align: center; min-width: 130px;
+        }
+        .flow-step .step-num {
+            background: #11998e; color: white; width: 22px; height: 22px;
+            border-radius: 50%; font-size: 11px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; margin: 0 auto 6px;
+        }
+        .flow-step .step-title { font-size: 11px; font-weight: 700; color: #2d3748; }
+        .flow-step .step-role  { font-size: 9px; color: #11998e; font-weight: 600; margin-top: 2px; }
+        .flow-step .step-desc  { font-size: 10px; color: #718096; margin-top: 3px; }
+        .flow-arrow { color: #11998e; font-size: 22px; padding: 0 4px; margin-top: 22px; }
+        .flow-step.decision { border-color: #ed8936; background: #fffaf0; }
+        .flow-step.decision .step-num { background: #ed8936; }
+        .flow-step.decision .step-role { color: #ed8936; }
+        .flow-step.success  { border-color: #48bb78; background: #f0fff4; }
+        .flow-step.success  .step-num { background: #48bb78; }
+        .flow-step.error    { border-color: #e53e3e; background: #fff5f5; }
+        .flow-step.error    .step-num { background: #e53e3e; }
+        .flow-step.rejected { border-color: #718096; background: #f7fafc; }
+        .flow-step.rejected .step-num { background: #718096; }
+
+        /* Info / Warning / Validation boxes */
+        .info-box    { background: #e6fffa; border: 1px solid #81e6d9; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .info-box h4 { color: #234e52; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .info-box p, .info-box li { font-size: 12px; color: #234e52; }
+        .info-box ul { padding-left: 16px; }
+
+        .warning-box    { background: #fffbeb; border: 1px solid #f6e05e; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .warning-box h4 { color: #b7791f; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .warning-box p, .warning-box li { font-size: 12px; color: #7b341e; }
+        .warning-box ul { padding-left: 16px; }
+
+        .validation-box    { background: #fff5f5; border: 1px solid #fed7d7; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .validation-box h4 { color: #c53030; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .validation-box li  { font-size: 12px; color: #742a2a; padding: 2px 0; }
+        .validation-box ul  { padding-left: 16px; }
+
+        .success-box    { background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .success-box h4 { color: #276749; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .success-box li  { font-size: 12px; color: #1c4532; padding: 2px 0; }
+        .success-box ul  { padding-left: 16px; }
+
+        /* RBAC */
+        .rbac-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 15px 0; }
+        .rbac-table th { background: #2d3748; color: white; padding: 10px 10px; text-align: center; font-size: 11px; }
+        .rbac-table td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 11px; }
+        .rbac-table tr:nth-child(even) { background: #f7fafc; }
+        .rbac-table .field-name { text-align: left; font-weight: 600; color: #2d3748; font-size: 12px; }
+        .can       { color: #276749; font-size: 15px; }
+        .cannot    { color: #c53030; font-size: 15px; }
+        .view-only { color: #2b6cb0; font-size: 13px; font-weight: 700; }
+        .masked    { color: #b7791f; font-size: 10px; font-weight: 700; }
+
+        /* Kanban Board */
+        .kanban { display: flex; gap: 12px; overflow-x: auto; padding: 10px 0; }
+        .kanban-col {
+            min-width: 160px; background: #f8fafc; border-radius: 12px;
+            padding: 12px; border: 1px solid #e2e8f0; flex-shrink: 0;
+        }
+        .kanban-col-title { font-size: 12px; font-weight: 700; color: white; padding: 6px 12px; border-radius: 8px; text-align: center; margin-bottom: 10px; }
+        .kanban-card { background: white; border-radius: 8px; padding: 10px; margin-bottom: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); font-size: 11px; border-left: 3px solid; }
+        .kanban-card .kc-title { font-weight: 700; color: #2d3748; margin-bottom: 3px; }
+        .kanban-card .kc-meta { color: #718096; font-size: 10px; }
+
+        /* Pipeline Stage */
+        .pipeline { display: flex; gap: 0; margin: 15px 0; overflow-x: auto; }
+        .pipe-stage {
+            flex: 1; min-width: 100px; text-align: center; padding: 12px 8px;
+            position: relative; background: #f8fafc;
+            border-top: 3px solid #e2e8f0; border-bottom: 3px solid #e2e8f0;
+        }
+        .pipe-stage:first-child { border-radius: 10px 0 0 10px; border-left: 3px solid #e2e8f0; }
+        .pipe-stage:last-child  { border-radius: 0 10px 10px 0; border-right: 3px solid #e2e8f0; }
+        .pipe-stage.active { background: linear-gradient(135deg,#e6fffa,#c6f6d5); border-color: #11998e; }
+        .pipe-stage .ps-count { font-size: 22px; font-weight: 800; color: #11998e; }
+        .pipe-stage .ps-label { font-size: 10px; color: #718096; margin-top: 3px; font-weight: 600; }
+        .pipe-stage .ps-arrow { position: absolute; right: -8px; top: 50%; transform: translateY(-50%); background: white; border-radius: 50%; border: 2px solid #e2e8f0; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 9px; z-index: 1; }
+
+        /* Timeline */
+        .timeline { position: relative; padding: 10px 0; }
+        .timeline::before { content: ''; position: absolute; left: 18px; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom,#11998e,#38ef7d); border-radius: 2px; }
+        .tl-item { display: flex; gap: 15px; margin-bottom: 18px; padding-left: 10px; }
+        .tl-dot { width: 18px; height: 18px; border-radius: 50%; background: #11998e; flex-shrink: 0; border: 2px solid white; box-shadow: 0 0 0 2px #11998e; margin-top: 2px; }
+        .tl-content { background: white; border-radius: 10px; padding: 12px 15px; flex: 1; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .tl-content h4 { font-size: 13px; font-weight: 700; color: #2d3748; margin-bottom: 4px; }
+        .tl-content p  { font-size: 12px; color: #718096; }
+        .tl-content .tl-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .tl-tag { background: #e6fffa; color: #234e52; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+
+        /* API box */
+        .api-box { background: #1a202c; border-radius: 10px; padding: 15px; margin: 10px 0; font-family: 'Courier New', monospace; font-size: 11px; color: #68d391; overflow-x: auto; }
+        .api-method { color: #f6ad55; font-weight: 700; }
+        .api-url    { color: #90cdf4; }
+        .api-key    { color: #fc8181; }
+        .api-value  { color: #68d391; }
+
+        /* Grid */
+        .two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .four-col  { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+
+        .sub-section { background: #f8fafc; border-radius: 12px; padding: 20px; margin: 15px 0; }
+        .sub-section h3 { font-size: 16px; font-weight: 700; color: #2d3748; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+
+        /* Checklist */
+        .checklist { list-style: none; padding: 0; }
+        .checklist li { padding: 5px 0; font-size: 12px; color: #4a5568; display: flex; align-items: flex-start; gap: 8px; border-bottom: 1px solid #f0f0f0; }
+        .checklist li:last-child { border: none; }
+        .checklist li .check { color: #48bb78; font-weight: 700; flex-shrink: 0; }
+        .checklist li .cross { color: #e53e3e; font-weight: 700; flex-shrink: 0; }
+        .checklist li .warn  { color: #ed8936; font-weight: 700; flex-shrink: 0; }
+
+        /* Score card */
+        .score-card { background: white; border-radius: 12px; padding: 15px; border: 1px solid #e2e8f0; }
+        .score-row  { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+        .score-row .sc-label { color: #4a5568; }
+        .score-row .sc-score { font-weight: 700; color: #11998e; }
+        .score-bar  { height: 6px; background: #e2e8f0; border-radius: 3px; margin-top: 3px; }
+        .score-fill { height: 100%; background: linear-gradient(90deg,#11998e,#38ef7d); border-radius: 3px; }
+
+        /* Status badge */
+        .status { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .s-new        { background: #bee3f8; color: #2b6cb0; }
+        .s-screen     { background: #feebc8; color: #c05621; }
+        .s-interview  { background: #e9d8fd; color: #553c9a; }
+        .s-offer      { background: #c6f6d5; color: #276749; }
+        .s-joined     { background: #9ae6b4; color: #1c4532; }
+        .s-rejected   { background: #fed7d7; color: #c53030; }
+        .s-hold       { background: #e2e8f0; color: #4a5568; }
+        .s-withdrawn  { background: #fef3c7; color: #92400e; }
+
+        /* Print */
+        @media print {
+            body { background: white; font-size: 11px; }
+            .print-btn { display: none !important; }
+            .container { max-width: 100%; padding: 0; }
+            .section { box-shadow: none; border: 1px solid #e2e8f0; break-inside: avoid; }
+            .section-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .api-box { background: #f0f0f0 !important; color: #333 !important; }
+            @page { margin: 12mm; size: A4; }
+        }
+
+        @media (max-width: 768px) {
+            .two-col, .three-col, .four-col { grid-template-columns: 1fr; }
+            .form-row.col-2, .form-row.col-3, .form-row.col-4 { grid-template-columns: 1fr; }
+            .cover { padding: 30px 20px; }
+            .cover h1 { font-size: 26px; }
+        }
+    </style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ PDF Save Karein</button>
+
+<div class="container">
+
+    <!-- ===== COVER ===== -->
+    <div class="cover">
+        <div style="font-size:64px;margin-bottom:15px;position:relative;">✈️</div>
+        <h1>Module 8: Travel & Expense Management</h1>
+        <p>HRMS System — Deep Level Requirements Document</p>
+        <div class="cover-badges">
+            <span class="cover-badge">📋 100+ Fields Documented</span>
+            <span class="cover-badge">🔐 RBAC - 6 Roles</span>
+            <span class="cover-badge">🔄 8 Sub-Modules</span>
+            <span class="cover-badge">✅ Full Validations</span>
+            <span class="cover-badge">🧾 OCR Bill Capture</span>
+            <span class="cover-badge">🌍 Domestic + International</span>
+            <span class="cover-badge">🔗 13 API Endpoints</span>
+            <span class="cover-badge">📈 T&E Analytics</span>
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+        <div class="stat-box"><div class="num">8</div><div class="lbl">Sub-Modules</div></div>
+        <div class="stat-box"><div class="num">100+</div><div class="lbl">Input Fields</div></div>
+        <div class="stat-box"><div class="num">10+</div><div class="lbl">Expense Categories</div></div>
+        <div class="stat-box"><div class="num">6</div><div class="lbl">User Roles</div></div>
+        <div class="stat-box"><div class="num">16</div><div class="lbl">Workflow Steps</div></div>
+        <div class="stat-box"><div class="num">14</div><div class="lbl">Reports</div></div>
+        <div class="stat-box"><div class="num">18+</div><div class="lbl">Notifications</div></div>
+        <div class="stat-box"><div class="num">8</div><div class="lbl">Sector Configs</div></div>
+    </div>
+
+    <!-- ===== 1. OVERVIEW ===== -->
+    <div class="section">
+        <div class="section-header g-teal">
+            <span style="font-size:28px">📌</span>
+            <div>
+                <h2>1.0 Module Overview & Sub-Module List</h2>
+                <p>Travel & Expense — Trip request se reimbursement tak ka poora T&E lifecycle</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="info-box">
+                        <h4>🎯 Module Purpose</h4>
+                        <p>Travel & Expense (T&E) module employee ki business travel request, booking, expense claim aur reimbursement ko end-to-end manage karta hai. Grade-wise entitlement policy, OCR-based bill capture, aur multi-level approval — sab automated, aur Payroll (Module 5) ke saath directly linked for reimbursement disbursement.</p>
+                    </div>
+                    <div class="info-box" style="margin-top:12px;">
+                        <h4>📦 8 Sub-Modules</h4>
+                        <ul>
+                            <li><strong>8.1</strong> Travel Request & Booking</li>
+                            <li><strong>8.2</strong> Travel Policy & Entitlement</li>
+                            <li><strong>8.3</strong> Expense Claims & Categories</li>
+                            <li><strong>8.4</strong> Bill/Receipt Management (OCR/GST)</li>
+                            <li><strong>8.5</strong> Approval & Reimbursement Workflow</li>
+                            <li><strong>8.6</strong> Travel Advance Management</li>
+                            <li><strong>8.7</strong> Sector-Specific T&E Configuration</li>
+                            <li><strong>8.8</strong> Travel & Expense Analytics</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Key Business Rules</h4>
+                        <ul>
+                            <li>Travel booking sirf approved travel request ke against ho sakti hai</li>
+                            <li>Grade-wise entitlement (flight class, hotel category) hard-enforced, exception ke liye approval mandatory</li>
+                            <li>Expense claim sirf valid bill/receipt ke saath submit ho sakta hai (except per-km mileage & fixed DA)</li>
+                            <li>Claims above policy threshold auto-route ho jate hain Finance approval ke liye</li>
+                            <li>Travel advance ka 100% utilization proof zaroori before next advance request</li>
+                            <li>Unspent advance auto-recover hota hai next payroll cycle se agar 30 din mein settle nahi hua</li>
+                            <li>GST-eligible bills automatically tag hote hain input tax credit ke liye Finance ko</li>
+                            <li>International travel ke liye forex advance aur visa tracking mandatory workflow hai</li>
+                        </ul>
+                    </div>
+                    <div class="success-box" style="margin-top:12px;">
+                        <h4>✅ Key Metrics System Track Karega</h4>
+                        <ul>
+                            <li>Total T&E Spend (Dept/Project-wise)</li>
+                            <li>Average Reimbursement TAT</li>
+                            <li>Policy Violation Rate</li>
+                            <li>Pending Advance Aging</li>
+                            <li>Budget vs Actual Travel Cost</li>
+                            <li>Claim Rejection Rate & Reasons</li>
+                            <li>Most Visited Cities/Countries</li>
+                            <li>Cost per Trip (avg)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 2. MASTER FLOW ===== -->
+    <div class="section">
+        <div class="section-header g-dark">
+            <span style="font-size:28px">🔄</span>
+            <div>
+                <h2>2.0 Master Travel & Expense Flow — End to End</h2>
+                <p>Trip request se reimbursement tak — poora lifecycle</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:#2d3748;">🔵 Phase 1: Travel Request & Booking</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">1</div>
+                        <div class="step-title">Employee Raises Travel Request</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Purpose, dates, destination</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">2</div>
+                        <div class="step-title">Policy Entitlement Check</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Grade-wise flight/hotel class</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">3</div>
+                        <div class="step-title">Manager Approval</div>
+                        <div class="step-role">👤 Reporting Manager</div>
+                        <div class="step-desc">Business justification review</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">4</div>
+                        <div class="step-title">Advance Requested (optional)</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Estimated trip cost</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">5</div>
+                        <div class="step-title">✅ Booking Confirmed</div>
+                        <div class="step-role">👤 Travel Desk / Employee</div>
+                        <div class="step-desc">Ticket, hotel booked</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🟠 Phase 2: Trip Execution & Expense Capture</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">6</div>
+                        <div class="step-title">Employee Travels</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Business trip execution</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">7</div>
+                        <div class="step-title">Bills Captured (Mobile OCR)</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Camera scan, auto-read amount</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">8</div>
+                        <div class="step-title">Expense Claim Compiled</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Category-wise line items</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">9</div>
+                        <div class="step-title">Auto Policy Validation</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Limit check, duplicate check</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">10</div>
+                        <div class="step-title">Claim Submitted</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Within TAT (e.g. 7 days post-trip)</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🟢 Phase 3: Approval to Reimbursement</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step decision">
+                        <div class="step-num">11</div>
+                        <div class="step-title">Manager Approval</div>
+                        <div class="step-role">👤 Reporting Manager</div>
+                        <div class="step-desc">Policy compliance review</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">12</div>
+                        <div class="step-title">Finance Approval (high-value)</div>
+                        <div class="step-role">👤 Finance Team</div>
+                        <div class="step-desc">Above threshold claims</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">13</div>
+                        <div class="step-title">Advance Adjustment</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Net against advance taken</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">14</div>
+                        <div class="step-title">✅ Claim Approved</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Net payable computed</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">15</div>
+                        <div class="step-title">Reimbursement Processed</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Via payroll or direct bank transfer</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">16</div>
+                        <div class="step-title">✅ Amount Credited</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Employee notified</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pipeline View -->
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">📊 Current T&E Claims Status — Live View</h3>
+            <div class="pipeline">
+                <div class="pipe-stage">
+                    <div class="ps-count">28</div>
+                    <div class="ps-label">Travel Requests Pending</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">45</div>
+                    <div class="ps-label">Claims Submitted</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage active">
+                    <div class="ps-count">31</div>
+                    <div class="ps-label">Manager Approval Pending</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">9</div>
+                    <div class="ps-label">Finance Review</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">5</div>
+                    <div class="ps-label">Policy Exception Flagged</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">112</div>
+                    <div class="ps-label">Reimbursed This Month</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 3. TRAVEL REQUEST & BOOKING ===== -->
+    <div class="section">
+        <div class="section-header g-blue">
+            <span style="font-size:28px">🚀</span>
+            <div>
+                <h2>3.0 Sub-Module 8.1 — Travel Request & Booking</h2>
+                <p>Domestic aur international travel request, approval, booking integration</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="form-preview">
+                <div class="form-section-title">🚀 Travel Request Form</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Travel Type <span class="req">*</span></label>
+                        <select><option>Domestic</option><option>International</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Purpose of Travel <span class="req">*</span></label>
+                        <select><option>Client Meeting</option><option>Conference/Training</option><option>Site Visit</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Project/Cost Center Tag <span class="req">*</span></label>
+                        <select><option>Project Alpha - Client XYZ</option><option>Internal - Admin</option></select>
+                    </div>
+                </div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>From City <span class="req">*</span></label>
+                        <input type="text" value="Mumbai">
+                    </div>
+                    <div class="form-field">
+                        <label>To City <span class="req">*</span></label>
+                        <input type="text" placeholder="Bangalore">
+                    </div>
+                    <div class="form-field">
+                        <label>Departure Date <span class="req">*</span></label>
+                        <input type="date" value="2024-02-20">
+                    </div>
+                    <div class="form-field">
+                        <label>Return Date <span class="req">*</span></label>
+                        <input type="date" value="2024-02-22">
+                    </div>
+                </div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Mode of Travel</label>
+                        <select><option>Flight</option><option>Train</option><option>Own Vehicle</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Hotel Required?</label>
+                        <select><option>Yes</option><option>No - Same day trip</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Co-Travelers (if any)</label>
+                        <input type="text" placeholder="Names of colleagues traveling together">
+                    </div>
+                </div>
+                <div class="form-row col-1">
+                    <div class="form-field">
+                        <label>Business Justification <span class="req">*</span></label>
+                        <textarea placeholder="Brief reason for travel"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col" style="margin-top:15px;">
+                <div>
+                    <div class="info-box">
+                        <h4>🌍 International Travel — Additional Fields</h4>
+                        <ul>
+                            <li>Passport number & expiry date validation</li>
+                            <li>Visa requirement check & assistance tracking</li>
+                            <li>Forex advance request (currency & amount)</li>
+                            <li>Travel insurance auto-linked</li>
+                            <li>Country-specific compliance checklist (COVID, entry requirements)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="success-box">
+                        <h4>✅ Booking Integration Features</h4>
+                        <ul>
+                            <li>Flight/hotel search within policy-compliant options only</li>
+                            <li>Preferred vendor/travel agency integration (GDS-linked)</li>
+                            <li>Auto e-ticket & itinerary attachment to travel record</li>
+                            <li>Calendar block for travel dates (syncs with Leave/Attendance)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="warning-box" style="margin-top:15px;">
+                <h4>⚠️ Approval & Booking Rules</h4>
+                <ul>
+                    <li>Domestic travel: minimum 3 days advance request (except emergency, flagged separately)</li>
+                    <li>International travel: minimum 15 days advance request for visa processing time</li>
+                    <li>Multi-level approval required above certain trip cost threshold (Manager → HOD → Finance)</li>
+                    <li>Booking cannot be confirmed until travel request is approved</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 4. TRAVEL POLICY & ENTITLEMENT ===== -->
+    <div class="section">
+        <div class="section-header g-orange">
+            <span style="font-size:28px">📜</span>
+            <div>
+                <h2>4.0 Sub-Module 8.2 — Travel Policy & Entitlement</h2>
+                <p>Grade-wise flight class, hotel category, per-diem — policy enforced automatically</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="sub-section">
+                <h3>🎫 Grade-wise Entitlement Matrix</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Grade Band</th><th>Flight Class</th><th>Train Class</th><th>Hotel Category</th><th>Daily Allowance (Metro)</th></tr>
+                        <tr><td><strong>Band A (Junior/Executive)</strong></td><td>Economy</td><td>AC 3-Tier</td><td>3-Star</td><td>₹1,500/day</td></tr>
+                        <tr><td><strong>Band B (Senior Executive)</strong></td><td>Economy (Premium on &gt;4hr flights)</td><td>AC 2-Tier</td><td>4-Star</td><td>₹2,000/day</td></tr>
+                        <tr><td><strong>Band C (Manager)</strong></td><td>Premium Economy</td><td>AC 1st Class</td><td>4-Star</td><td>₹2,500/day</td></tr>
+                        <tr><td><strong>Band D (Senior Manager+)</strong></td><td>Business (International only)</td><td>AC 1st Class</td><td>5-Star</td><td>₹3,500/day</td></tr>
+                        <tr><td><strong>Band E (Leadership/CXO)</strong></td><td>Business Class</td><td>AC 1st Class</td><td>5-Star Luxury</td><td>At actuals</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-preview">
+                <div class="form-section-title">📜 Policy Exception Request (if entitlement exceeded)</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Entitled Category</label>
+                        <input type="text" value="Economy Class, 3-Star Hotel" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Requested Category</label>
+                        <select><option>Premium Economy</option><option>4-Star Hotel</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Reason for Exception <span class="req">*</span></label>
+                        <input type="text" placeholder="E.g. No economy availability">
+                    </div>
+                </div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Additional Cost Impact</label>
+                        <input type="text" value="₹4,500 above entitlement" readonly style="background:#fff5f5;color:#c53030;">
+                    </div>
+                    <div class="form-field">
+                        <label>Approver</label>
+                        <input type="text" value="HOD + Finance (mandatory for exceptions)" readonly style="background:#f7fafc;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col" style="margin-top:15px;">
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Policy Enforcement Rules</h4>
+                        <ul>
+                            <li>Booking system shows only entitled category options by default</li>
+                            <li>Any exception requires dual approval (HOD + Finance) regardless of amount</li>
+                            <li>City-tier classification (Metro/Tier-1/Tier-2) determines DA and hotel budget slabs</li>
+                            <li>Policy version history maintained — applies policy active on travel date</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="info-box">
+                        <h4>🏙️ City Tier Classification (Sample)</h4>
+                        <ul>
+                            <li><strong>Metro:</strong> Mumbai, Delhi, Bangalore, Chennai, Kolkata, Hyderabad, Pune</li>
+                            <li><strong>Tier-1:</strong> Ahmedabad, Jaipur, Lucknow, Chandigarh</li>
+                            <li><strong>Tier-2:</strong> All other cities</li>
+                            <li>International: Country-wise per-diem table (US, UK, Singapore, etc.)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 5. EXPENSE CLAIMS & CATEGORIES ===== -->
+    <div class="section">
+        <div class="section-header g-purple">
+            <span style="font-size:28px">💳</span>
+            <div>
+                <h2>5.0 Sub-Module 8.3 — Expense Claims & Categories</h2>
+                <p>Category-wise claim submission — mileage se entertainment tak</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="sub-section">
+                <h3>💳 Expense Category Master</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Category</th><th>Claim Basis</th><th>Bill Required?</th><th>Special Rule</th></tr>
+                        <tr><td><strong>Airfare / Train Fare</strong></td><td>Actual (against booking)</td><td>Yes - E-ticket</td><td>Pre-approved via travel request</td></tr>
+                        <tr><td><strong>Hotel Accommodation</strong></td><td>Actual, within grade entitlement</td><td>Yes - Hotel invoice</td><td>Category cap enforced</td></tr>
+                        <tr><td><strong>Local Conveyance / Cab</strong></td><td>Actual with bill</td><td>Yes</td><td>Route/purpose mandatory for high amounts</td></tr>
+                        <tr><td><strong>Mileage (Own Vehicle)</strong></td><td>Per KM rate × distance</td><td>No - system calculated</td><td>₹8-12/km (vehicle type based)</td></tr>
+                        <tr><td><strong>Daily Allowance (DA)</strong></td><td>Fixed per day, city-tier based</td><td>No - auto-calculated</td><td>Auto-credited for full travel days</td></tr>
+                        <tr><td><strong>Meal Allowance</strong></td><td>Fixed or actual (policy-based)</td><td>Policy-dependent</td><td>City-wise slab</td></tr>
+                        <tr><td><strong>Entertainment / Client Meeting</strong></td><td>Actual with bill</td><td>Yes + guest details</td><td>Guest name, company, purpose mandatory</td></tr>
+                        <tr><td><strong>Communication (Mobile/Internet)</strong></td><td>Actual or fixed monthly cap</td><td>Yes (if actual)</td><td>Business-use only</td></tr>
+                        <tr><td><strong>Visa & Travel Insurance</strong></td><td>Actual</td><td>Yes</td><td>International travel only</td></tr>
+                        <tr><td><strong>Miscellaneous</strong></td><td>Actual with justification</td><td>Yes</td><td>Requires detailed description, capped amount</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-preview">
+                <div class="form-section-title">💳 Expense Claim Form (Line Item)</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Expense Category <span class="req">*</span></label>
+                        <select><option>Hotel Accommodation</option><option>Local Conveyance</option><option>Meal Allowance</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Date of Expense <span class="req">*</span></label>
+                        <input type="date" value="2024-02-20">
+                    </div>
+                    <div class="form-field">
+                        <label>Amount <span class="req">*</span></label>
+                        <input type="number" value="4500">
+                    </div>
+                    <div class="form-field">
+                        <label>Currency</label>
+                        <select><option>INR</option><option>USD</option><option>EUR</option></select>
+                    </div>
+                </div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Linked Travel Request</label>
+                        <input type="text" value="TR-2024-0234" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Project / Cost Center</label>
+                        <input type="text" value="Project Alpha - Client XYZ" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Within Policy Limit?</label>
+                        <input type="text" value="✅ Yes (Limit: ₹5,000)" readonly style="background:#f0fff4;color:#276749;font-weight:700;">
+                    </div>
+                </div>
+                <div class="form-row col-1">
+                    <div class="form-field">
+                        <label>Bill/Receipt Upload <span class="req">*</span></label>
+                        <input type="text" value="📎 Upload via Mobile Camera (OCR auto-fill enabled)" readonly style="background:#f7fafc;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="warning-box" style="margin-top:15px;">
+                <h4>⚠️ Claim Submission Validations</h4>
+                <ul>
+                    <li>Expense date must fall within approved travel request date range</li>
+                    <li>Duplicate bill detection (same amount + date + category flagged for review)</li>
+                    <li>Claims must be submitted within TAT (e.g. 7 days post-trip completion, policy configurable)</li>
+                    <li>Amount exceeding category limit auto-flagged, requires justification note</li>
+                    <li>Personal expenses (non-business) blocked from submission via category restriction</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 6. BILL/RECEIPT MANAGEMENT (OCR/GST) ===== -->
+    <div class="section">
+        <div class="section-header g-red">
+            <span style="font-size:28px">🧾</span>
+            <div>
+                <h2>6.0 Sub-Module 8.4 — Bill/Receipt Management (OCR/GST)</h2>
+                <p>Mobile camera capture, auto-read amount, GST tagging for input tax credit</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="two-col">
+                <div>
+                    <div class="info-box">
+                        <h4>📷 OCR Receipt Capture Features</h4>
+                        <ul>
+                            <li>Mobile camera scan with auto-crop and enhancement</li>
+                            <li>Auto-extraction: Amount, Date, Vendor Name, GST Number</li>
+                            <li>Employee reviews & confirms extracted data before submission</li>
+                            <li>Blurry/unreadable receipt flagged for manual re-upload</li>
+                            <li>Supports multi-page bills (PDF/multiple images)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="success-box">
+                        <h4>✅ GST Capture & Input Tax Credit</h4>
+                        <ul>
+                            <li>Vendor GSTIN auto-validated against GST portal format</li>
+                            <li>GST amount separately captured (CGST/SGST/IGST breakup)</li>
+                            <li>GST-eligible bills tagged for Finance's Input Tax Credit (ITC) claim</li>
+                            <li>Non-GST registered vendor bills flagged, no ITC eligibility</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sub-section" style="margin-top:15px;">
+                <h3>🧾 OCR Extraction Field Mapping</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Extracted Field</th><th>Source</th><th>Confidence Handling</th></tr>
+                        <tr><td>Total Amount</td><td>Bill footer/total line</td><td>High confidence auto-fill; low confidence flags for manual entry</td></tr>
+                        <tr><td>Bill Date</td><td>Header/date stamp</td><td>Cross-validated against travel date range</td></tr>
+                        <tr><td>Vendor Name</td><td>Bill header</td><td>Matched against known vendor database where possible</td></tr>
+                        <tr><td>GSTIN</td><td>Bill header/footer</td><td>Format validation (15-character alphanumeric)</td></tr>
+                        <tr><td>GST Amount</td><td>Tax breakup section</td><td>Auto-split CGST/SGST/IGST if present</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="validation-box" style="margin-top:15px;">
+                <h4>🚫 Credit Card Reconciliation</h4>
+                <ul>
+                    <li>Corporate credit card statement auto-imported and matched against submitted claims</li>
+                    <li>Unmatched credit card transactions flagged for employee to submit corresponding claim</li>
+                    <li>Personal expenses on corporate card flagged for recovery via payroll deduction</li>
+                    <li>Reconciliation report generated monthly for Finance review</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 7. APPROVAL & REIMBURSEMENT ===== -->
+    <div class="section">
+        <div class="section-header g-teal">
+            <span style="font-size:28px">✅</span>
+            <div>
+                <h2>7.0 Sub-Module 8.5 — Approval & Reimbursement Workflow</h2>
+                <p>Manager to Finance approval, exception handling, payout via payroll/bank</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">1</div>
+                        <div class="step-title">Claim Submitted</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">All line items compiled</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">2</div>
+                        <div class="step-title">Manager Review</div>
+                        <div class="step-role">👤 Reporting Manager</div>
+                        <div class="step-desc">Policy & business relevance check</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">3</div>
+                        <div class="step-title">Amount &gt; Threshold?</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Route to Finance if high-value</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">4</div>
+                        <div class="step-title">Finance Approval</div>
+                        <div class="step-role">👤 Finance Team</div>
+                        <div class="step-desc">For high-value/exception claims</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">5</div>
+                        <div class="step-title">✅ Claim Approved</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Net payable calculated</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step rejected">
+                        <div class="step-num">5b</div>
+                        <div class="step-title">❌ Rejected</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Reason logged, resubmission allowed</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">6</div>
+                        <div class="step-title">Reimbursement Run</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Weekly/monthly batch</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">7</div>
+                        <div class="step-title">✅ Amount Disbursed</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Payroll add-on or direct bank</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col" style="margin-top:15px;">
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Exception Handling</h4>
+                        <ul>
+                            <li>Policy violation claims require written justification from employee</li>
+                            <li>Manager can approve minor exceptions (&lt;10% over limit); larger exceptions escalate to Finance</li>
+                            <li>Rejected claims can be resubmitted once with corrections, then require HR mediation</li>
+                            <li>Repeated policy violations (3+ in a quarter) flagged for HR/manager counselling</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="success-box">
+                        <h4>✅ Reimbursement Methods</h4>
+                        <ul>
+                            <li>Payroll add-on — included in next salary cycle (most common)</li>
+                            <li>Direct bank transfer — for urgent/high-value claims, separate from payroll</li>
+                            <li>TAT tracking: target 5-7 working days from approval to disbursement</li>
+                            <li>Reimbursement status visible real-time to employee (Submitted → Approved → Paid)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 8. TRAVEL ADVANCE MANAGEMENT ===== -->
+    <div class="section">
+        <div class="section-header g-maroon">
+            <span style="font-size:28px">💵</span>
+            <div>
+                <h2>8.0 Sub-Module 8.6 — Travel Advance Management</h2>
+                <p>Estimated advance disbursement, utilization tracking, auto-recovery</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="form-preview">
+                <div class="form-section-title">💵 Travel Advance Request</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Linked Travel Request <span class="req">*</span></label>
+                        <input type="text" value="TR-2024-0234" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Estimated Trip Cost</label>
+                        <input type="number" value="25000">
+                    </div>
+                    <div class="form-field">
+                        <label>Advance Requested (max 80%)</label>
+                        <input type="number" value="20000">
+                    </div>
+                </div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Outstanding Previous Advances</label>
+                        <input type="text" value="₹0 - Clear" readonly style="background:#f0fff4;color:#276749;font-weight:700;">
+                    </div>
+                    <div class="form-field">
+                        <label>Disbursement Mode</label>
+                        <select><option>Bank Transfer</option><option>Cash</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Expected Settlement Date</label>
+                        <input type="date" value="2024-03-01">
+                    </div>
+                </div>
+            </div>
+
+            <div class="sub-section" style="margin-top:15px;">
+                <h3>🔄 Advance Lifecycle</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Stage</th><th>Rule</th><th>System Action</th></tr>
+                        <tr><td>Advance Request</td><td>Max 80% of estimated trip cost</td><td>Blocked if prior advance unsettled</td></tr>
+                        <tr><td>Advance Disbursed</td><td>Approved by manager, processed by Finance</td><td>Ledger entry created, outstanding balance tracked</td></tr>
+                        <tr><td>Trip Completion</td><td>Employee submits expense claims</td><td>Claims auto-adjusted against advance</td></tr>
+                        <tr><td>Settlement Window</td><td>30 days from trip end (policy configurable)</td><td>Reminder notifications at 15/7/1 days</td></tr>
+                        <tr><td>Unspent Advance Recovery</td><td>If claims &lt; advance amount</td><td>Auto-deducted from next payroll cycle</td></tr>
+                        <tr><td>Overdue Settlement</td><td>Beyond settlement window, no claim submitted</td><td>Escalated to HR/Finance, full recovery triggered</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Advance Control Rules</h4>
+                        <ul>
+                            <li>New advance blocked until previous advance is fully settled (claims submitted or recovered)</li>
+                            <li>Advance cannot exceed grade-wise cap regardless of estimated trip cost</li>
+                            <li>Cash advances require physical acknowledgment/signature</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="info-box">
+                        <h4>📊 Advance Aging Tracking</h4>
+                        <ul>
+                            <li>0-15 days: Normal (green)</li>
+                            <li>16-30 days: Reminder sent (yellow)</li>
+                            <li>31+ days: Overdue, recovery initiated (red)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 9. SECTOR-SPECIFIC ===== -->
+    <div class="section">
+        <div class="section-header g-pink">
+            <span style="font-size:28px">🏭</span>
+            <div>
+                <h2>9.0 Sub-Module 8.7 — Sector-Specific T&E Configuration</h2>
+                <p>Har industry ki alag travel zaroorat — configurable policy templates</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="sub-section">
+                <h3>🏭 Sector-Wise T&E Matrix</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Sector</th><th>Special Requirement</th><th>Configuration</th><th>Priority</th></tr>
+                        <tr><td>IT / Software</td><td>Client-site travel, onsite deputation expense</td><td>Long-term deputation allowance separate from short-trip DA</td><td><span class="badge b-high">High</span></td></tr>
+                        <tr><td>Sales / FMCG</td><td>High-frequency local travel, field sales expense</td><td>Simplified mobile-first claim for frequent travelers</td><td><span class="badge b-critical">Critical</span></td></tr>
+                        <tr><td>Manufacturing</td><td>Site visits, vendor/supplier travel</td><td>Project-linked cost allocation mandatory</td><td><span class="badge b-medium">Medium</span></td></tr>
+                        <tr><td>Healthcare</td><td>Conference/CME travel for doctors, sponsored trips</td><td>Sponsor disclosure tracking (compliance)</td><td><span class="badge b-high">High</span></td></tr>
+                        <tr><td>Consulting</td><td>Very high travel frequency, client billable expenses</td><td>Billable vs non-billable expense tagging for client invoicing</td><td><span class="badge b-critical">Critical</span></td></tr>
+                        <tr><td>Construction</td><td>Site visits, remote location travel with limited infra</td><td>Offline claim capture with delayed sync</td><td><span class="badge b-medium">Medium</span></td></tr>
+                        <tr><td>Government / PSU</td><td>TA/DA rules per government scale, LTC integration</td><td>Government TA/DA rate table, audit-ready documentation</td><td><span class="badge b-critical">Critical</span></td></tr>
+                        <tr><td>Education</td><td>Faculty conference/seminar travel</td><td>Academic grant-linked expense tracking</td><td><span class="badge b-low">Low</span></td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <div class="info-box">
+                        <h4>💼 Consulting — Billable Expense Tagging</h4>
+                        <ul>
+                            <li>Every expense line tagged Billable / Non-Billable to client</li>
+                            <li>Client-approved expense categories configured per engagement</li>
+                            <li>Auto-export to client invoicing system for billable expenses</li>
+                            <li>Markup % applied where contractually agreed</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="info-box">
+                        <h4>🏛️ Government / PSU — TA/DA Rules</h4>
+                        <ul>
+                            <li>TA/DA as per Pay Level (7th CPC linked entitlement)</li>
+                            <li>Halting allowance for overnight stays (grade-based)</li>
+                            <li>LTC (Leave Travel Concession) travel claims integrated with Leave Module</li>
+                            <li>Audit trail mandatory for CAG (Comptroller & Auditor General) review readiness</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 10. RBAC ===== -->
+    <div class="section">
+        <div class="section-header g-maroon">
+            <span style="font-size:28px">🔐</span>
+            <div>
+                <h2>10.0 RBAC — Travel & Expense Module Access Control</h2>
+                <p>Kaun kya kar sakta hai — field level aur action level permissions</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="sub-section">
+                <h3>👥 T&E Module — Role Definitions</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Role</th><th>Who</th><th>Scope</th><th>Key Permissions</th></tr>
+                        <tr><td><strong>R01 - HR Admin</strong></td><td>Central HR / Admin Head</td><td>All employees</td><td>Full CRUD. Configure policy, entitlement, category masters</td></tr>
+                        <tr><td><strong>R02 - Reporting Manager</strong></td><td>Team lead / Department Head</td><td>Own team only</td><td>Approve travel requests & expense claims</td></tr>
+                        <tr><td><strong>R03 - Finance Team</strong></td><td>Finance / Accounts</td><td>All entities</td><td>Approve high-value claims, process reimbursement, GST reconciliation</td></tr>
+                        <tr><td><strong>R04 - Employee</strong></td><td>Any employee</td><td>Own record only</td><td>Raise travel request, submit claims, view own advances</td></tr>
+                        <tr><td><strong>R05 - Travel Desk</strong></td><td>Admin/Travel coordinator</td><td>All approved travel requests</td><td>Book tickets/hotels, manage vendor bookings</td></tr>
+                        <tr><td><strong>R06 - Auditor</strong></td><td>Internal/External auditor</td><td>Read-only, all data</td><td>View audit trail, export reports, no edit rights</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🔑 RBAC Matrix — T&E Actions</h3>
+            <div style="overflow-x:auto;">
+                <table class="rbac-table">
+                    <tr>
+                        <th style="text-align:left;min-width:200px;">Action / Feature</th>
+                        <th>HR<br>Admin</th>
+                        <th>Manager</th>
+                        <th>Finance</th>
+                        <th>Employee</th>
+                        <th>Travel<br>Desk</th>
+                        <th>Auditor</th>
+                    </tr>
+                    <tr style="background:#eef2ff;">
+                        <td class="field-name" colspan="7" style="font-size:11px;font-weight:800;color:#667eea;padding:6px 10px;">🚀 TRAVEL REQUEST</td>
+                    </tr>
+                    <tr><td class="field-name">Raise Travel Request</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Approve Travel Request</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Book Ticket/Hotel</td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr style="background:#f0fff4;">
+                        <td class="field-name" colspan="7" style="font-size:11px;font-weight:800;color:#276749;padding:6px 10px;">💳 EXPENSE CLAIMS</td>
+                    </tr>
+                    <tr><td class="field-name">Submit Expense Claim</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Approve Claim (L1)</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Approve High-Value Claim</td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr style="background:#fff5f5;">
+                        <td class="field-name" colspan="7" style="font-size:11px;font-weight:800;color:#c53030;padding:6px 10px;">💵 ADVANCE & REIMBURSEMENT</td>
+                    </tr>
+                    <tr><td class="field-name">Request Travel Advance</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Process Reimbursement</td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Configure Policy/Entitlement</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">V</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">View Audit Trail / Reports</td><td><span class="can">✏️</span></td><td><span class="view-only">Team</span></td><td><span class="view-only">V</span></td><td><span class="view-only">Own</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">V</span></td></tr>
+                </table>
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:15px;flex-wrap:wrap;font-size:12px;">
+                <div style="display:flex;align-items:center;gap:6px;"><span class="can">✏️</span> = Full Access (Create, Edit, Delete)</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="view-only">V</span> = View Only</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="cannot">🔒</span> = No Access</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="view-only">Own</span> = Only own data</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 11. API SPECS ===== -->
+    <div class="section">
+        <div class="section-header g-teal">
+            <span style="font-size:28px">🔗</span>
+            <div>
+                <h2>11.0 API Specifications — Travel & Expense Module</h2>
+                <p>REST API endpoints for frontend, mobile app and integrations</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">// Travel Request APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/travel/request</span>
+<span style="color:#a0aec0;">// Raise travel request</span>
+<span class="api-key">Body:</span> <span class="api-value">{ emp_id, from_city, to_city, dates, purpose }</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/travel/{emp_id}/entitlement</span>
+<span style="color:#a0aec0;">// Get grade-wise entitlement</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/travel/{id}/approve</span>
+<span style="color:#a0aec0;">// Manager approves travel request</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/travel/{id}/exception-request</span>
+<span style="color:#a0aec0;">// Request entitlement exception</span>
+
+<span style="color:#f6ad55;">// Expense Claim APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/expense/claim</span>
+<span style="color:#a0aec0;">// Submit expense claim</span>
+<span class="api-key">Body:</span> <span class="api-value">{ emp_id, travel_request_id, line_items[] }</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/expense/ocr-scan</span>
+<span style="color:#a0aec0;">// Upload bill image, get OCR extraction</span>
+<span class="api-key">Body:</span> <span class="api-value">{ image_base64 }</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/expense/{emp_id}/claims?status=Pending</span>
+<span style="color:#a0aec0;">// List employee claims</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">// Approval & Reimbursement APIs</span>
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/expense/{claim_id}/approve</span>
+<span style="color:#a0aec0;">// Manager/Finance approval</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/expense/{claim_id}/reject</span>
+<span style="color:#a0aec0;">// Reject with reason</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/expense/reimbursement-run</span>
+<span style="color:#a0aec0;">// Trigger batch reimbursement</span>
+
+<span style="color:#f6ad55;">// Advance Management APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/advance/request</span>
+<span style="color:#a0aec0;">// Request travel advance</span>
+<span class="api-key">Body:</span> <span class="api-value">{ emp_id, travel_request_id, amount }</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/advance/{emp_id}/outstanding</span>
+<span style="color:#a0aec0;">// Check unsettled advance balance</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/advance/settle</span>
+<span style="color:#a0aec0;">// Adjust claims against advance</span>
+
+<span style="color:#f6ad55;">// GST & Reconciliation APIs</span>
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/expense/gst-summary?month=2024-01</span>
+<span style="color:#a0aec0;">// ITC-eligible bill summary for Finance</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/expense/creditcard-reconcile</span>
+<span style="color:#a0aec0;">// Match card statement to claims</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 12. NOTIFICATIONS ===== -->
+    <div class="section">
+        <div class="section-header g-green">
+            <span style="font-size:28px">🔔</span>
+            <div>
+                <h2>12.0 Notifications & Triggers — Travel & Expense Module</h2>
+                <p>Every event ka auto notification — email, push, portal</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div style="overflow-x:auto;">
+                <table class="field-table">
+                    <tr><th>Event</th><th>To Whom</th><th>Channel</th><th>Timing</th><th>Auto Action</th></tr>
+                    <tr><td><strong>Travel Request Submitted</strong></td><td>Reporting Manager</td><td>Email + Portal</td><td>Immediately</td><td>Approval task created</td></tr>
+                    <tr><td><strong>Travel Request Approved</strong></td><td>Employee, Travel Desk</td><td>Push + Email</td><td>Immediately</td><td>Booking process enabled</td></tr>
+                    <tr><td><strong>Travel Request Rejected</strong></td><td>Employee</td><td>Push + Email</td><td>Immediately</td><td>Reason shown</td></tr>
+                    <tr><td><strong>Booking Confirmed</strong></td><td>Employee</td><td>Email + Push</td><td>On confirmation</td><td>Itinerary attached, calendar blocked</td></tr>
+                    <tr><td><strong>Advance Disbursed</strong></td><td>Employee</td><td>Push + Email</td><td>On disbursement</td><td>Outstanding balance updated</td></tr>
+                    <tr><td><strong>Trip Completion Reminder</strong></td><td>Employee</td><td>Push + Email</td><td>1 day after return date</td><td>Claim submission prompt</td></tr>
+                    <tr><td><strong>Claim Submission Deadline Approaching</strong></td><td>Employee</td><td>Push + Email</td><td>3 / 1 days before TAT deadline</td><td>—</td></tr>
+                    <tr><td><strong>Expense Claim Submitted</strong></td><td>Reporting Manager</td><td>Email + Portal</td><td>Immediately</td><td>Approval task created</td></tr>
+                    <tr><td><strong>Policy Violation Flagged</strong></td><td>Employee, Manager</td><td>Push + Email</td><td>On submission</td><td>Justification requested</td></tr>
+                    <tr><td><strong>Claim Escalated to Finance</strong></td><td>Finance Team</td><td>Email + Portal</td><td>On threshold breach</td><td>High-value review task created</td></tr>
+                    <tr><td><strong>Claim Approved</strong></td><td>Employee</td><td>Push + Email</td><td>Immediately</td><td>Net payable confirmed</td></tr>
+                    <tr><td><strong>Claim Rejected</strong></td><td>Employee</td><td>Push + Email</td><td>Immediately</td><td>Resubmission window opened</td></tr>
+                    <tr><td><strong>Reimbursement Processed</strong></td><td>Employee</td><td>Push + Email + SMS</td><td>On disbursement</td><td>Amount credited notification</td></tr>
+                    <tr><td><strong>Advance Settlement Reminder</strong></td><td>Employee</td><td>Email + Push</td><td>15 / 7 / 1 days before deadline</td><td>—</td></tr>
+                    <tr><td><strong>Advance Overdue - Recovery Initiated</strong></td><td>Employee, HR Admin, Payroll</td><td>Email</td><td>On deadline breach</td><td>Payroll recovery flag set</td></tr>
+                    <tr><td><strong>Visa/Passport Expiry Alert</strong></td><td>Employee, HR Admin</td><td>Email</td><td>60 / 30 days before expiry</td><td>—</td></tr>
+                    <tr><td><strong>Monthly T&E Budget Threshold Alert</strong></td><td>HOD, Finance</td><td>Email</td><td>At 80% budget utilization</td><td>—</td></tr>
+                    <tr><td><strong>Repeated Policy Violation Alert</strong></td><td>HR Admin, Manager</td><td>Email</td><td>On 3rd violation in quarter</td><td>Counselling flag raised</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 13. REPORTS ===== -->
+    <div class="section">
+        <div class="section-header g-dark">
+            <span style="font-size:28px">📊</span>
+            <div>
+                <h2>13.0 Reports & Analytics — Travel & Expense Module</h2>
+                <p>T&E spend visibility, policy compliance aur budget tracking</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div style="overflow-x:auto;">
+                <table class="field-table">
+                    <tr><th>#</th><th>Report Name</th><th>Filters</th><th>Key Metrics</th><th>Format</th><th>Access</th><th>Frequency</th></tr>
+                    <tr><td>1</td><td><strong>Department-wise Travel Spend</strong></td><td>Month, Dept</td><td>Total spend, avg cost per trip</td><td>Excel, Chart</td><td>HR Admin, Finance</td><td>Monthly</td></tr>
+                    <tr><td>2</td><td><strong>Employee Travel Frequency Report</strong></td><td>Employee, Date range</td><td>Trip count, total days traveled</td><td>Excel</td><td>HR Admin, Manager</td><td>Quarterly</td></tr>
+                    <tr><td>3</td><td><strong>Budget vs Actual Travel Cost</strong></td><td>Dept, Project, Month</td><td>Variance %, over/under budget flag</td><td>Excel, Chart</td><td>Finance, HOD</td><td>Monthly</td></tr>
+                    <tr><td>4</td><td><strong>Most Visited Cities/Countries</strong></td><td>Date range, Dept</td><td>Frequency ranking, cost by destination</td><td>Excel, Chart</td><td>HR Admin, Finance</td><td>Quarterly</td></tr>
+                    <tr><td>5</td><td><strong>Policy Violation Report</strong></td><td>Employee, Dept, Category</td><td>Violation count, exception approvals</td><td>Excel</td><td>HR Admin, Compliance</td><td>Monthly</td></tr>
+                    <tr><td>6</td><td><strong>Pending Advance Report</strong></td><td>Employee, Aging</td><td>Outstanding balance, days overdue</td><td>Excel</td><td>Finance, HR Admin</td><td>Weekly</td></tr>
+                    <tr><td>7</td><td><strong>Monthly T&E Dashboard</strong></td><td>Month, Entity</td><td>Total spend, claim count, TAT summary</td><td>Live Dashboard</td><td>CHRO, CFO</td><td>Real-time</td></tr>
+                    <tr><td>8</td><td><strong>Project-wise Cost Allocation</strong></td><td>Project, Client</td><td>Billable vs non-billable expense split</td><td>Excel</td><td>Finance, Project Manager</td><td>Monthly</td></tr>
+                    <tr><td>9</td><td><strong>Reimbursement TAT Report</strong></td><td>Dept, Approver</td><td>Avg days from submission to payout</td><td>Excel</td><td>HR Admin, Finance</td><td>Monthly</td></tr>
+                    <tr><td>10</td><td><strong>Claim Rejection Analysis</strong></td><td>Employee, Category, Reason</td><td>Rejection rate & top reasons</td><td>Excel, Chart</td><td>HR Admin</td><td>Monthly</td></tr>
+                    <tr><td>11</td><td><strong>GST / Input Tax Credit Report</strong></td><td>Month, Vendor</td><td>ITC-eligible amount by category</td><td>Excel</td><td>Finance Team</td><td>Monthly</td></tr>
+                    <tr><td>12</td><td><strong>Credit Card Reconciliation Report</strong></td><td>Employee, Month</td><td>Matched vs unmatched transactions</td><td>Excel</td><td>Finance Team</td><td>Monthly</td></tr>
+                    <tr><td>13</td><td><strong>Category-wise Spend Analysis</strong></td><td>Category, Dept, Date range</td><td>Spend breakup by expense category</td><td>Excel, Chart</td><td>Finance, HR Admin</td><td>Monthly</td></tr>
+                    <tr><td>14</td><td><strong>International Travel Compliance Report</strong></td><td>Employee, Country</td><td>Visa status, insurance coverage, forex usage</td><td>Excel</td><td>HR Admin, Compliance</td><td>Quarterly</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 14. DATABASE ===== -->
+    <div class="section">
+        <div class="section-header g-purple">
+            <span style="font-size:28px">🗄️</span>
+            <div>
+                <h2>14.0 Database Design — Travel & Expense Module</h2>
+                <p>Key tables aur relationships</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">-- Travel Request</span>
+CREATE TABLE <span class="api-url">travel_requests</span> (
+  <span class="api-key">request_id</span>        VARCHAR(20) PK,
+  <span class="api-key">emp_id</span>            VARCHAR(20) FK (employees),
+  <span class="api-key">travel_type</span>       ENUM('Domestic','International'),
+  <span class="api-key">from_city</span>         VARCHAR(50),
+  <span class="api-key">to_city</span>           VARCHAR(50),
+  <span class="api-key">start_date</span>        DATE,
+  <span class="api-key">end_date</span>          DATE,
+  <span class="api-key">purpose</span>           VARCHAR(200),
+  <span class="api-key">project_code</span>      VARCHAR(30),
+  <span class="api-key">status</span>            ENUM('Pending','Approved',
+                       'Rejected','Completed')
+);
+
+<span style="color:#f6ad55;">-- Entitlement Master</span>
+CREATE TABLE <span class="api-url">travel_entitlement</span> (
+  <span class="api-key">entitlement_id</span>    BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">grade_band</span>        VARCHAR(20),
+  <span class="api-key">flight_class</span>      VARCHAR(30),
+  <span class="api-key">hotel_category</span>    VARCHAR(20),
+  <span class="api-key">da_metro</span>          DECIMAL(8,2),
+  <span class="api-key">da_nonmetro</span>       DECIMAL(8,2)
+);
+
+<span style="color:#f6ad55;">-- Travel Advance</span>
+CREATE TABLE <span class="api-url">travel_advance</span> (
+  <span class="api-key">advance_id</span>        VARCHAR(20) PK,
+  <span class="api-key">emp_id</span>            VARCHAR(20) FK,
+  <span class="api-key">request_id</span>        VARCHAR(20) FK,
+  <span class="api-key">amount</span>            DECIMAL(10,2),
+  <span class="api-key">disbursed_at</span>      TIMESTAMP,
+  <span class="api-key">status</span>            ENUM('Outstanding','Settled',
+                       'PartiallySettled','Recovered')
+);
+                    </div>
+                </div>
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">-- Expense Claims</span>
+CREATE TABLE <span class="api-url">expense_claims</span> (
+  <span class="api-key">claim_id</span>          VARCHAR(20) PK,
+  <span class="api-key">emp_id</span>            VARCHAR(20) FK,
+  <span class="api-key">request_id</span>        VARCHAR(20) FK,
+  <span class="api-key">total_amount</span>      DECIMAL(10,2),
+  <span class="api-key">advance_adjusted</span>  DECIMAL(10,2),
+  <span class="api-key">net_payable</span>       DECIMAL(10,2),
+  <span class="api-key">status</span>            ENUM('Draft','Submitted',
+                       'ManagerApproved','FinanceApproved',
+                       'Rejected','Reimbursed'),
+  <span class="api-key">submitted_at</span>      TIMESTAMP
+);
+
+<span style="color:#f6ad55;">-- Expense Line Items</span>
+CREATE TABLE <span class="api-url">expense_line_items</span> (
+  <span class="api-key">line_item_id</span>      BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">claim_id</span>          VARCHAR(20) FK,
+  <span class="api-key">category</span>          VARCHAR(50),
+  <span class="api-key">expense_date</span>      DATE,
+  <span class="api-key">amount</span>            DECIMAL(10,2),
+  <span class="api-key">gst_amount</span>        DECIMAL(8,2),
+  <span class="api-key">vendor_gstin</span>      VARCHAR(15),
+  <span class="api-key">bill_path</span>         VARCHAR(500),
+  <span class="api-key">is_policy_compliant</span> BOOLEAN
+);
+
+<span style="color:#f6ad55;">-- OCR Extraction Log</span>
+CREATE TABLE <span class="api-url">ocr_extraction_log</span> (
+  <span class="api-key">extraction_id</span>     BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">line_item_id</span>      BIGINT FK,
+  <span class="api-key">extracted_amount</span>  DECIMAL(10,2),
+  <span class="api-key">extracted_date</span>    DATE,
+  <span class="api-key">extracted_vendor</span>  VARCHAR(100),
+  <span class="api-key">confidence_score</span>  DECIMAL(4,2)
+);
+
+<span style="color:#f6ad55;">-- Reimbursement Batch</span>
+CREATE TABLE <span class="api-url">reimbursement_batch</span> (
+  <span class="api-key">batch_id</span>          VARCHAR(20) PK,
+  <span class="api-key">run_date</span>          DATE,
+  <span class="api-key">total_claims</span>      INT,
+  <span class="api-key">total_amount</span>      DECIMAL(12,2),
+  <span class="api-key">disbursement_mode</span> ENUM('Payroll','BankTransfer')
+);
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="background:linear-gradient(135deg,#0f2027,#2c5364);color:white;padding:30px;border-radius:16px;text-align:center;margin-bottom:20px;">
+        <div style="font-size:28px;margin-bottom:10px;">✅ Module 8 Complete</div>
+        <div style="font-size:16px;font-weight:700;background:linear-gradient(90deg,#0f2027,#203a43,#2c5364);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+            Travel & Expense Management — Full Deep Level Documentation
+        </div>
+        <div style="font-size:13px;color:#a0aec0;margin-top:8px;">
+            100+ Fields | 8 Sub-Modules | Complete RBAC | OCR Bill Capture | GST Reconciliation | Advance Management | API Specs | 14 Reports
+        </div>
+        <div style="margin-top:20px;padding:15px;background:rgba(255,255,255,0.1);border-radius:10px;display:inline-block;">
+            <div style="font-size:13px;color:#e2e8f0;">📌 Agle Module Ke Liye Ready:</div>
+            <div style="font-size:15px;font-weight:700;color:white;margin-top:5px;">Module 9: Asset Management & Module 10: Exit Management 💻</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.querySelector('.print-btn').addEventListener('click', () => window.print());
+</script>
+</body>
+</html>

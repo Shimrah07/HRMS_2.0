@@ -440,21 +440,55 @@ public class OnboardingController : ControllerBase
                 });
             }
 
-            // Map Resume as Employee Document if available
+            // ─── TASK 2: Migrate Candidate Documents to EmployeeDocuments ───
+            var docsToMigrate = new List<(DocumentType type, string name, string path)>();
+
             if (!string.IsNullOrEmpty(candidate.ResumeFilePath))
             {
-                var doc = new EmployeeDocument
-                {
-                    DocId = Guid.NewGuid(),
-                    EmployeeId = employee.EmployeeId,
-                    DocType = DocumentType.Other,
-                    DocName = Path.GetFileName(candidate.ResumeFilePath) ?? "Resume.pdf",
-                    FilePath = candidate.ResumeFilePath,
-                    IsVerified = true,
-                    UploadedAt = DateTime.UtcNow
-                };
-                _context.EmployeeDocuments.Add(doc);
+                docsToMigrate.Add((DocumentType.Other, "Resume.pdf", candidate.ResumeFilePath));
             }
+
+            if (offer != null && !string.IsNullOrEmpty(offer.LetterFilePath))
+            {
+                docsToMigrate.Add((DocumentType.Other, "Offer_Letter.pdf", offer.LetterFilePath));
+            }
+
+            // Check Onboarding Task Attachments (Aadhaar, PAN, Education, Experience certificates)
+            var onboardingTasksWithDocs = await _context.OnboardingTasks
+                .Where(t => t.OnboardingId == process.OnboardingId && !string.IsNullOrEmpty(t.AttachmentPath))
+                .ToListAsync(ct);
+
+            foreach (var taskDoc in onboardingTasksWithDocs)
+            {
+                var docType = DocumentType.Other;
+                var nameLower = taskDoc.TaskName.ToLower();
+                if (nameLower.Contains("aadhaar") || nameLower.Contains("aadhar")) docType = DocumentType.Aadhar;
+                else if (nameLower.Contains("pan")) docType = DocumentType.PAN;
+                else if (nameLower.Contains("educat") || nameLower.Contains("degree") || nameLower.Contains("marksheet")) docType = DocumentType.EducationCertificate;
+                else if (nameLower.Contains("experien") || nameLower.Contains("relieving") || nameLower.Contains("service")) docType = DocumentType.ExperienceLetter;
+
+                docsToMigrate.Add((docType, Path.GetFileName(taskDoc.AttachmentPath) ?? taskDoc.TaskName, taskDoc.AttachmentPath!));
+            }
+
+
+            foreach (var (type, name, path) in docsToMigrate)
+            {
+                bool exists = await _context.EmployeeDocuments.AnyAsync(d => d.EmployeeId == employee.EmployeeId && d.FilePath == path, ct);
+                if (!exists)
+                {
+                    _context.EmployeeDocuments.Add(new EmployeeDocument
+                    {
+                        DocId = Guid.NewGuid(),
+                        EmployeeId = employee.EmployeeId,
+                        DocType = type,
+                        DocName = name,
+                        FilePath = path,
+                        IsVerified = true,
+                        UploadedAt = DateTime.UtcNow
+                    });
+                }
+            }
+
 
             // Update onboarding status and Candidate status
             process.Status = "Completed";

@@ -104,6 +104,28 @@ public class AppDbContext : DbContext
     public DbSet<NoDuesClearing> NoDuesItems => Set<NoDuesClearing>();
     public DbSet<FnFSettlement> FnFSettlements => Set<FnFSettlement>();
 
+    // ─── Module 10: Exit Management ───────────────────────────────────────────
+    public DbSet<ExitRecord> ExitRecords => Set<ExitRecord>();
+    public DbSet<CounterOffer> CounterOffers => Set<CounterOffer>();
+    public DbSet<ExitClearance> ExitClearances => Set<ExitClearance>();
+    public DbSet<ExitInterview> ExitInterviews => Set<ExitInterview>();
+    public DbSet<FFSCalculation> FFSCalculations => Set<FFSCalculation>();
+    public DbSet<ExitDocument> ExitDocuments => Set<ExitDocument>();
+    public DbSet<SectorExitConfig> SectorExitConfigs => Set<SectorExitConfig>();
+
+
+    // ─── Module 8: Travel & Expense Management ────────────────────────────────────
+    public DbSet<TravelEntitlement> TravelEntitlements => Set<TravelEntitlement>();
+    public DbSet<TravelRequest> TravelRequests => Set<TravelRequest>();
+    public DbSet<TravelPolicyException> TravelPolicyExceptions => Set<TravelPolicyException>();
+    public DbSet<TravelBooking> TravelBookings => Set<TravelBooking>();
+    public DbSet<TravelAdvance> TravelAdvances => Set<TravelAdvance>();
+    public DbSet<ExpenseClaim> ExpenseClaims => Set<ExpenseClaim>();
+    public DbSet<ExpenseLineItem> ExpenseLineItems => Set<ExpenseLineItem>();
+    public DbSet<OcrExtractionLog> OcrExtractionLogs => Set<OcrExtractionLog>();
+    public DbSet<ReimbursementBatch> ReimbursementBatches => Set<ReimbursementBatch>();
+    public DbSet<SectorPolicyConfig> SectorPolicyConfigs => Set<SectorPolicyConfig>();
+
     // ─── Misc ─────────────────────────────────────────────────────────────────
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
@@ -394,8 +416,9 @@ public class AppDbContext : DbContext
             e.Property(x => x.Longitude).HasColumnType("decimal(9,6)");
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
             e.Property(x => x.Source).HasConversion<string>().HasMaxLength(30);
-            e.HasOne(x => x.Employee).WithMany(x => x.AttendanceRecords).HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Employee).WithMany(x => x.AttendanceRecords).HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
         });
+
 
         modelBuilder.Entity<ShiftMaster>(e => e.HasKey(x => x.ShiftId));
         modelBuilder.Entity<EmployeeShift>(e => e.HasKey(x => x.EmpShiftId));
@@ -796,5 +819,171 @@ public class AppDbContext : DbContext
         });
 
         modelBuilder.Entity<EmailTemplate>(e => e.HasKey(x => x.TemplateId));
+
+        // ─── Module 8: Travel & Expense ─────────────────────────────────────────
+        modelBuilder.Entity<TravelEntitlement>(e =>
+        {
+            e.HasKey(x => x.EntitlementId);
+            e.Property(x => x.DAMetro).HasColumnType("decimal(10,2)");
+            e.Property(x => x.DANonMetro).HasColumnType("decimal(10,2)");
+        });
+
+        modelBuilder.Entity<TravelRequest>(e =>
+        {
+            e.HasKey(x => x.RequestId);
+            e.HasIndex(x => x.TravelCode).IsUnique();
+            e.Property(x => x.TravelCode).HasMaxLength(30).IsRequired();
+            e.Property(x => x.ForexAmount).HasColumnType("decimal(12,2)");
+            e.Property(x => x.EstimatedCost).HasColumnType("decimal(12,2)");
+            e.HasOne(x => x.Employee).WithMany(x => x.TravelRequests).HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Approver).WithMany().HasForeignKey(x => x.ApproverId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<TravelPolicyException>(e =>
+        {
+            e.HasKey(x => x.ExceptionId);
+            e.Property(x => x.AdditionalCostImpact).HasColumnType("decimal(12,2)");
+            e.HasOne(x => x.TravelRequest).WithOne(x => x.PolicyException).HasForeignKey<TravelPolicyException>(x => x.TravelRequestId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TravelBooking>(e =>
+        {
+            e.HasKey(x => x.BookingId);
+            e.HasOne(x => x.TravelRequest).WithOne(x => x.Booking).HasForeignKey<TravelBooking>(x => x.TravelRequestId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TravelAdvance>(e =>
+        {
+            e.HasKey(x => x.AdvanceId);
+            e.HasIndex(x => x.AdvanceCode).IsUnique();
+            e.Property(x => x.AdvanceCode).HasMaxLength(30).IsRequired();
+            e.Property(x => x.EstimatedTripCost).HasColumnType("decimal(12,2)");
+            e.Property(x => x.AmountRequested).HasColumnType("decimal(12,2)");
+            e.Property(x => x.AmountDisbursed).HasColumnType("decimal(12,2)");
+            e.HasOne(x => x.Employee).WithMany(x => x.TravelAdvances).HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.TravelRequest).WithOne(x => x.Advance).HasForeignKey<TravelAdvance>(x => x.TravelRequestId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ExpenseClaim>(e =>
+        {
+            e.HasKey(x => x.ClaimId);
+            e.HasIndex(x => x.ClaimCode).IsUnique();
+            e.Property(x => x.ClaimCode).HasMaxLength(30).IsRequired();
+            e.Property(x => x.TotalAmount).HasColumnType("decimal(12,2)");
+            e.Property(x => x.AdvanceAdjusted).HasColumnType("decimal(12,2)");
+            e.Property(x => x.NetPayable).HasColumnType("decimal(12,2)");
+            e.HasOne(x => x.Employee).WithMany(x => x.ExpenseClaims).HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.TravelRequest).WithOne(x => x.ExpenseClaim).HasForeignKey<ExpenseClaim>(x => x.TravelRequestId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ExpenseLineItem>(e =>
+        {
+            e.HasKey(x => x.LineItemId);
+            e.Property(x => x.Amount).HasColumnType("decimal(12,2)");
+            e.Property(x => x.GstAmount).HasColumnType("decimal(10,2)");
+            e.Property(x => x.ClientMarkupPercent).HasColumnType("decimal(5,2)");
+            e.HasOne(x => x.Claim).WithMany(x => x.LineItems).HasForeignKey(x => x.ClaimId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OcrExtractionLog>(e =>
+        {
+            e.HasKey(x => x.ExtractionId);
+            e.Property(x => x.ExtractedAmount).HasColumnType("decimal(12,2)");
+            e.Property(x => x.ConfidenceScore).HasColumnType("decimal(5,2)");
+            e.HasOne(x => x.LineItem).WithOne(x => x.OcrLog).HasForeignKey<OcrExtractionLog>(x => x.LineItemId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ReimbursementBatch>(e =>
+        {
+            e.HasKey(x => x.BatchId);
+            e.HasIndex(x => x.BatchCode).IsUnique();
+            e.Property(x => x.BatchCode).HasMaxLength(30).IsRequired();
+            e.Property(x => x.TotalAmount).HasColumnType("decimal(14,2)");
+        });
+
+        modelBuilder.Entity<SectorPolicyConfig>(e =>
+        {
+            e.HasKey(x => x.SectorConfigId);
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ─── Module 10: Exit Management Fluent Mappings ──────────────────────────
+        modelBuilder.Entity<ExitRecord>(e =>
+        {
+            e.HasKey(x => x.ExitId);
+            e.HasIndex(x => new { x.EmployeeId, x.Status });
+            e.Property(x => x.ExitType).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(40);
+            e.Property(x => x.PrimaryReason).HasMaxLength(200).IsRequired();
+            e.Property(x => x.BuyoutAmount).HasColumnType("decimal(12,2)");
+            e.Property(x => x.WithdrawalStatus).HasMaxLength(30);
+            e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.ConfirmedByUser).WithMany().HasForeignKey(x => x.ConfirmedBy).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.ReportingManager).WithMany().HasForeignKey(x => x.ReportingManagerId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CounterOffer>(e =>
+        {
+            e.HasKey(x => x.OfferId);
+            e.Property(x => x.CurrentCtc).HasColumnType("decimal(12,2)");
+            e.Property(x => x.ProposedCtc).HasColumnType("decimal(12,2)");
+            e.Property(x => x.EmployeeResponse).HasConversion<string>().HasMaxLength(20);
+            e.HasOne(x => x.ExitRecord).WithMany(x => x.CounterOffers).HasForeignKey(x => x.ExitId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedById).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ExitClearance>(e =>
+        {
+            e.HasKey(x => x.ClearanceId);
+            e.Property(x => x.Department).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.DuesAmount).HasColumnType("decimal(10,2)");
+            e.HasOne(x => x.ExitRecord).WithMany(x => x.Clearances).HasForeignKey(x => x.ExitId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.ClearedByUser).WithMany().HasForeignKey(x => x.ClearedById).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ExitInterview>(e =>
+        {
+            e.HasKey(x => x.InterviewId);
+            e.Property(x => x.InterviewMode).HasMaxLength(50);
+            e.Property(x => x.WouldRecommend).HasMaxLength(50);
+            e.HasOne(x => x.ExitRecord).WithOne(x => x.ExitInterview).HasForeignKey<ExitInterview>(x => x.ExitId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<FFSCalculation>(e =>
+        {
+            e.HasKey(x => x.FFSId);
+            e.Property(x => x.PendingSalary).HasColumnType("decimal(12,2)");
+            e.Property(x => x.LeaveEncashment).HasColumnType("decimal(12,2)");
+            e.Property(x => x.Gratuity).HasColumnType("decimal(12,2)");
+            e.Property(x => x.ProRataBonus).HasColumnType("decimal(12,2)");
+            e.Property(x => x.AssetDeduction).HasColumnType("decimal(12,2)");
+            e.Property(x => x.LoanDeduction).HasColumnType("decimal(12,2)");
+            e.Property(x => x.NoticeShortfallDeduction).HasColumnType("decimal(12,2)");
+            e.Property(x => x.TdsDeduction).HasColumnType("decimal(12,2)");
+            e.Property(x => x.GrossPayable).HasColumnType("decimal(12,2)");
+            e.Property(x => x.NetPayable).HasColumnType("decimal(12,2)");
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+            e.HasOne(x => x.ExitRecord).WithOne(x => x.FFSCalculation).HasForeignKey<FFSCalculation>(x => x.ExitId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedById).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ExitDocument>(e =>
+        {
+            e.HasKey(x => x.DocumentId);
+            e.Property(x => x.DocumentType).HasConversion<string>().HasMaxLength(50);
+            e.Property(x => x.ConductRemark).HasConversion<string>().HasMaxLength(30);
+            e.HasOne(x => x.ExitRecord).WithMany(x => x.Documents).HasForeignKey(x => x.ExitId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SectorExitConfig>(e =>
+        {
+            e.HasKey(x => x.ConfigId);
+            e.HasIndex(x => new { x.CompanyId, x.SectorName }).IsUnique();
+            e.Property(x => x.SectorName).HasMaxLength(50).IsRequired();
+            e.Property(x => x.Priority).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }
+

@@ -37,7 +37,21 @@ public class LeaveApplicationService : ILeaveApplicationService
         if (dto.ToDate < dto.FromDate)
             throw new InvalidOperationException("End date cannot be prior to start date.");
 
+        // LWD Validation Enforcement (Task 5)
+        var exitRecord = await _context.ExitRecords
+            .FirstOrDefaultAsync(x => x.EmployeeId == dto.EmployeeId && x.Status != ExitStatus.Closed && x.Status != ExitStatus.Withdrawn);
+
+        if (exitRecord != null)
+        {
+            var lwd = exitRecord.ConfirmedLwd ?? exitRecord.ProposedLwd;
+            if (dto.ToDate > lwd)
+            {
+                throw new InvalidOperationException($"Leave cannot be applied beyond your Last Working Day (LWD: {lwd:dd MMM yyyy}).");
+            }
+        }
+
         // 1. Calculate Total Days
+
         decimal rawDays = (dto.ToDate.DayNumber - dto.FromDate.DayNumber) + 1;
         if (dto.IsHalfDay)
         {

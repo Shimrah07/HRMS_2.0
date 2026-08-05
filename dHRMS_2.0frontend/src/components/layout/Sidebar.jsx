@@ -98,18 +98,50 @@ const NAV_GROUPS = [
         ]
       },
       { key: '/payroll', icon: <DollarOutlined />, label: 'Payroll', permission: PERMISSIONS.PAYROLL.VIEW },
+      { 
+        key: '/travel-expense', 
+        icon: <RocketOutlined />, 
+        label: 'Travel & Expense', 
+        permission: null,
+        children: [
+          { key: '/travel-expense/travel-requests', label: 'Travel Requests' },
+          { key: '/travel-expense/policies', label: 'Policy & Entitlements' },
+          { key: '/travel-expense/expense-claims', label: 'Expense Claims' },
+          { key: '/travel-expense/approvals', label: 'Approvals & Reimbursements' },
+          { key: '/travel-expense/advances', label: 'Travel Advances' },
+          { key: '/travel-expense/sector-rules', label: 'Sector Rules' },
+          { key: '/travel-expense/reports', label: 'Analytics & Reports' }
+        ]
+      },
+      { 
+        key: '/exit-management', 
+        icon: <FileTextOutlined />, 
+        label: 'Exit Management', 
+        permission: null,
+        children: [
+          { key: '/exit-management/resignation', label: 'Resignation & Notice' },
+          { key: '/exit-management/counter-offers', label: 'Counter Offers' },
+          { key: '/exit-management/no-dues', label: 'No Dues Clearance' },
+          { key: '/exit-management/exit-interviews', label: 'Exit Interviews' },
+          { key: '/exit-management/ffs', label: 'Full & Final Settlement' },
+          { key: '/exit-management/documents', label: 'Exit Documents' },
+          { key: '/exit-management/sector-rules', label: 'Sector Rules' },
+          { key: '/exit-management/analytics', label: 'Attrition Analytics' }
+        ]
+      },
     ],
   },
+
   {
     key: 'growth',
     label: 'GROWTH',
     items: [
-      { key: '/performance', icon: <RocketOutlined />, label: 'Performance', permission: PERMISSIONS.PERFORMANCE.VIEW },
       {
         key: '/recruitment',
         icon: <BookOutlined />,
         label: 'Recruitment',
         permission: PERMISSIONS.RECRUITMENT.VIEW,
+
         children: [
           { key: '/recruitment', label: 'Manpower Requisitions' },
           { key: '/recruitment/jobs', label: 'Job Openings' },
@@ -141,7 +173,8 @@ export default function Sidebar({ isMobile }) {
   const { sidebarCollapsed, toggleSidebar, mobileDrawerOpen, closeMobileDrawer } = useUIStore()
   const { can, isSuperAdmin } = usePermission()
   const { roles } = useAuthStore()
-  const [openMenus, setOpenMenus] = useState(['/recruitment', '/attendance', '/leave'])
+  const [openMenus, setOpenMenus] = useState(['/recruitment', '/attendance', '/leave', '/travel-expense', '/exit-management'])
+
 
   const toggleMenu = (key) => {
     setOpenMenus(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])

@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRMS - Module 10: Exit Management (Offboarding)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(17,153,142,0.4);
+            z-index: 9999;
+            transition: all 0.3s;
+        }
+        .print-btn:hover { transform: translateY(-2px); }
+
+        .container { max-width: 1300px; margin: 0 auto; padding: 20px; }
+
+        /* Cover */
+        .cover {
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: white;
+            padding: 60px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .cover::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(17,153,142,0.15) 0%, transparent 70%);
+        }
+        .cover h1 { font-size: 42px; font-weight: 800; background: linear-gradient(90deg,#38ef7d,#11998e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; position: relative; }
+        .cover p { color: #a0aec0; font-size: 18px; margin-top: 10px; position: relative; }
+        .cover-badges { display: flex; justify-content: center; gap: 12px; margin-top: 25px; flex-wrap: wrap; position: relative; }
+        .cover-badge { background: rgba(255,255,255,0.1); padding: 8px 18px; border-radius: 30px; font-size: 12px; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* Section */
+        .section { background: white; border-radius: 16px; margin-bottom: 25px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .section-header { padding: 22px 30px; color: white; display: flex; align-items: center; gap: 15px; }
+        .section-header h2 { font-size: 21px; font-weight: 700; }
+        .section-header p { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+        .section-body { padding: 25px 30px; }
+
+        /* Gradients */
+        .g-green  { background: linear-gradient(135deg,#11998e,#38ef7d); }
+        .g-blue   { background: linear-gradient(135deg,#667eea,#764ba2); }
+        .g-orange { background: linear-gradient(135deg,#f7971e,#ffd200); }
+        .g-red    { background: linear-gradient(135deg,#ff416c,#ff4b2b); }
+        .g-purple { background: linear-gradient(135deg,#4776e6,#8e54e9); }
+        .g-teal   { background: linear-gradient(135deg,#0f2027,#203a43,#2c5364); }
+        .g-pink   { background: linear-gradient(135deg,#ee0979,#ff6a00); }
+        .g-dark   { background: linear-gradient(135deg,#2c3e50,#3498db); }
+        .g-maroon { background: linear-gradient(135deg,#8e0e00,#1f1c18); }
+        .g-lime   { background: linear-gradient(135deg,#56ab2f,#a8e063); }
+        .g-cyan   { background: linear-gradient(135deg,#00b4db,#0083b0); }
+
+        /* Stats */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 12px; margin: 15px 0; }
+        .stat-box { background: white; border-radius: 10px; padding: 15px; text-align: center; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stat-box .num { font-size: 28px; font-weight: 800; background: linear-gradient(135deg,#11998e,#38ef7d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-box .lbl { font-size: 11px; color: #718096; margin-top: 3px; }
+
+        /* Field Table */
+        .field-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 15px 0; }
+        .field-table th { background: #f7fafc; padding: 10px 12px; text-align: left; font-weight: 700; color: #2d3748; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+        .field-table td { padding: 9px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+        .field-table tr:nth-child(even) { background: #fafafa; }
+        .field-table tr:hover { background: #f0fff4; }
+
+        /* Badges */
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+        .b-required    { background: #fed7d7; color: #c53030; }
+        .b-optional    { background: #c6f6d5; color: #276749; }
+        .b-conditional { background: #feebc8; color: #c05621; }
+        .b-text        { background: #e9d8fd; color: #553c9a; }
+        .b-number      { background: #bee3f8; color: #2b6cb0; }
+        .b-date        { background: #fefcbf; color: #744210; }
+        .b-dropdown    { background: #fed7e2; color: #97266d; }
+        .b-file        { background: #c6f6d5; color: #22543d; }
+        .b-radio       { background: #e9d8fd; color: #44337a; }
+        .b-checkbox    { background: #b2f5ea; color: #234e52; }
+        .b-email       { background: #bee3f8; color: #1a365d; }
+        .b-mobile      { background: #feebc8; color: #7b341e; }
+        .b-textarea    { background: #e2e8f0; color: #4a5568; }
+        .b-readonly    { background: #e2e8f0; color: #4a5568; }
+        .b-auto        { background: #c6f6d5; color: #1c4532; }
+        .b-rich        { background: #fef3c7; color: #92400e; }
+        .b-critical    { background: #fc8181; color: #7b0000; }
+        .b-high        { background: #f6ad55; color: #7b341e; }
+        .b-medium      { background: #76e4f7; color: #065666; }
+        .b-low         { background: #9ae6b4; color: #1c4532; }
+        .b-toggle      { background: #d6bcfa; color: #44337a; }
+        .b-rating      { background: #fbd38d; color: #7b341e; }
+
+        /* Form Preview */
+        .form-preview { background: #f8fafc; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; }
+        .form-row { display: grid; gap: 15px; margin-bottom: 15px; }
+        .form-row.col-1 { grid-template-columns: 1fr; }
+        .form-row.col-2 { grid-template-columns: 1fr 1fr; }
+        .form-row.col-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .form-row.col-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        .form-field { display: flex; flex-direction: column; gap: 4px; }
+        .form-field label { font-size: 11px; font-weight: 700; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-field label .req { color: #e53e3e; }
+        .form-field input, .form-field select, .form-field textarea {
+            padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+            font-size: 13px; color: #2d3748; background: white;
+        }
+        .form-field textarea { resize: vertical; min-height: 80px; }
+        .form-field .hint { font-size: 10px; color: #a0aec0; }
+        .form-field .error-msg { font-size: 10px; color: #e53e3e; }
+        .form-section-title {
+            font-size: 13px; font-weight: 800; color: #11998e;
+            padding: 8px 12px; background: linear-gradient(135deg,#e6fffa,#c6f6d5);
+            border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #11998e;
+        }
+
+        /* Flow */
+        .flow-container { overflow-x: auto; padding: 10px 0; }
+        .flow-steps { display: flex; align-items: flex-start; gap: 0; min-width: max-content; }
+        .flow-step {
+            background: white; border: 2px solid #11998e; border-radius: 10px;
+            padding: 12px 14px; text-align: center; min-width: 130px;
+        }
+        .flow-step .step-num {
+            background: #11998e; color: white; width: 22px; height: 22px;
+            border-radius: 50%; font-size: 11px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; margin: 0 auto 6px;
+        }
+        .flow-step .step-title { font-size: 11px; font-weight: 700; color: #2d3748; }
+        .flow-step .step-role  { font-size: 9px; color: #11998e; font-weight: 600; margin-top: 2px; }
+        .flow-step .step-desc  { font-size: 10px; color: #718096; margin-top: 3px; }
+        .flow-arrow { color: #11998e; font-size: 22px; padding: 0 4px; margin-top: 22px; }
+        .flow-step.decision { border-color: #ed8936; background: #fffaf0; }
+        .flow-step.decision .step-num { background: #ed8936; }
+        .flow-step.decision .step-role { color: #ed8936; }
+        .flow-step.success  { border-color: #48bb78; background: #f0fff4; }
+        .flow-step.success  .step-num { background: #48bb78; }
+        .flow-step.error    { border-color: #e53e3e; background: #fff5f5; }
+        .flow-step.error    .step-num { background: #e53e3e; }
+        .flow-step.rejected { border-color: #718096; background: #f7fafc; }
+        .flow-step.rejected .step-num { background: #718096; }
+
+        /* Info / Warning / Validation boxes */
+        .info-box    { background: #e6fffa; border: 1px solid #81e6d9; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .info-box h4 { color: #234e52; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .info-box p, .info-box li { font-size: 12px; color: #234e52; }
+        .info-box ul { padding-left: 16px; }
+
+        .warning-box    { background: #fffbeb; border: 1px solid #f6e05e; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .warning-box h4 { color: #b7791f; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .warning-box p, .warning-box li { font-size: 12px; color: #7b341e; }
+        .warning-box ul { padding-left: 16px; }
+
+        .validation-box    { background: #fff5f5; border: 1px solid #fed7d7; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .validation-box h4 { color: #c53030; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .validation-box li  { font-size: 12px; color: #742a2a; padding: 2px 0; }
+        .validation-box ul  { padding-left: 16px; }
+
+        .success-box    { background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 10px; padding: 14px; margin: 10px 0; }
+        .success-box h4 { color: #276749; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .success-box li  { font-size: 12px; color: #1c4532; padding: 2px 0; }
+        .success-box ul  { padding-left: 16px; }
+
+        /* RBAC */
+        .rbac-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 15px 0; }
+        .rbac-table th { background: #2d3748; color: white; padding: 10px 10px; text-align: center; font-size: 11px; }
+        .rbac-table td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 11px; }
+        .rbac-table tr:nth-child(even) { background: #f7fafc; }
+        .rbac-table .field-name { text-align: left; font-weight: 600; color: #2d3748; font-size: 12px; }
+        .can       { color: #276749; font-size: 15px; }
+        .cannot    { color: #c53030; font-size: 15px; }
+        .view-only { color: #2b6cb0; font-size: 13px; font-weight: 700; }
+        .masked    { color: #b7791f; font-size: 10px; font-weight: 700; }
+
+        /* Kanban Board */
+        .kanban { display: flex; gap: 12px; overflow-x: auto; padding: 10px 0; }
+        .kanban-col {
+            min-width: 160px; background: #f8fafc; border-radius: 12px;
+            padding: 12px; border: 1px solid #e2e8f0; flex-shrink: 0;
+        }
+        .kanban-col-title { font-size: 12px; font-weight: 700; color: white; padding: 6px 12px; border-radius: 8px; text-align: center; margin-bottom: 10px; }
+        .kanban-card { background: white; border-radius: 8px; padding: 10px; margin-bottom: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); font-size: 11px; border-left: 3px solid; }
+        .kanban-card .kc-title { font-weight: 700; color: #2d3748; margin-bottom: 3px; }
+        .kanban-card .kc-meta { color: #718096; font-size: 10px; }
+
+        /* Pipeline Stage */
+        .pipeline { display: flex; gap: 0; margin: 15px 0; overflow-x: auto; }
+        .pipe-stage {
+            flex: 1; min-width: 100px; text-align: center; padding: 12px 8px;
+            position: relative; background: #f8fafc;
+            border-top: 3px solid #e2e8f0; border-bottom: 3px solid #e2e8f0;
+        }
+        .pipe-stage:first-child { border-radius: 10px 0 0 10px; border-left: 3px solid #e2e8f0; }
+        .pipe-stage:last-child  { border-radius: 0 10px 10px 0; border-right: 3px solid #e2e8f0; }
+        .pipe-stage.active { background: linear-gradient(135deg,#e6fffa,#c6f6d5); border-color: #11998e; }
+        .pipe-stage .ps-count { font-size: 22px; font-weight: 800; color: #11998e; }
+        .pipe-stage .ps-label { font-size: 10px; color: #718096; margin-top: 3px; font-weight: 600; }
+        .pipe-stage .ps-arrow { position: absolute; right: -8px; top: 50%; transform: translateY(-50%); background: white; border-radius: 50%; border: 2px solid #e2e8f0; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 9px; z-index: 1; }
+
+        /* Timeline */
+        .timeline { position: relative; padding: 10px 0; }
+        .timeline::before { content: ''; position: absolute; left: 18px; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom,#11998e,#38ef7d); border-radius: 2px; }
+        .tl-item { display: flex; gap: 15px; margin-bottom: 18px; padding-left: 10px; }
+        .tl-dot { width: 18px; height: 18px; border-radius: 50%; background: #11998e; flex-shrink: 0; border: 2px solid white; box-shadow: 0 0 0 2px #11998e; margin-top: 2px; }
+        .tl-content { background: white; border-radius: 10px; padding: 12px 15px; flex: 1; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .tl-content h4 { font-size: 13px; font-weight: 700; color: #2d3748; margin-bottom: 4px; }
+        .tl-content p  { font-size: 12px; color: #718096; }
+        .tl-content .tl-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .tl-tag { background: #e6fffa; color: #234e52; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+
+        /* API box */
+        .api-box { background: #1a202c; border-radius: 10px; padding: 15px; margin: 10px 0; font-family: 'Courier New', monospace; font-size: 11px; color: #68d391; overflow-x: auto; }
+        .api-method { color: #f6ad55; font-weight: 700; }
+        .api-url    { color: #90cdf4; }
+        .api-key    { color: #fc8181; }
+        .api-value  { color: #68d391; }
+
+        /* Grid */
+        .two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .four-col  { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+
+        .sub-section { background: #f8fafc; border-radius: 12px; padding: 20px; margin: 15px 0; }
+        .sub-section h3 { font-size: 16px; font-weight: 700; color: #2d3748; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+
+        /* Checklist */
+        .checklist { list-style: none; padding: 0; }
+        .checklist li { padding: 5px 0; font-size: 12px; color: #4a5568; display: flex; align-items: flex-start; gap: 8px; border-bottom: 1px solid #f0f0f0; }
+        .checklist li:last-child { border: none; }
+        .checklist li .check { color: #48bb78; font-weight: 700; flex-shrink: 0; }
+        .checklist li .cross { color: #e53e3e; font-weight: 700; flex-shrink: 0; }
+        .checklist li .warn  { color: #ed8936; font-weight: 700; flex-shrink: 0; }
+
+        /* Score card */
+        .score-card { background: white; border-radius: 12px; padding: 15px; border: 1px solid #e2e8f0; }
+        .score-row  { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+        .score-row .sc-label { color: #4a5568; }
+        .score-row .sc-score { font-weight: 700; color: #11998e; }
+        .score-bar  { height: 6px; background: #e2e8f0; border-radius: 3px; margin-top: 3px; }
+        .score-fill { height: 100%; background: linear-gradient(90deg,#11998e,#38ef7d); border-radius: 3px; }
+
+        /* Status badge */
+        .status { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .s-new        { background: #bee3f8; color: #2b6cb0; }
+        .s-screen     { background: #feebc8; color: #c05621; }
+        .s-interview  { background: #e9d8fd; color: #553c9a; }
+        .s-offer      { background: #c6f6d5; color: #276749; }
+        .s-joined     { background: #9ae6b4; color: #1c4532; }
+        .s-rejected   { background: #fed7d7; color: #c53030; }
+        .s-hold       { background: #e2e8f0; color: #4a5568; }
+        .s-withdrawn  { background: #fef3c7; color: #92400e; }
+
+        /* Print */
+        @media print {
+            body { background: white; font-size: 11px; }
+            .print-btn { display: none !important; }
+            .container { max-width: 100%; padding: 0; }
+            .section { box-shadow: none; border: 1px solid #e2e8f0; break-inside: avoid; }
+            .section-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .api-box { background: #f0f0f0 !important; color: #333 !important; }
+            @page { margin: 12mm; size: A4; }
+        }
+
+        @media (max-width: 768px) {
+            .two-col, .three-col, .four-col { grid-template-columns: 1fr; }
+            .form-row.col-2, .form-row.col-3, .form-row.col-4 { grid-template-columns: 1fr; }
+            .cover { padding: 30px 20px; }
+            .cover h1 { font-size: 26px; }
+        }
+    </style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ PDF Save Karein</button>
+
+<div class="container">
+
+    <!-- ===== COVER ===== -->
+    <div class="cover">
+        <div style="font-size:64px;margin-bottom:15px;position:relative;">🚪</div>
+        <h1>Module 10: Exit Management (Offboarding)</h1>
+        <p>HRMS System — Deep Level Requirements Document</p>
+        <div class="cover-badges">
+            <span class="cover-badge">📋 110+ Fields Documented</span>
+            <span class="cover-badge">🔐 RBAC - 7 Roles</span>
+            <span class="cover-badge">🔄 8 Sub-Modules</span>
+            <span class="cover-badge">✅ Full Validations</span>
+            <span class="cover-badge">📝 No-Dues Clearance</span>
+            <span class="cover-badge">💰 FFS Automation</span>
+            <span class="cover-badge">🔗 14 API Endpoints</span>
+            <span class="cover-badge">📈 Attrition Analytics</span>
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+        <div class="stat-box"><div class="num">8</div><div class="lbl">Sub-Modules</div></div>
+        <div class="stat-box"><div class="num">110+</div><div class="lbl">Input Fields</div></div>
+        <div class="stat-box"><div class="num">4</div><div class="lbl">Exit Types</div></div>
+        <div class="stat-box"><div class="num">7</div><div class="lbl">User Roles</div></div>
+        <div class="stat-box"><div class="num">18</div><div class="lbl">Workflow Steps</div></div>
+        <div class="stat-box"><div class="num">15</div><div class="lbl">Reports</div></div>
+        <div class="stat-box"><div class="num">20+</div><div class="lbl">Notifications</div></div>
+        <div class="stat-box"><div class="num">8</div><div class="lbl">Sector Configs</div></div>
+    </div>
+
+    <!-- ===== 1. OVERVIEW ===== -->
+    <div class="section">
+        <div class="section-header g-red">
+            <span style="font-size:28px">📌</span>
+            <div>
+                <h2>1.0 Module Overview & Sub-Module List</h2>
+                <p>Exit Management — Resignation se relieving letter tak ka poora offboarding process</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="info-box">
+                        <h4>🎯 Module Purpose</h4>
+                        <p>Exit Management module employee ki resignation submission se lekar notice period, no-dues clearance, Full & Final Settlement (FFS), aur relieving/experience letter tak ka poora offboarding process manage karta hai. Asset (Module 9) & Payroll (Module 5) ke saath directly linked, aur exit interview data se attrition insights generate karta hai.</p>
+                    </div>
+                    <div class="info-box" style="margin-top:12px;">
+                        <h4>📦 8 Sub-Modules</h4>
+                        <ul>
+                            <li><strong>10.1</strong> Resignation & Notice Period Management</li>
+                            <li><strong>10.2</strong> Counter Offer & Retention Workflow</li>
+                            <li><strong>10.3</strong> No-Dues Clearance (Multi-Department)</li>
+                            <li><strong>10.4</strong> Exit Interview & Feedback</li>
+                            <li><strong>10.5</strong> Full & Final Settlement (FFS)</li>
+                            <li><strong>10.6</strong> Documentation (Relieving/Experience Letter)</li>
+                            <li><strong>10.7</strong> Sector-Specific Exit Configuration</li>
+                            <li><strong>10.8</strong> Attrition Dashboard & Analytics</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Key Business Rules</h4>
+                        <ul>
+                            <li>Resignation submit hone ke baad notice period auto-calculate hoti hai grade/policy ke hisaab se</li>
+                            <li>No-dues clearance sabhi departments (IT, Finance, Admin, Asset, HR) se complete hone ke baad hi FFS process hoga</li>
+                            <li>Asset recovery (Module 9) complete nahi hoga to FFS hold rahega</li>
+                            <li>FFS calculation mein sabhi pending dues (salary, leave encashment, gratuity, bonus) minus recoveries (loan, asset, notice shortfall)</li>
+                            <li>Relieving letter sirf clean exit (no-dues clear + notice period served/waived) ke baad generate hogi</li>
+                            <li>Absconding case mein alag workflow trigger hota hai — legal/disciplinary track</li>
+                            <li>Exit interview optional hai employee ke liye, lekin HR analytics ke liye completion encourage kiya jata hai</li>
+                            <li>FFS payment statutory timeline ke andar hona chahiye (typically 45 days, state-dependent)</li>
+                        </ul>
+                    </div>
+                    <div class="success-box" style="margin-top:12px;">
+                        <h4>✅ Key Metrics System Track Karega</h4>
+                        <ul>
+                            <li>Attrition Rate (Voluntary vs Involuntary)</li>
+                            <li>Average Notice Period Served vs Policy</li>
+                            <li>No-Dues Clearance TAT (Department-wise)</li>
+                            <li>FFS Processing TAT</li>
+                            <li>Exit Interview Completion Rate</li>
+                            <li>Top Exit Reasons (from feedback data)</li>
+                            <li>Regretted vs Non-Regretted Attrition</li>
+                            <li>Counter Offer Acceptance Rate</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 2. MASTER FLOW ===== -->
+    <div class="section">
+        <div class="section-header g-dark">
+            <span style="font-size:28px">🔄</span>
+            <div>
+                <h2>2.0 Master Exit Flow — End to End</h2>
+                <p>Resignation se relieving tak — poora lifecycle</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:#2d3748;">🔵 Phase 1: Resignation & Notice Period</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">1</div>
+                        <div class="step-title">Employee Submits Resignation</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Reason, last working day proposed</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">2</div>
+                        <div class="step-title">Manager Acknowledges</div>
+                        <div class="step-role">👤 Reporting Manager</div>
+                        <div class="step-desc">Accept / Discuss / Counter-offer</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">3</div>
+                        <div class="step-title">Notice Period Calculated</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">As per grade/policy (30-90 days)</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">4</div>
+                        <div class="step-title">HR Confirms Acceptance</div>
+                        <div class="step-role">👤 HR Admin</div>
+                        <div class="step-desc">Last working day finalized</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">5</div>
+                        <div class="step-title">✅ Exit Process Initiated</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Workflow tasks auto-created</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🟠 Phase 2: Clearance & Knowledge Transfer</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">6</div>
+                        <div class="step-title">Knowledge Transfer Plan</div>
+                        <div class="step-role">👤 Employee + Manager</div>
+                        <div class="step-desc">Handover documentation</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">7</div>
+                        <div class="step-title">Asset Recovery Initiated</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Trigger to Module 9</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">8</div>
+                        <div class="step-title">No-Dues Clearance Requests</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">IT, Finance, Admin, Library, etc.</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">9</div>
+                        <div class="step-title">Each Dept Clears/Flags</div>
+                        <div class="step-role">👤 Dept Owners</div>
+                        <div class="step-desc">Sign-off or pending dues raised</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">10</div>
+                        <div class="step-title">Exit Interview Scheduled</div>
+                        <div class="step-role">👤 HR Admin</div>
+                        <div class="step-desc">Online form or 1:1 discussion</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">11</div>
+                        <div class="step-title">✅ Last Working Day</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">System access deactivated</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🟢 Phase 3: Settlement & Documentation</h3>
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step decision">
+                        <div class="step-num">12</div>
+                        <div class="step-title">All Clearances Complete?</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Blocking check</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">13</div>
+                        <div class="step-title">FFS Calculation</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Dues - Recoveries = Net Payable</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">14</div>
+                        <div class="step-title">Finance Approval</div>
+                        <div class="step-role">👤 Finance Head</div>
+                        <div class="step-desc">FFS sign-off</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">15</div>
+                        <div class="step-title">FFS Payment Processed</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Bank transfer within statutory TAT</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">16</div>
+                        <div class="step-title">Relieving Letter Generated</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Signed, dated</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">17</div>
+                        <div class="step-title">Experience Letter Generated</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Tenure, designation, conduct</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">18</div>
+                        <div class="step-title">✅ Exit Closed</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Records archived, alumni status set</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pipeline View -->
+            <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;color:#2d3748;">📊 Current Exit Pipeline — Live View</h3>
+            <div class="pipeline">
+                <div class="pipe-stage">
+                    <div class="ps-count">18</div>
+                    <div class="ps-label">Resignation Submitted</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage active">
+                    <div class="ps-count">14</div>
+                    <div class="ps-label">Serving Notice Period</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">9</div>
+                    <div class="ps-label">Clearance In Progress</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">5</div>
+                    <div class="ps-label">FFS Under Process</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">3</div>
+                    <div class="ps-label">Documents Pending</div>
+                    <div class="ps-arrow">→</div>
+                </div>
+                <div class="pipe-stage">
+                    <div class="ps-count">22</div>
+                    <div class="ps-label">Exit Closed This Month</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 3. RESIGNATION & NOTICE PERIOD ===== -->
+    <div class="section">
+        <div class="section-header g-blue">
+            <span style="font-size:28px">📝</span>
+            <div>
+                <h2>3.0 Sub-Module 10.1 — Resignation & Notice Period Management</h2>
+                <p>Resignation submission, acceptance, notice period tracking</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="form-preview">
+                <div class="form-section-title">📝 Resignation Submission Form</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Resignation Type <span class="req">*</span></label>
+                        <select><option>Voluntary Resignation</option><option>Retirement</option><option>Contract End</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Proposed Last Working Day <span class="req">*</span></label>
+                        <input type="date" value="2024-03-15">
+                    </div>
+                    <div class="form-field">
+                        <label>Notice Period (as per policy)</label>
+                        <input type="text" value="60 Days" readonly style="background:#f7fafc;">
+                    </div>
+                </div>
+                <div class="form-row col-1">
+                    <div class="form-field">
+                        <label>Primary Reason for Leaving <span class="req">*</span></label>
+                        <select><option>Better Opportunity / Career Growth</option><option>Compensation</option><option>Relocation</option><option>Higher Studies</option><option>Personal/Family Reasons</option><option>Work Environment</option></select>
+                    </div>
+                </div>
+                <div class="form-row col-1">
+                    <div class="form-field">
+                        <label>Additional Comments</label>
+                        <textarea placeholder="Optional detailed reason"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sub-section" style="margin-top:15px;">
+                <h3>📅 Grade-wise Notice Period Policy</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Grade Band</th><th>Notice Period</th><th>Buy-out Allowed?</th><th>Early Release Approval</th></tr>
+                        <tr><td>Probationer</td><td>15 Days</td><td>Yes</td><td>Manager only</td></tr>
+                        <tr><td>Band A/B (Junior/Executive)</td><td>30 Days</td><td>Yes</td><td>Manager + HR</td></tr>
+                        <tr><td>Band C (Manager)</td><td>60 Days</td><td>Yes (with HOD approval)</td><td>HOD + HR</td></tr>
+                        <tr><td>Band D/E (Senior Mgmt/Leadership)</td><td>90 Days</td><td>Case-by-case</td><td>CHRO approval mandatory</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Notice Period Rules</h4>
+                        <ul>
+                            <li>Notice period auto-calculated from resignation date based on grade policy</li>
+                            <li>Early release (reduced notice) requires manager + HR approval, may involve buy-out (salary deduction for shortfall days)</li>
+                            <li>Notice period extension possible only with mutual agreement (documented)</li>
+                            <li>Absconding case (no notice, unauthorized absence) triggers separate disciplinary workflow</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="info-box">
+                        <h4>🔄 Resignation Withdrawal</h4>
+                        <ul>
+                            <li>Employee can request withdrawal before last working day, subject to manager + HR approval</li>
+                            <li>If clearance process already started, withdrawal reverses all pending exit tasks</li>
+                            <li>Withdrawal history logged for record-keeping</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 4. COUNTER OFFER & RETENTION ===== -->
+    <div class="section">
+        <div class="section-header g-orange">
+            <span style="font-size:28px">🤝</span>
+            <div>
+                <h2>4.0 Sub-Module 10.2 — Counter Offer & Retention Workflow</h2>
+                <p>Retention conversation, counter offer approval, decision tracking</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="flow-container">
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-num">1</div>
+                        <div class="step-title">Resignation Received</div>
+                        <div class="step-role">👤 Manager</div>
+                        <div class="step-desc">Regretted attrition assessment</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">2</div>
+                        <div class="step-title">Retention Worth Pursuing?</div>
+                        <div class="step-role">👤 Manager + HR</div>
+                        <div class="step-desc">Critical talent assessment</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">
+                        <div class="step-num">3</div>
+                        <div class="step-title">Retention Conversation</div>
+                        <div class="step-role">👤 Manager/HOD</div>
+                        <div class="step-desc">Understand root cause</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">4</div>
+                        <div class="step-title">Counter Offer Approval</div>
+                        <div class="step-role">👤 HOD + CHRO</div>
+                        <div class="step-desc">Compensation/role revision</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step decision">
+                        <div class="step-num">5</div>
+                        <div class="step-title">Employee Decision</div>
+                        <div class="step-role">👤 Employee</div>
+                        <div class="step-desc">Accept / Decline</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">
+                        <div class="step-num">6a</div>
+                        <div class="step-title">✅ Resignation Withdrawn</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Exit process cancelled</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step rejected">
+                        <div class="step-num">6b</div>
+                        <div class="step-title">❌ Offer Declined</div>
+                        <div class="step-role">🤖 System Auto</div>
+                        <div class="step-desc">Exit process continues</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-preview" style="margin-top:15px;">
+                <div class="form-section-title">🤝 Counter Offer Record</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Current CTC</label>
+                        <input type="text" value="₹18,00,000" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Proposed Revised CTC</label>
+                        <input type="number" value="2100000">
+                    </div>
+                    <div class="form-field">
+                        <label>Other Considerations</label>
+                        <input type="text" placeholder="Role change, promotion, project reassignment">
+                    </div>
+                </div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Approved By</label>
+                        <input type="text" value="HOD + CHRO" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Employee Response</label>
+                        <select><option>Pending</option><option>Accepted</option><option>Declined</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Response Date</label>
+                        <input type="date">
+                    </div>
+                </div>
+            </div>
+
+            <div class="warning-box" style="margin-top:15px;">
+                <h4>⚠️ Counter Offer Policy Considerations</h4>
+                <ul>
+                    <li>Counter offer decision restricted to critical/high-performer roles only (not blanket policy)</li>
+                    <li>All counter offers tracked for pattern analysis (excessive counter-offering signals retention issues)</li>
+                    <li>Accepted counter offers monitored for 6-12 months (research shows high re-attrition risk)</li>
+                    <li>Budget impact of counter offer requires Finance visibility for headcount cost planning</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 5. NO-DUES CLEARANCE ===== -->
+    <div class="section">
+        <div class="section-header g-purple">
+            <span style="font-size:28px">✅</span>
+            <div>
+                <h2>5.0 Sub-Module 10.3 — No-Dues Clearance (Multi-Department)</h2>
+                <p>Har department se sign-off — assets, finance, IT access, admin</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="sub-section">
+                <h3>📋 Department-wise Clearance Checklist</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Department</th><th>Clearance Items</th><th>Owner</th><th>TAT</th></tr>
+                        <tr><td><strong>IT Department</strong></td><td>System access revoke, email deactivation, VPN/software license removal</td><td>IT Admin</td><td>1 day (post last working day)</td></tr>
+                        <tr><td><strong>Asset Management (Module 9)</strong></td><td>Laptop, mobile, ID card, access card return</td><td>Asset Admin</td><td>Before last working day</td></tr>
+                        <tr><td><strong>Finance Department</strong></td><td>Outstanding advances, loans, corporate card dues</td><td>Finance Team</td><td>3 days</td></tr>
+                        <tr><td><strong>Admin Department</strong></td><td>Company vehicle, parking pass, library books</td><td>Admin Team</td><td>Before last working day</td></tr>
+                        <tr><td><strong>HR Department</strong></td><td>Personal file completion, policy acknowledgment status</td><td>HR Admin</td><td>2 days</td></tr>
+                        <tr><td><strong>Project/Reporting Manager</strong></td><td>Knowledge transfer completion, project handover sign-off</td><td>Reporting Manager</td><td>Before last working day</td></tr>
+                        <tr><td><strong>Facility/Security</strong></td><td>Building access card, biometric deactivation</td><td>Security Team</td><td>Last working day</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-preview">
+                <div class="form-section-title">✅ No-Dues Clearance Status Tracker</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>IT Clearance</label>
+                        <input type="text" value="✅ Cleared" readonly style="background:#f0fff4;color:#276749;font-weight:700;">
+                    </div>
+                    <div class="form-field">
+                        <label>Asset Clearance</label>
+                        <input type="text" value="⏳ Pending" readonly style="background:#fffbea;color:#b7791f;font-weight:700;">
+                    </div>
+                    <div class="form-field">
+                        <label>Finance Clearance</label>
+                        <input type="text" value="⚠️ Dues Pending" readonly style="background:#fff5f5;color:#c53030;font-weight:700;">
+                    </div>
+                    <div class="form-field">
+                        <label>Admin Clearance</label>
+                        <input type="text" value="✅ Cleared" readonly style="background:#f0fff4;color:#276749;font-weight:700;">
+                    </div>
+                </div>
+                <div class="form-row col-1">
+                    <div class="form-field">
+                        <label>Finance Dues Detail</label>
+                        <input type="text" value="Outstanding travel advance: ₹8,500 — recovery from FFS" readonly style="background:#f7fafc;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col" style="margin-top:15px;">
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ Clearance Enforcement Rules</h4>
+                        <ul>
+                            <li>FFS processing blocked until ALL department clearances are received (or explicitly waived by HR with reason)</li>
+                            <li>Each department has SLA — automated escalation to department head if overdue</li>
+                            <li>Outstanding dues auto-flagged as FFS deduction line items</li>
+                            <li>Relieving letter generation gated on 100% clearance completion</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="success-box">
+                        <h4>✅ Automated Clearance Features</h4>
+                        <ul>
+                            <li>Auto-triggered clearance requests to all relevant departments on exit initiation</li>
+                            <li>Real-time dashboard showing clearance status across departments</li>
+                            <li>Digital sign-off (no physical paper clearance form needed)</li>
+                            <li>Consolidated no-dues certificate auto-generated once all cleared</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 6. EXIT INTERVIEW & FEEDBACK ===== -->
+    <div class="section">
+        <div class="section-header g-teal">
+            <span style="font-size:28px">💬</span>
+            <div>
+                <h2>6.0 Sub-Module 10.4 — Exit Interview & Feedback</h2>
+                <p>Online exit form, structured feedback, attrition insight capture</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="form-preview">
+                <div class="form-section-title">💬 Exit Interview Form</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Interview Mode</label>
+                        <select><option>Online Self-Service Form</option><option>1:1 with HR</option><option>Skip Level Discussion</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Overall Experience Rating</label>
+                        <select><option>5 - Excellent</option><option>4 - Good</option><option>3 - Average</option><option>2 - Poor</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Would Recommend Company?</label>
+                        <select><option>Definitely Yes</option><option>Probably Yes</option><option>Probably Not</option><option>Definitely Not</option></select>
+                    </div>
+                </div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Manager Relationship Rating</label>
+                        <select><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Growth Opportunity Rating</label>
+                        <select><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Compensation Satisfaction</label>
+                        <select><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Work-Life Balance Rating</label>
+                        <select><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select>
+                    </div>
+                </div>
+                <div class="form-row col-1">
+                    <div class="form-field">
+                        <label>What could we have done differently?</label>
+                        <textarea placeholder="Open feedback"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col" style="margin-top:15px;">
+                <div>
+                    <div class="info-box">
+                        <h4>📊 Regretted vs Non-Regretted Attrition</h4>
+                        <ul>
+                            <li>Manager tags exit as "Regretted" (high performer, hard to replace) or "Non-Regretted"</li>
+                            <li>Regretted attrition triggers deeper root-cause analysis by HR</li>
+                            <li>Trend tracked separately for talent retention strategy</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="success-box">
+                        <h4>✅ Confidentiality & Analytics</h4>
+                        <ul>
+                            <li>Individual responses confidential; aggregated trends shared with leadership</li>
+                            <li>Sentiment analysis on open-text feedback for theme identification</li>
+                            <li>Exit feedback data feeds into engagement survey action planning</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 7. FULL & FINAL SETTLEMENT ===== -->
+    <div class="section">
+        <div class="section-header g-maroon">
+            <span style="font-size:28px">💰</span>
+            <div>
+                <h2>7.0 Sub-Module 10.5 — Full & Final Settlement (FFS)</h2>
+                <p>Dues, recoveries, gratuity, PF — final payout calculation</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="sub-section">
+                <h3>💰 FFS Calculation Components</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Component</th><th>Type</th><th>Calculation Basis</th></tr>
+                        <tr><td><strong>Pending Salary (Last Month)</strong></td><td>Addition</td><td>Days worked in exit month × per-day rate</td></tr>
+                        <tr><td><strong>Leave Encashment</strong></td><td>Addition</td><td>Encashable EL balance × per-day rate (Module 4 sync)</td></tr>
+                        <tr><td><strong>Gratuity</strong></td><td>Addition</td><td>(Last Basic+DA × 15 × Years of Service) / 26, if &gt;5 yrs service</td></tr>
+                        <tr><td><strong>Pending Bonus/Incentive</strong></td><td>Addition</td><td>Pro-rata for period worked, if eligible</td></tr>
+                        <tr><td><strong>Notice Period Shortfall Recovery</strong></td><td>Deduction</td><td>Per-day salary × shortfall days (if early release without buy-out)</td></tr>
+                        <tr><td><strong>Asset Recovery Cost</strong></td><td>Deduction</td><td>From Module 9 — unreturned/damaged assets</td></tr>
+                        <tr><td><strong>Outstanding Loan/Advance</strong></td><td>Deduction</td><td>Remaining balance of employee loans/travel advances</td></tr>
+                        <tr><td><strong>TDS on Final Settlement</strong></td><td>Deduction</td><td>As per applicable tax slab on total taxable component</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-preview">
+                <div class="form-section-title">💰 FFS Calculation Sheet</div>
+                <div class="form-row col-4">
+                    <div class="form-field">
+                        <label>Pending Salary</label>
+                        <input type="text" value="₹42,000" readonly style="background:#f0fff4;color:#276749;">
+                    </div>
+                    <div class="form-field">
+                        <label>Leave Encashment</label>
+                        <input type="text" value="₹18,750" readonly style="background:#f0fff4;color:#276749;">
+                    </div>
+                    <div class="form-field">
+                        <label>Gratuity</label>
+                        <input type="text" value="₹1,15,384" readonly style="background:#f0fff4;color:#276749;">
+                    </div>
+                    <div class="form-field">
+                        <label>Pro-rata Bonus</label>
+                        <input type="text" value="₹22,000" readonly style="background:#f0fff4;color:#276749;">
+                    </div>
+                </div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Asset Recovery Deduction</label>
+                        <input type="text" value="-₹18,500" readonly style="background:#fff5f5;color:#c53030;">
+                    </div>
+                    <div class="form-field">
+                        <label>Outstanding Advance</label>
+                        <input type="text" value="-₹8,500" readonly style="background:#fff5f5;color:#c53030;">
+                    </div>
+                    <div class="form-field">
+                        <label>TDS Deduction</label>
+                        <input type="text" value="-₹12,400" readonly style="background:#fff5f5;color:#c53030;">
+                    </div>
+                </div>
+                <div class="form-row col-1" style="margin-top:10px;">
+                    <div class="form-field">
+                        <label>Net FFS Payable</label>
+                        <input type="text" value="₹1,58,734" readonly style="background:#e6fffa;color:#234e52;font-weight:700;font-size:16px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col" style="margin-top:15px;">
+                <div>
+                    <div class="warning-box">
+                        <h4>⚠️ FFS Processing Rules</h4>
+                        <ul>
+                            <li>FFS calculation cannot start until all no-dues clearances are complete</li>
+                            <li>Gratuity payable only if service ≥ 5 years (exception: death/disability)</li>
+                            <li>Statutory timeline for FFS payment: typically within 45 days of last working day (state-dependent, e.g. Karnataka mandates 2 days)</li>
+                            <li>PF withdrawal/transfer processed separately via EPFO portal (employee-initiated, HR facilitates)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="success-box">
+                        <h4>✅ Approval & Payment Flow</h4>
+                        <ul>
+                            <li>FFS statement reviewed and approved by Finance Head before payment</li>
+                            <li>Payment via bank transfer, with detailed FFS statement shared to employee</li>
+                            <li>Form 16 for the exit financial year issued separately post year-end</li>
+                            <li>PF Form 19/10C guidance provided to employee for withdrawal</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 8. DOCUMENTATION ===== -->
+    <div class="section">
+        <div class="section-header g-pink">
+            <span style="font-size:28px">📄</span>
+            <div>
+                <h2>8.0 Sub-Module 10.6 — Documentation (Relieving/Experience Letter)</h2>
+                <p>Auto-generated exit documents — legally compliant, digitally signed</p>
+            </div>
+        </div>
+        <div class="section-body">
+
+            <div class="sub-section">
+                <h3>📄 Exit Document Master</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Document</th><th>Purpose</th><th>Trigger</th><th>Format</th></tr>
+                        <tr><td><strong>Acceptance of Resignation Letter</strong></td><td>Formal acknowledgment of resignation</td><td>On HR confirmation</td><td>PDF</td></tr>
+                        <tr><td><strong>Relieving Letter</strong></td><td>Confirms employee relieved of duties on LWD</td><td>Post no-dues clearance complete</td><td>PDF, digitally signed</td></tr>
+                        <tr><td><strong>Experience Letter</strong></td><td>Tenure, designation, role summary for future employers</td><td>Post relieving letter</td><td>PDF, digitally signed</td></tr>
+                        <tr><td><strong>Full & Final Settlement Statement</strong></td><td>Detailed FFS breakup</td><td>Post FFS approval</td><td>PDF</td></tr>
+                        <tr><td><strong>Form 16 (Exit FY)</strong></td><td>TDS certificate for the exit financial year</td><td>Year-end (post exit FY closure)</td><td>PDF</td></tr>
+                        <tr><td><strong>PF Transfer/Withdrawal Guidance</strong></td><td>Form 19/10C reference for employee self-service</td><td>On request</td><td>PDF + EPFO portal link</td></tr>
+                        <tr><td><strong>No-Objection Certificate (NOC)</strong></td><td>For specific cases (bond period, loan clearance)</td><td>On request, if applicable</td><td>PDF</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-preview">
+                <div class="form-section-title">📄 Relieving Letter — Key Fields</div>
+                <div class="form-row col-3">
+                    <div class="form-field">
+                        <label>Employee Name & ID</label>
+                        <input type="text" value="Rahul Verma - EMP1089" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Designation</label>
+                        <input type="text" value="Senior Analyst" readonly style="background:#f7fafc;">
+                    </div>
+                    <div class="form-field">
+                        <label>Date of Joining - Last Working Day</label>
+                        <input type="text" value="12-Jun-2021 to 15-Mar-2024" readonly style="background:#f7fafc;">
+                    </div>
+                </div>
+                <div class="form-row col-2">
+                    <div class="form-field">
+                        <label>Conduct Remark</label>
+                        <select><option>Satisfactory</option><option>Good</option><option>Not Applicable</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Digital Signatory</label>
+                        <input type="text" value="HR Head - Auto e-signed" readonly style="background:#f7fafc;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="warning-box" style="margin-top:15px;">
+                <h4>⚠️ Documentation Rules</h4>
+                <ul>
+                    <li>Relieving letter cannot be generated until 100% no-dues clearance is confirmed</li>
+                    <li>Absconding cases receive a different document (no relieving letter — service termination record instead)</li>
+                    <li>All exit documents digitally signed and stored in employee's permanent record (accessible post-exit via alumni portal)</li>
+                    <li>Documents available for re-download by ex-employee for a defined retention period (e.g. 7 years)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 9. SECTOR-SPECIFIC ===== -->
+    <div class="section">
+        <div class="section-header g-lime">
+            <span style="font-size:28px">🏭</span>
+            <div>
+                <h2>9.0 Sub-Module 10.7 — Sector-Specific Exit Configuration</h2>
+                <p>Har industry ki alag exit zaroorat — configurable offboarding templates</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="sub-section">
+                <h3>🏭 Sector-Wise Exit Matrix</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Sector</th><th>Special Requirement</th><th>Configuration</th><th>Priority</th></tr>
+                        <tr><td>IT / Software</td><td>IP/data security clearance, code repository access revoke</td><td>Immediate access revoke on LWD, NDA reminder</td><td><span class="badge b-critical">Critical</span></td></tr>
+                        <tr><td>Manufacturing / Factory</td><td>Factory-specific exit clearance (tools, safety equipment)</td><td>Shop-floor asset return checklist</td><td><span class="badge b-high">High</span></td></tr>
+                        <tr><td>Healthcare / Hospital</td><td>Clinical handover, patient record access revoke</td><td>Medical council intimation (if applicable)</td><td><span class="badge b-critical">Critical</span></td></tr>
+                        <tr><td>BFSI (Banking/Finance)</td><td>Regulatory reporting of key personnel exit, fidelity bond closure</td><td>Compliance notification to regulator (if senior role)</td><td><span class="badge b-critical">Critical</span></td></tr>
+                        <tr><td>Sales / Field Force</td><td>Client relationship handover, non-compete considerations</td><td>Client transition plan mandatory</td><td><span class="badge b-high">High</span></td></tr>
+                        <tr><td>Government / PSU</td><td>Pension processing, vigilance clearance, government asset return</td><td>Pension fund transfer, formal vigilance NOC</td><td><span class="badge b-critical">Critical</span></td></tr>
+                        <tr><td>Consulting</td><td>Client project transition, billing closure</td><td>Client notification workflow, project reassignment</td><td><span class="badge b-high">High</span></td></tr>
+                        <tr><td>Retail / FMCG</td><td>Store-level clearance, cash/inventory reconciliation</td><td>Store manager sign-off for cash handlers</td><td><span class="badge b-medium">Medium</span></td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <div class="info-box">
+                        <h4>🏛️ Government / PSU — Retirement/Exit Process</h4>
+                        <ul>
+                            <li>Pension processing (if applicable) initiated well before retirement date</li>
+                            <li>Vigilance clearance mandatory before final settlement for certain grades</li>
+                            <li>Government quarters/accommodation vacation clearance (if provided)</li>
+                            <li>Service book updation and PPO (Pension Payment Order) processing</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="info-box">
+                        <h4>💻 IT / Software — Data Security Exit</h4>
+                        <ul>
+                            <li>Immediate revocation of code repository, production system access</li>
+                            <li>Data loss prevention (DLP) audit on exit trigger for sensitive roles</li>
+                            <li>Non-disclosure/non-compete agreement reminder issued formally</li>
+                            <li>Device wipe confirmation before laptop reallocation</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 10. RBAC ===== -->
+    <div class="section">
+        <div class="section-header g-maroon">
+            <span style="font-size:28px">🔐</span>
+            <div>
+                <h2>10.0 RBAC — Exit Module Access Control</h2>
+                <p>Kaun kya kar sakta hai — field level aur action level permissions</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="sub-section">
+                <h3>👥 Exit Module — Role Definitions</h3>
+                <div style="overflow-x:auto;">
+                    <table class="field-table">
+                        <tr><th>Role</th><th>Who</th><th>Scope</th><th>Key Permissions</th></tr>
+                        <tr><td><strong>R01 - HR Admin</strong></td><td>Central HR / CHRO</td><td>All exiting employees</td><td>Full CRUD. Configure policy, override clearance, approve FFS</td></tr>
+                        <tr><td><strong>R02 - Reporting Manager</strong></td><td>Team lead / Department Head</td><td>Own team exits</td><td>Acknowledge resignation, counter offer, knowledge transfer sign-off</td></tr>
+                        <tr><td><strong>R03 - Employee (Exiting)</strong></td><td>Resigning employee</td><td>Own exit record</td><td>Submit resignation, exit interview, view FFS status</td></tr>
+                        <tr><td><strong>R04 - Finance Team</strong></td><td>Finance / Accounts</td><td>FFS & dues data</td><td>Approve FFS, process payment, clear finance dues</td></tr>
+                        <tr><td><strong>R05 - Asset Admin</strong></td><td>IT/Admin Manager</td><td>Asset clearance only</td><td>Confirm asset recovery status (Module 9 integration)</td></tr>
+                        <tr><td><strong>R06 - IT/Security Admin</strong></td><td>IT Team</td><td>Access clearance only</td><td>Deactivate system access, confirm IT clearance</td></tr>
+                        <tr><td><strong>R07 - Auditor</strong></td><td>Internal/External auditor</td><td>Read-only, all exit data</td><td>View audit trail, export reports, no edit rights</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <h3 style="font-size:15px;font-weight:700;margin:20px 0 12px;color:#2d3748;">🔑 RBAC Matrix — Exit Actions</h3>
+            <div style="overflow-x:auto;">
+                <table class="rbac-table">
+                    <tr>
+                        <th style="text-align:left;min-width:200px;">Action / Feature</th>
+                        <th>HR<br>Admin</th>
+                        <th>Manager</th>
+                        <th>Employee</th>
+                        <th>Finance</th>
+                        <th>Asset<br>Admin</th>
+                        <th>IT Admin</th>
+                        <th>Auditor</th>
+                    </tr>
+                    <tr style="background:#eef2ff;">
+                        <td class="field-name" colspan="8" style="font-size:11px;font-weight:800;color:#667eea;padding:6px 10px;">📝 RESIGNATION & NOTICE</td>
+                    </tr>
+                    <tr><td class="field-name">Submit Resignation</td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Acknowledge/Approve Notice</td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Approve Early Release/Buy-out</td><td><span class="can">✏️</span></td><td><span class="view-only">V</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr style="background:#f0fff4;">
+                        <td class="field-name" colspan="8" style="font-size:11px;font-weight:800;color:#276749;padding:6px 10px;">✅ CLEARANCE & INTERVIEW</td>
+                    </tr>
+                    <tr><td class="field-name">Confirm Dept Clearance</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Conduct Exit Interview</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr style="background:#fff5f5;">
+                        <td class="field-name" colspan="8" style="font-size:11px;font-weight:800;color:#c53030;padding:6px 10px;">💰 FFS & DOCUMENTATION</td>
+                    </tr>
+                    <tr><td class="field-name">Calculate/Approve FFS</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">Generate Relieving/Exp Letter</td><td><span class="can">✏️</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td></tr>
+                    <tr><td class="field-name">View Own Exit Status</td><td><span class="can">✏️</span></td><td><span class="view-only">Team</span></td><td><span class="view-only">Own</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">V</span></td></tr>
+                    <tr><td class="field-name">View Attrition Analytics</td><td><span class="can">✏️</span></td><td><span class="view-only">Team</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="cannot">🔒</span></td><td><span class="view-only">V</span></td></tr>
+                </table>
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:15px;flex-wrap:wrap;font-size:12px;">
+                <div style="display:flex;align-items:center;gap:6px;"><span class="can">✏️</span> = Full Access (Create, Edit, Delete)</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="view-only">V</span> = View Only</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="cannot">🔒</span> = No Access</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="view-only">Own</span> = Only own data</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 11. API SPECS ===== -->
+    <div class="section">
+        <div class="section-header g-teal">
+            <span style="font-size:28px">🔗</span>
+            <div>
+                <h2>11.0 API Specifications — Exit Module</h2>
+                <p>REST API endpoints for frontend, mobile app and integrations</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">// Resignation APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/exit/resignation</span>
+<span style="color:#a0aec0;">// Submit resignation</span>
+<span class="api-key">Body:</span> <span class="api-value">{ emp_id, proposed_lwd, reason }</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/exit/{emp_id}/notice-period</span>
+<span style="color:#a0aec0;">// Calculate applicable notice period</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/exit/{id}/confirm-lwd</span>
+<span style="color:#a0aec0;">// HR confirms last working day</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/exit/{id}/withdraw</span>
+<span style="color:#a0aec0;">// Employee withdraws resignation</span>
+
+<span style="color:#f6ad55;">// Counter Offer APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/exit/{id}/counter-offer</span>
+<span style="color:#a0aec0;">// Record counter offer</span>
+
+<span style="color:#f6ad55;">// Clearance APIs</span>
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/exit/{id}/clearance-status</span>
+<span style="color:#a0aec0;">// All department clearance status</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/exit/{id}/clearance/{dept}/approve</span>
+<span style="color:#a0aec0;">// Department confirms clearance</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">// Exit Interview APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/exit/{id}/interview</span>
+<span style="color:#a0aec0;">// Submit exit interview responses</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/exit/interview-analytics?dept=Sales</span>
+<span style="color:#a0aec0;">// Aggregated exit feedback trends</span>
+
+<span style="color:#f6ad55;">// FFS APIs</span>
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/exit/{id}/ffs-calculate</span>
+<span style="color:#a0aec0;">// Calculate FFS (post clearance)</span>
+
+<span class="api-method">PUT</span>    <span class="api-url">/api/v1/exit/{id}/ffs-approve</span>
+<span style="color:#a0aec0;">// Finance approves FFS</span>
+
+<span class="api-method">POST</span>   <span class="api-url">/api/v1/exit/{id}/ffs-disburse</span>
+<span style="color:#a0aec0;">// Process final payment</span>
+
+<span style="color:#f6ad55;">// Documentation APIs</span>
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/exit/{id}/relieving-letter</span>
+<span style="color:#a0aec0;">// Generate relieving letter PDF</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/exit/{id}/experience-letter</span>
+<span style="color:#a0aec0;">// Generate experience letter PDF</span>
+
+<span class="api-method">GET</span>    <span class="api-url">/api/v1/exit/attrition-summary?quarter=Q4-2024</span>
+<span style="color:#a0aec0;">// Attrition analytics data</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 12. NOTIFICATIONS ===== -->
+    <div class="section">
+        <div class="section-header g-green">
+            <span style="font-size:28px">🔔</span>
+            <div>
+                <h2>12.0 Notifications & Triggers — Exit Module</h2>
+                <p>Every event ka auto notification — email, portal, push</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div style="overflow-x:auto;">
+                <table class="field-table">
+                    <tr><th>Event</th><th>To Whom</th><th>Channel</th><th>Timing</th><th>Auto Action</th></tr>
+                    <tr><td><strong>Resignation Submitted</strong></td><td>Reporting Manager, HR Admin</td><td>Email + Portal</td><td>Immediately</td><td>Acknowledgment task created</td></tr>
+                    <tr><td><strong>Resignation Accepted</strong></td><td>Employee</td><td>Email</td><td>On acceptance</td><td>Acceptance letter generated</td></tr>
+                    <tr><td><strong>Exit Process Initiated</strong></td><td>All relevant departments</td><td>Email + Portal</td><td>On LWD confirmation</td><td>Clearance tasks auto-created</td></tr>
+                    <tr><td><strong>Counter Offer Proposed</strong></td><td>Employee</td><td>Email + Portal</td><td>On proposal</td><td>Response window opened</td></tr>
+                    <tr><td><strong>Resignation Withdrawn</strong></td><td>Manager, HR Admin, All Depts</td><td>Email</td><td>Immediately</td><td>Exit workflow cancelled</td></tr>
+                    <tr><td><strong>Clearance Request Sent</strong></td><td>Respective Department Owner</td><td>Email + Portal</td><td>On exit initiation</td><td>Task assigned with SLA</td></tr>
+                    <tr><td><strong>Clearance Overdue</strong></td><td>Department Head, HR Admin</td><td>Email (Escalation)</td><td>On SLA breach</td><td>Escalation flag raised</td></tr>
+                    <tr><td><strong>Asset Not Returned Reminder</strong></td><td>Employee, Asset Admin</td><td>Push + Email</td><td>3 days before LWD</td><td>—</td></tr>
+                    <tr><td><strong>Exit Interview Invitation</strong></td><td>Employee</td><td>Email + Portal</td><td>1 week before LWD</td><td>Form link shared</td></tr>
+                    <tr><td><strong>Last Working Day Reminder</strong></td><td>Employee, Manager, HR Admin</td><td>Email</td><td>3 / 1 days before LWD</td><td>—</td></tr>
+                    <tr><td><strong>System Access Deactivated</strong></td><td>IT Admin, HR Admin</td><td>Email</td><td>On LWD</td><td>Access logs archived</td></tr>
+                    <tr><td><strong>All Clearances Complete</strong></td><td>HR Admin, Finance</td><td>Email + Portal</td><td>On completion</td><td>FFS calculation enabled</td></tr>
+                    <tr><td><strong>FFS Calculated - Review Ready</strong></td><td>Finance Head</td><td>Email + Portal</td><td>On calculation</td><td>Approval task created</td></tr>
+                    <tr><td><strong>FFS Approved</strong></td><td>Employee, Payroll Admin</td><td>Email</td><td>On approval</td><td>Payment processing triggered</td></tr>
+                    <tr><td><strong>FFS Payment Processed</strong></td><td>Employee</td><td>Push + Email + SMS</td><td>On disbursement</td><td>Settlement statement shared</td></tr>
+                    <tr><td><strong>Relieving Letter Generated</strong></td><td>Employee</td><td>Email + Portal</td><td>On generation</td><td>Downloadable from alumni portal</td></tr>
+                    <tr><td><strong>Experience Letter Generated</strong></td><td>Employee</td><td>Email + Portal</td><td>On generation</td><td>—</td></tr>
+                    <tr><td><strong>Exit Closed</strong></td><td>HR Admin, Manager</td><td>Portal</td><td>On final closure</td><td>Employee status set to Alumni</td></tr>
+                    <tr><td><strong>Absconding Case Flagged</strong></td><td>HR Admin, Legal Team</td><td>Email (Escalation)</td><td>On unauthorized absence threshold</td><td>Disciplinary workflow triggered</td></tr>
+                    <tr><td><strong>Monthly Attrition Summary</strong></td><td>CHRO, Leadership</td><td>Email</td><td>Month-end</td><td>Dashboard link shared</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 13. REPORTS ===== -->
+    <div class="section">
+        <div class="section-header g-dark">
+            <span style="font-size:28px">📊</span>
+            <div>
+                <h2>13.0 Reports & Analytics — Exit Module</h2>
+                <p>Attrition insights, clearance TAT aur FFS visibility</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div style="overflow-x:auto;">
+                <table class="field-table">
+                    <tr><th>#</th><th>Report Name</th><th>Filters</th><th>Key Metrics</th><th>Format</th><th>Access</th><th>Frequency</th></tr>
+                    <tr><td>1</td><td><strong>Attrition Rate Report</strong></td><td>Month, Dept, Grade</td><td>Voluntary/involuntary %, trend over time</td><td>Excel, Chart</td><td>CHRO, HR Admin</td><td>Monthly</td></tr>
+                    <tr><td>2</td><td><strong>Exit Pipeline Dashboard</strong></td><td>Status, Dept</td><td>Live status of all in-process exits</td><td>Live Dashboard</td><td>HR Admin</td><td>Real-time</td></tr>
+                    <tr><td>3</td><td><strong>Notice Period Compliance Report</strong></td><td>Employee, Dept</td><td>Actual vs policy notice served</td><td>Excel</td><td>HR Admin</td><td>Monthly</td></tr>
+                    <tr><td>4</td><td><strong>No-Dues Clearance TAT Report</strong></td><td>Department, Date range</td><td>Avg clearance time by department</td><td>Excel, Chart</td><td>HR Admin</td><td>Monthly</td></tr>
+                    <tr><td>5</td><td><strong>FFS Processing Report</strong></td><td>Employee, Date range</td><td>FFS amount, TAT, statutory compliance</td><td>Excel</td><td>Finance, HR Admin</td><td>Monthly</td></tr>
+                    <tr><td>6</td><td><strong>Exit Reason Analysis</strong></td><td>Dept, Grade, Date range</td><td>Top reasons for leaving, trend</td><td>Excel, Chart</td><td>CHRO, HR Admin</td><td>Quarterly</td></tr>
+                    <tr><td>7</td><td><strong>Regretted vs Non-Regretted Attrition</strong></td><td>Dept, Grade</td><td>High-performer exit tracking</td><td>Excel, Chart</td><td>CHRO, Leadership</td><td>Quarterly</td></tr>
+                    <tr><td>8</td><td><strong>Counter Offer Report</strong></td><td>Date range, Dept</td><td>Offered, accepted, declined, cost impact</td><td>Excel</td><td>HR Admin, Finance</td><td>Quarterly</td></tr>
+                    <tr><td>9</td><td><strong>Exit Interview Insights Report</strong></td><td>Dept, Manager</td><td>Rating trends, sentiment themes</td><td>Excel, Chart</td><td>HR Admin, Leadership</td><td>Quarterly</td></tr>
+                    <tr><td>10</td><td><strong>Manager-wise Attrition Report</strong></td><td>Manager, Dept</td><td>Attrition rate under each manager (outlier flag)</td><td>Excel</td><td>HR Admin, HOD</td><td>Quarterly</td></tr>
+                    <tr><td>11</td><td><strong>Tenure at Exit Report</strong></td><td>Dept, Grade</td><td>Avg tenure of exiting employees</td><td>Excel, Chart</td><td>HR Admin</td><td>Quarterly</td></tr>
+                    <tr><td>12</td><td><strong>New Hire Attrition Report</strong></td><td>Joining cohort</td><td>Exits within first 6/12 months (early attrition)</td><td>Excel</td><td>HR Admin, TA Team</td><td>Quarterly</td></tr>
+                    <tr><td>13</td><td><strong>Absconding Case Report</strong></td><td>Date range, Dept</td><td>Count, disciplinary status</td><td>Excel</td><td>HR Admin, Legal</td><td>Monthly</td></tr>
+                    <tr><td>14</td><td><strong>Recovery & Deduction Report</strong></td><td>Employee, Type</td><td>Asset/loan recovery amounts from FFS</td><td>Excel</td><td>Finance, Asset Admin</td><td>Monthly</td></tr>
+                    <tr><td>15</td><td><strong>Rehire Eligibility Report</strong></td><td>Employee</td><td>Exit conduct status, eligible for rehire flag</td><td>Excel</td><td>HR Admin, TA Team</td><td>On-demand</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 14. DATABASE ===== -->
+    <div class="section">
+        <div class="section-header g-purple">
+            <span style="font-size:28px">🗄️</span>
+            <div>
+                <h2>14.0 Database Design — Exit Module</h2>
+                <p>Key tables aur relationships</p>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="two-col">
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">-- Exit Master</span>
+CREATE TABLE <span class="api-url">exit_records</span> (
+  <span class="api-key">exit_id</span>           VARCHAR(20) PK,
+  <span class="api-key">emp_id</span>            VARCHAR(20) FK (employees),
+  <span class="api-key">resignation_date</span>  DATE,
+  <span class="api-key">proposed_lwd</span>      DATE,
+  <span class="api-key">confirmed_lwd</span>     DATE,
+  <span class="api-key">exit_type</span>         ENUM('Voluntary','Retirement',
+                       'Termination','Absconding'),
+  <span class="api-key">exit_reason</span>       VARCHAR(200),
+  <span class="api-key">is_regretted</span>      BOOLEAN,
+  <span class="api-key">status</span>            ENUM('NoticePeriod','Clearance',
+                       'FFSProcessing','Closed')
+);
+
+<span style="color:#f6ad55;">-- Counter Offer</span>
+CREATE TABLE <span class="api-url">counter_offers</span> (
+  <span class="api-key">offer_id</span>          BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">exit_id</span>           VARCHAR(20) FK,
+  <span class="api-key">proposed_ctc</span>      DECIMAL(12,2),
+  <span class="api-key">approved_by</span>       VARCHAR(20) FK,
+  <span class="api-key">employee_response</span> ENUM('Pending','Accepted',
+                       'Declined'),
+  <span class="api-key">response_date</span>     DATE
+);
+
+<span style="color:#f6ad55;">-- Department Clearance</span>
+CREATE TABLE <span class="api-url">exit_clearance</span> (
+  <span class="api-key">clearance_id</span>      BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">exit_id</span>           VARCHAR(20) FK,
+  <span class="api-key">department</span>        ENUM('IT','Asset','Finance',
+                       'Admin','HR','Manager','Security'),
+  <span class="api-key">status</span>            ENUM('Pending','Cleared',
+                       'DuesPending'),
+  <span class="api-key">dues_amount</span>       DECIMAL(10,2),
+  <span class="api-key">cleared_by</span>        VARCHAR(20) FK,
+  <span class="api-key">cleared_at</span>        TIMESTAMP
+);
+                    </div>
+                </div>
+                <div>
+                    <div class="api-box">
+<span style="color:#f6ad55;">-- Exit Interview</span>
+CREATE TABLE <span class="api-url">exit_interview</span> (
+  <span class="api-key">interview_id</span>      BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">exit_id</span>           VARCHAR(20) FK,
+  <span class="api-key">overall_rating</span>    TINYINT,
+  <span class="api-key">manager_rating</span>    TINYINT,
+  <span class="api-key">growth_rating</span>     TINYINT,
+  <span class="api-key">comp_rating</span>       TINYINT,
+  <span class="api-key">would_recommend</span>   VARCHAR(30),
+  <span class="api-key">open_feedback</span>     TEXT,
+  <span class="api-key">submitted_at</span>      TIMESTAMP
+);
+
+<span style="color:#f6ad55;">-- FFS Calculation</span>
+CREATE TABLE <span class="api-url">ffs_calculation</span> (
+  <span class="api-key">ffs_id</span>            VARCHAR(20) PK,
+  <span class="api-key">exit_id</span>           VARCHAR(20) FK,
+  <span class="api-key">pending_salary</span>    DECIMAL(10,2),
+  <span class="api-key">leave_encashment</span>  DECIMAL(10,2),
+  <span class="api-key">gratuity</span>          DECIMAL(10,2),
+  <span class="api-key">asset_deduction</span>   DECIMAL(10,2),
+  <span class="api-key">loan_deduction</span>    DECIMAL(10,2),
+  <span class="api-key">tds_deduction</span>     DECIMAL(10,2),
+  <span class="api-key">net_payable</span>       DECIMAL(10,2),
+  <span class="api-key">status</span>            ENUM('Calculated','Approved',
+                       'Disbursed'),
+  <span class="api-key">disbursed_at</span>      TIMESTAMP
+);
+
+<span style="color:#f6ad55;">-- Exit Documents</span>
+CREATE TABLE <span class="api-url">exit_documents</span> (
+  <span class="api-key">document_id</span>       BIGINT PK AUTO_INCREMENT,
+  <span class="api-key">exit_id</span>           VARCHAR(20) FK,
+  <span class="api-key">document_type</span>     ENUM('RelievingLetter',
+                       'ExperienceLetter','FFSStatement','NOC'),
+  <span class="api-key">file_path</span>         VARCHAR(500),
+  <span class="api-key">generated_at</span>      TIMESTAMP DEFAULT NOW()
+);
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="background:linear-gradient(135deg,#0f2027,#2c5364);color:white;padding:30px;border-radius:16px;text-align:center;margin-bottom:20px;">
+        <div style="font-size:28px;margin-bottom:10px;">✅ Module 10 Complete</div>
+        <div style="font-size:16px;font-weight:700;background:linear-gradient(90deg,#ff416c,#ff4b2b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+            Exit Management (Offboarding) — Full Deep Level Documentation
+        </div>
+        <div style="font-size:13px;color:#a0aec0;margin-top:8px;">
+            110+ Fields | 8 Sub-Modules | Complete RBAC | No-Dues Clearance | FFS Automation | Attrition Analytics | API Specs | 15 Reports
+        </div>
+        <div style="margin-top:20px;padding:15px;background:rgba(255,255,255,0.1);border-radius:10px;display:inline-block;">
+            <div style="font-size:13px;color:#e2e8f0;">📌 Agle Module Ke Liye Ready:</div>
+            <div style="font-size:15px;font-weight:700;color:white;margin-top:5px;">Module 11: Indian Statutory & Labour Law Compliance ⚖️</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.querySelector('.print-btn').addEventListener('click', () => window.print());
+</script>
+</body>
+</html>

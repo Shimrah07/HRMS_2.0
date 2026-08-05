@@ -69,6 +69,13 @@ public interface IUnitOfWork : IDisposable
     IRepository<Separation> Separations { get; }
     IRepository<NoDuesClearing> NoDuesItems { get; }
     IRepository<FnFSettlement> FnFSettlements { get; }
+    IRepository<ExitRecord> ExitRecords { get; }
+    IRepository<CounterOffer> CounterOffers { get; }
+    IRepository<ExitClearance> ExitClearances { get; }
+    IRepository<ExitInterview> ExitInterviews { get; }
+    IRepository<FFSCalculation> FFSCalculations { get; }
+    IRepository<ExitDocument> ExitDocuments { get; }
+    IRepository<SectorExitConfig> SectorExitConfigs { get; }
     IRepository<Notification> Notifications { get; }
     IRepository<SystemSetting> SystemSettings { get; }
     IRepository<EmailTemplate> EmailTemplates { get; }
@@ -141,16 +148,8 @@ public interface IPdfGenerationService
     Task<byte[]> GenerateRelievingLetterAsync(Guid separationId, CancellationToken ct = default);
 }
 
-/// <summary>
-/// Reusable candidate application service used by both Manual HR Entry and the future Careers Portal.
-/// All entry points funnel through ApplyToJob() — zero code duplication.
-/// </summary>
 public interface IApplicationService
 {
-    /// <summary>
-    /// Creates or links a candidate to a Published Job Opening and sets ApplicationStage = Applied.
-    /// Accepts only JobId — ReqId is resolved internally and never exposed externally.
-    /// </summary>
     Task<IndiaHRMS.Application.DTOs.Recruitment.ApplyToJobResult> ApplyToJobAsync(
         IndiaHRMS.Application.DTOs.Recruitment.ApplyToJobRequest request,
         CancellationToken ct = default);

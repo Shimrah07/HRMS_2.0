@@ -124,7 +124,15 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<Separation> Separations { get; }
     public IRepository<NoDuesClearing> NoDuesItems { get; }
     public IRepository<FnFSettlement> FnFSettlements { get; }
+    public IRepository<ExitRecord> ExitRecords { get; }
+    public IRepository<CounterOffer> CounterOffers { get; }
+    public IRepository<ExitClearance> ExitClearances { get; }
+    public IRepository<ExitInterview> ExitInterviews { get; }
+    public IRepository<FFSCalculation> FFSCalculations { get; }
+    public IRepository<ExitDocument> ExitDocuments { get; }
+    public IRepository<SectorExitConfig> SectorExitConfigs { get; }
     public IRepository<Notification> Notifications { get; }
+
     public IRepository<SystemSetting> SystemSettings { get; }
     public IRepository<EmailTemplate> EmailTemplates { get; }
 
@@ -182,7 +190,15 @@ public class UnitOfWork : IUnitOfWork
         Separations = new Repository<Separation>(context);
         NoDuesItems = new Repository<NoDuesClearing>(context);
         FnFSettlements = new Repository<FnFSettlement>(context);
+        ExitRecords = new Repository<ExitRecord>(context);
+        CounterOffers = new Repository<CounterOffer>(context);
+        ExitClearances = new Repository<ExitClearance>(context);
+        ExitInterviews = new Repository<ExitInterview>(context);
+        FFSCalculations = new Repository<FFSCalculation>(context);
+        ExitDocuments = new Repository<ExitDocument>(context);
+        SectorExitConfigs = new Repository<SectorExitConfig>(context);
         Notifications = new Repository<Notification>(context);
+
         SystemSettings = new Repository<SystemSetting>(context);
         EmailTemplates = new Repository<EmailTemplate>(context);
     }

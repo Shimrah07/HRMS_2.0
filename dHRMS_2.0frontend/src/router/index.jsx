@@ -50,8 +50,8 @@ const StatutoryLeavePage = lazy(() => import('../pages/leave/StatutoryLeavePage'
 const LeaveEncashmentPage = lazy(() => import('../pages/leave/LeaveEncashmentPage'))
 const SectorRulesPage = lazy(() => import('../pages/leave/SectorRulesPage'))
 const LeaveReportsPage = lazy(() => import('../pages/leave/LeaveReportsPage'))
-const PerformancePage = lazy(() => import('../pages/performance/PerformancePage'))
 const RecruitmentPage = lazy(() => import('../pages/recruitment/RecruitmentPage'))
+
 const CreateMrfPage = lazy(() => import('../pages/recruitment/CreateMrfPage'))
 const CandidatesPage = lazy(() => import('../pages/recruitment/CandidatesPage'))
 const ApplicationsPage = lazy(() => import('../pages/recruitment/ApplicationsPage'))
@@ -71,6 +71,23 @@ const UnauthorizedPage = lazy(() => import('../pages/errors/UnauthorizedPage'))
 const ChangePasswordPage = lazy(() => import('../pages/auth/ChangePasswordPage'))
 const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('../pages/auth/ResetPasswordPage'))
+const TravelExpensePage = lazy(() => import('../pages/travel-expense/TravelExpensePage'))
+const TravelRequestsPage = lazy(() => import('../pages/travel-expense/TravelRequestsPage'))
+const TravelPoliciesPage = lazy(() => import('../pages/travel-expense/TravelPoliciesPage'))
+const ExpenseClaimsPage = lazy(() => import('../pages/travel-expense/ExpenseClaimsPage'))
+const TravelApprovalsPage = lazy(() => import('../pages/travel-expense/TravelApprovalsPage'))
+const TravelAdvancesPage = lazy(() => import('../pages/travel-expense/TravelAdvancesPage'))
+const TravelSectorRulesPage = lazy(() => import('../pages/travel-expense/TravelSectorRulesPage'))
+const TravelReportsPage = lazy(() => import('../pages/travel-expense/TravelReportsPage'))
+const ResignationNoticePage = lazy(() => import('../pages/exit-management/ResignationNoticePage'))
+const CounterOffersPage = lazy(() => import('../pages/exit-management/CounterOffersPage'))
+const NoDuesClearancePage = lazy(() => import('../pages/exit-management/NoDuesClearancePage'))
+const ExitInterviewsPage = lazy(() => import('../pages/exit-management/ExitInterviewsPage'))
+const FullFinalSettlementPage = lazy(() => import('../pages/exit-management/FullFinalSettlementPage'))
+const ExitDocumentsPage = lazy(() => import('../pages/exit-management/ExitDocumentsPage'))
+const ExitSectorRulesPage = lazy(() => import('../pages/exit-management/ExitSectorRulesPage'))
+const AttritionAnalyticsPage = lazy(() => import('../pages/exit-management/AttritionAnalyticsPage'))
+
 
 const router = createBrowserRouter([
   {
@@ -160,7 +177,37 @@ const router = createBrowserRouter([
           { path: 'reports', element: <ProtectedRoute>{wrap(LeaveReportsPage)}</ProtectedRoute> },
         ]
       },
-      { path: 'performance', element: <ProtectedRoute>{wrap(PerformancePage)}</ProtectedRoute> },
+      { 
+        path: 'travel-expense', 
+        errorElement: <Navigate to="/travel-expense/travel-requests" replace />,
+        children: [
+          { index: true, element: <Navigate to="/travel-expense/travel-requests" replace /> },
+          { path: 'dashboard', element: <Navigate to="/travel-expense/travel-requests" replace /> },
+          { path: 'travel-requests', element: <ProtectedRoute>{wrap(TravelRequestsPage)}</ProtectedRoute> },
+          { path: 'policies', element: <ProtectedRoute>{wrap(TravelPoliciesPage)}</ProtectedRoute> },
+          { path: 'expense-claims', element: <ProtectedRoute>{wrap(ExpenseClaimsPage)}</ProtectedRoute> },
+          { path: 'approvals', element: <ProtectedRoute>{wrap(TravelApprovalsPage)}</ProtectedRoute> },
+          { path: 'advances', element: <ProtectedRoute>{wrap(TravelAdvancesPage)}</ProtectedRoute> },
+          { path: 'sector-rules', element: <ProtectedRoute>{wrap(TravelSectorRulesPage)}</ProtectedRoute> },
+          { path: 'reports', element: <ProtectedRoute>{wrap(TravelReportsPage)}</ProtectedRoute> },
+        ]
+      },
+      { 
+        path: 'exit-management', 
+        errorElement: <Navigate to="/exit-management/resignation" replace />,
+        children: [
+          { index: true, element: <Navigate to="/exit-management/resignation" replace /> },
+          { path: 'resignation', element: <ProtectedRoute>{wrap(ResignationNoticePage)}</ProtectedRoute> },
+          { path: 'counter-offers', element: <ProtectedRoute>{wrap(CounterOffersPage)}</ProtectedRoute> },
+          { path: 'no-dues', element: <ProtectedRoute>{wrap(NoDuesClearancePage)}</ProtectedRoute> },
+          { path: 'exit-interviews', element: <ProtectedRoute>{wrap(ExitInterviewsPage)}</ProtectedRoute> },
+          { path: 'ffs', element: <ProtectedRoute>{wrap(FullFinalSettlementPage)}</ProtectedRoute> },
+          { path: 'documents', element: <ProtectedRoute>{wrap(ExitDocumentsPage)}</ProtectedRoute> },
+          { path: 'sector-rules', element: <ProtectedRoute>{wrap(ExitSectorRulesPage)}</ProtectedRoute> },
+          { path: 'analytics', element: <ProtectedRoute>{wrap(AttritionAnalyticsPage)}</ProtectedRoute> },
+        ]
+      },
+
       {
         path: 'recruitment',
         children: [

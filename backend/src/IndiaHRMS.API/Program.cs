@@ -112,6 +112,9 @@ try
     builder.Services.AddScoped<ILeaveEncashmentService, LeaveEncashmentService>();
     builder.Services.AddScoped<ISectorLeaveService, SectorLeaveService>();
     builder.Services.AddScoped<ILeaveAnalyticsService, LeaveAnalyticsService>();
+    builder.Services.AddScoped<ITravelExpenseService, TravelExpenseService>();
+    builder.Services.AddScoped<IExitManagementService, ExitManagementService>();
+
 
     // Register Background Services
     builder.Services.AddHostedService<IndiaHRMS.API.BackgroundServices.AttendanceBatchProcessor>();
@@ -203,6 +206,7 @@ try
             Description = "Comprehensive India-compliant HRMS REST API",
             Contact = new OpenApiContact { Name = "IndiaHRMS Team" }
         });
+        c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
         c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
             Type = SecuritySchemeType.Http,
@@ -218,6 +222,7 @@ try
             }
         });
     });
+
 
     // ─── Build App ────────────────────────────────────────────────────────────
     var app = builder.Build();

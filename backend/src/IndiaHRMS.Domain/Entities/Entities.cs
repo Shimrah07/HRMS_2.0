@@ -452,6 +452,9 @@ public class Employee : BaseEntity
     public ICollection<LeaveApplication> LeaveApplications { get; set; } = new List<LeaveApplication>();
     public ICollection<PayrollDetail> PayrollDetails { get; set; } = new List<PayrollDetail>();
     public ICollection<EmployeeSalary> EmployeeSalaries { get; set; } = new List<EmployeeSalary>();
+    public ICollection<TravelRequest> TravelRequests { get; set; } = new List<TravelRequest>();
+    public ICollection<TravelAdvance> TravelAdvances { get; set; } = new List<TravelAdvance>();
+    public ICollection<ExpenseClaim> ExpenseClaims { get; set; } = new List<ExpenseClaim>();
 }
 
 public class EmployeeDocument : BaseEntity
@@ -1569,3 +1572,325 @@ public class PendingApplication : BaseEntity
     public JobPosting JobPosting { get; set; } = null!;
     public Employee? ReferralEmployee { get; set; }
 }
+
+// ─── Module 8: Travel & Expense Management ────────────────────────────────────
+
+public class TravelEntitlement : BaseEntity
+{
+    public Guid EntitlementId { get; set; } = Guid.NewGuid();
+    public string GradeBand { get; set; } = string.Empty; // Band A, Band B, Band C, Band D, Band E
+    public string FlightClass { get; set; } = "Economy";
+    public string TrainClass { get; set; } = "AC 3-Tier";
+    public string HotelCategory { get; set; } = "3-Star";
+    public decimal DAMetro { get; set; } = 1500;
+    public decimal DANonMetro { get; set; } = 1000;
+    public bool IsActive { get; set; } = true;
+}
+
+public class TravelRequest : BaseEntity
+{
+    public Guid RequestId { get; set; } = Guid.NewGuid();
+    public string TravelCode { get; set; } = string.Empty;
+    public Guid EmployeeId { get; set; }
+    public string TravelType { get; set; } = "Domestic"; // Domestic, International
+    public string Purpose { get; set; } = string.Empty;
+    public string ProjectCode { get; set; } = string.Empty;
+    public string FromCity { get; set; } = string.Empty;
+    public string ToCity { get; set; } = string.Empty;
+    public DateOnly StartDate { get; set; }
+    public DateOnly EndDate { get; set; }
+    public string ModeOfTravel { get; set; } = "Flight";
+    public bool HotelRequired { get; set; } = true;
+    public string? CoTravelers { get; set; }
+    public string BusinessJustification { get; set; } = string.Empty;
+    
+    // International Specifics
+    public string? PassportNumber { get; set; }
+    public DateOnly? PassportExpiry { get; set; }
+    public string? VisaStatus { get; set; }
+    public string? ForexCurrency { get; set; }
+    public decimal ForexAmount { get; set; }
+    public string? TravelInsuranceInfo { get; set; }
+
+    public decimal EstimatedCost { get; set; }
+    public string Status { get; set; } = "Pending"; // Pending, Approved, Rejected, BookingConfirmed, Completed
+    public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
+    public Guid? ApproverId { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public string? RejectionReason { get; set; }
+
+    public Employee Employee { get; set; } = null!;
+    public User? Approver { get; set; }
+    public TravelBooking? Booking { get; set; }
+    public TravelAdvance? Advance { get; set; }
+    public ExpenseClaim? ExpenseClaim { get; set; }
+    public TravelPolicyException? PolicyException { get; set; }
+}
+
+public class TravelPolicyException : BaseEntity
+{
+    public Guid ExceptionId { get; set; } = Guid.NewGuid();
+    public Guid TravelRequestId { get; set; }
+    public string EntitledCategory { get; set; } = string.Empty;
+    public string RequestedCategory { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+    public decimal AdditionalCostImpact { get; set; }
+    public string Status { get; set; } = "Pending"; // Pending, Approved, Rejected
+    public Guid? ApprovedByHOD { get; set; }
+    public Guid? ApprovedByFinance { get; set; }
+
+    public TravelRequest TravelRequest { get; set; } = null!;
+}
+
+public class TravelBooking : BaseEntity
+{
+    public Guid BookingId { get; set; } = Guid.NewGuid();
+    public Guid TravelRequestId { get; set; }
+    public string BookingReference { get; set; } = string.Empty;
+    public string TicketDetails { get; set; } = string.Empty;
+    public string HotelDetails { get; set; } = string.Empty;
+    public string? AttachmentPath { get; set; }
+    public Guid? ConfirmedBy { get; set; }
+    public DateTime? ConfirmedAt { get; set; }
+
+    public TravelRequest TravelRequest { get; set; } = null!;
+}
+
+public class TravelAdvance : BaseEntity
+{
+    public Guid AdvanceId { get; set; } = Guid.NewGuid();
+    public string AdvanceCode { get; set; } = string.Empty;
+    public Guid EmployeeId { get; set; }
+    public Guid TravelRequestId { get; set; }
+    public decimal EstimatedTripCost { get; set; }
+    public decimal AmountRequested { get; set; }
+    public decimal AmountDisbursed { get; set; }
+    public string DisbursementMode { get; set; } = "Bank Transfer";
+    public DateTime? DisbursedAt { get; set; }
+    public DateOnly ExpectedSettlementDate { get; set; }
+    public string Status { get; set; } = "Pending"; // Pending, Disbursed, Settled, PartiallySettled, OverdueRecovery
+    public int AgingDays { get; set; }
+
+    public Employee Employee { get; set; } = null!;
+    public TravelRequest TravelRequest { get; set; } = null!;
+}
+
+public class ExpenseClaim : BaseEntity
+{
+    public Guid ClaimId { get; set; } = Guid.NewGuid();
+    public string ClaimCode { get; set; } = string.Empty;
+    public Guid EmployeeId { get; set; }
+    public Guid? TravelRequestId { get; set; }
+    public decimal TotalAmount { get; set; }
+    public decimal AdvanceAdjusted { get; set; }
+    public decimal NetPayable { get; set; }
+    public string Status { get; set; } = "Draft"; // Draft, Submitted, ManagerApproved, FinanceApproved, Rejected, Reimbursed
+    public DateTime? SubmittedAt { get; set; }
+    public Guid? ManagerApproverId { get; set; }
+    public DateTime? ManagerApprovedAt { get; set; }
+    public Guid? FinanceApproverId { get; set; }
+    public DateTime? FinanceApprovedAt { get; set; }
+    public string? RejectionReason { get; set; }
+
+    public Employee Employee { get; set; } = null!;
+    public TravelRequest? TravelRequest { get; set; }
+    public ICollection<ExpenseLineItem> LineItems { get; set; } = new List<ExpenseLineItem>();
+}
+
+public class ExpenseLineItem : BaseEntity
+{
+    public Guid LineItemId { get; set; } = Guid.NewGuid();
+    public Guid ClaimId { get; set; }
+    public string Category { get; set; } = string.Empty;
+    public DateOnly ExpenseDate { get; set; }
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = "INR";
+    public decimal GstAmount { get; set; }
+    public string? VendorGstin { get; set; }
+    public string? BillPath { get; set; }
+    public bool IsPolicyCompliant { get; set; } = true;
+    public bool IsBillable { get; set; } = false;
+    public decimal ClientMarkupPercent { get; set; }
+    public string? GuestDetails { get; set; }
+    public string Description { get; set; } = string.Empty;
+
+    public ExpenseClaim Claim { get; set; } = null!;
+    public OcrExtractionLog? OcrLog { get; set; }
+}
+
+public class OcrExtractionLog : BaseEntity
+{
+    public Guid ExtractionId { get; set; } = Guid.NewGuid();
+    public Guid? LineItemId { get; set; }
+    public decimal ExtractedAmount { get; set; }
+    public DateOnly? ExtractedDate { get; set; }
+    public string? ExtractedVendor { get; set; }
+    public string? ExtractedGstin { get; set; }
+    public decimal ConfidenceScore { get; set; }
+    public string? RawOcrText { get; set; }
+
+    public ExpenseLineItem? LineItem { get; set; }
+}
+
+public class ReimbursementBatch : BaseEntity
+{
+    public Guid BatchId { get; set; } = Guid.NewGuid();
+    public string BatchCode { get; set; } = string.Empty;
+    public DateTime RunDate { get; set; } = DateTime.UtcNow;
+    public int TotalClaims { get; set; }
+    public decimal TotalAmount { get; set; }
+    public string DisbursementMode { get; set; } = "Payroll"; // Payroll, BankTransfer
+    public Guid? ProcessedBy { get; set; }
+}
+
+public class SectorPolicyConfig : BaseEntity
+{
+    public Guid SectorConfigId { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    public string SectorName { get; set; } = "IT"; // IT, Sales, Consulting, Healthcare, Government, Construction, Manufacturing, Education
+    public bool IsDefaultActive { get; set; } = false;
+    public string ConfigJson { get; set; } = string.Empty;
+
+    public Company Company { get; set; } = null!;
+}
+
+// ─── Module 10: Exit Management (Offboarding) ─────────────────────────
+
+public class ExitRecord : BaseEntity
+{
+    public Guid ExitId { get; set; } = Guid.NewGuid();
+    public Guid EmployeeId { get; set; }
+    public DateTime ResignationDate { get; set; } = DateTime.UtcNow;
+    public DateOnly ProposedLwd { get; set; }
+    public DateOnly? ConfirmedLwd { get; set; }
+    public ExitType ExitType { get; set; } = ExitType.Voluntary;
+    public string PrimaryReason { get; set; } = string.Empty;
+    public string? AdditionalComments { get; set; }
+    public bool IsRegretted { get; set; } = false;
+    public ExitStatus Status { get; set; } = ExitStatus.ResignationSubmitted;
+    public int NoticePeriodDays { get; set; } = 30;
+    
+    // Early Release / Buyout
+    public bool EarlyReleaseRequested { get; set; } = false;
+    public DateOnly? RequestedLwd { get; set; }
+    public bool EarlyReleaseApproved { get; set; } = false;
+    public bool BuyoutAllowed { get; set; } = false;
+    public decimal BuyoutAmount { get; set; } = 0;
+
+    // Withdrawal Workflow
+    public string WithdrawalStatus { get; set; } = "None"; // None, Requested, Approved, Rejected
+    public string? WithdrawalReason { get; set; }
+    public DateTime? WithdrawalRequestedAt { get; set; }
+
+    public Guid? ConfirmedBy { get; set; }
+    public Guid? ReportingManagerId { get; set; }
+
+    public Employee Employee { get; set; } = null!;
+    public User? ConfirmedByUser { get; set; }
+    public Employee? ReportingManager { get; set; }
+    public ICollection<CounterOffer> CounterOffers { get; set; } = new List<CounterOffer>();
+    public ICollection<ExitClearance> Clearances { get; set; } = new List<ExitClearance>();
+    public ExitInterview? ExitInterview { get; set; }
+    public FFSCalculation? FFSCalculation { get; set; }
+    public ICollection<ExitDocument> Documents { get; set; } = new List<ExitDocument>();
+}
+
+public class CounterOffer : BaseEntity
+{
+    public Guid OfferId { get; set; } = Guid.NewGuid();
+    public Guid ExitId { get; set; }
+    public decimal CurrentCtc { get; set; }
+    public decimal ProposedCtc { get; set; }
+    public string? OtherConsiderations { get; set; }
+    public Guid? ApprovedById { get; set; }
+    public CounterOfferResponse EmployeeResponse { get; set; } = CounterOfferResponse.Pending;
+    public DateTime? ResponseDate { get; set; }
+
+    public ExitRecord ExitRecord { get; set; } = null!;
+    public User? ApprovedByUser { get; set; }
+}
+
+public class ExitClearance : BaseEntity
+{
+    public Guid ClearanceId { get; set; } = Guid.NewGuid();
+    public Guid ExitId { get; set; }
+    public ClearanceDepartment Department { get; set; }
+    public DeptClearanceStatus Status { get; set; } = DeptClearanceStatus.Pending;
+    public decimal DuesAmount { get; set; } = 0;
+    public string? DuesDetails { get; set; }
+    public string? Remarks { get; set; }
+    public Guid? ClearedById { get; set; }
+    public DateTime? ClearedAt { get; set; }
+
+    public ExitRecord ExitRecord { get; set; } = null!;
+    public User? ClearedByUser { get; set; }
+}
+
+public class ExitInterview : BaseEntity
+{
+    public Guid InterviewId { get; set; } = Guid.NewGuid();
+    public Guid ExitId { get; set; }
+    public string InterviewMode { get; set; } = "Online Self-Service Form"; // Form, 1:1, SkipLevel
+    public int OverallRating { get; set; } = 5;
+    public int ManagerRating { get; set; } = 5;
+    public int GrowthRating { get; set; } = 5;
+    public int CompRating { get; set; } = 5;
+    public int WorkLifeBalanceRating { get; set; } = 5;
+    public string WouldRecommend { get; set; } = "Definitely Yes";
+    public string? OpenFeedback { get; set; }
+    public string? HrConfidentialNotes { get; set; }
+    public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
+
+
+    public ExitRecord ExitRecord { get; set; } = null!;
+}
+
+public class FFSCalculation : BaseEntity
+{
+    public Guid FFSId { get; set; } = Guid.NewGuid();
+    public Guid ExitId { get; set; }
+    public decimal PendingSalary { get; set; } = 0;
+    public decimal LeaveEncashment { get; set; } = 0;
+    public decimal Gratuity { get; set; } = 0;
+    public decimal ProRataBonus { get; set; } = 0;
+    public decimal AssetDeduction { get; set; } = 0;
+    public decimal LoanDeduction { get; set; } = 0;
+    public decimal NoticeShortfallDeduction { get; set; } = 0;
+    public decimal TdsDeduction { get; set; } = 0;
+    public decimal GrossPayable { get; set; } = 0;
+    public decimal NetPayable { get; set; } = 0;
+    public FFSStatus Status { get; set; } = FFSStatus.Calculated;
+    public Guid? ApprovedById { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public DateTime? DisbursedAt { get; set; }
+    public string? PaymentReference { get; set; }
+
+    public ExitRecord ExitRecord { get; set; } = null!;
+    public User? ApprovedByUser { get; set; }
+}
+
+public class ExitDocument : BaseEntity
+{
+    public Guid DocumentId { get; set; } = Guid.NewGuid();
+    public Guid ExitId { get; set; }
+    public ExitDocumentType DocumentType { get; set; }
+    public string FilePath { get; set; } = string.Empty;
+    public ExitConductRemark ConductRemark { get; set; } = ExitConductRemark.Satisfactory;
+    public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+
+    public ExitRecord ExitRecord { get; set; } = null!;
+}
+
+public class SectorExitConfig : BaseEntity
+{
+    public Guid ConfigId { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    public string SectorName { get; set; } = "IT"; // IT, Manufacturing, Healthcare, BFSI, Sales, Government, Consulting, Retail
+    public string Priority { get; set; } = "High"; // Critical, High, Medium, Low
+    public string ConfigJson { get; set; } = "{}";
+    public bool IsActive { get; set; } = true;
+
+    public Company Company { get; set; } = null!;
+}
+
+

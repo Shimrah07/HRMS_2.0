@@ -128,8 +128,26 @@ public class AttendanceController : ControllerBase
         var today = GetIstToday();
         var nowUtc = DateTime.UtcNow;
 
+        // Task 5 & 7 Validation: Enforce LWD & Active Employee status
+        var emp = await _context.Employees.FirstOrDefaultAsync(e => e.EmployeeId == empId, ct);
+        if (emp != null && !emp.IsActive)
+        {
+            return BadRequest(ApiResponse<object>.Fail("PUNCH_BLOCKED: Employee account is deactivated/separated. Cannot mark attendance."));
+        }
+
+        var exitRecord = await _context.ExitRecords.FirstOrDefaultAsync(x => x.EmployeeId == empId && x.Status != ExitStatus.Closed && x.Status != ExitStatus.Withdrawn, ct);
+        if (exitRecord != null)
+        {
+            var lwd = exitRecord.ConfirmedLwd ?? exitRecord.ProposedLwd;
+            if (today > lwd)
+            {
+                return BadRequest(ApiResponse<object>.Fail($"PUNCH_BLOCKED: Cannot mark attendance beyond your Last Working Day (LWD: {lwd:dd MMM yyyy})."));
+            }
+        }
+
         var record = await _context.AttendanceRecords
             .FirstOrDefaultAsync(r => r.EmployeeId == empId && r.AttendanceDate == today, ct);
+
 
         if (record == null)
         {
@@ -275,7 +293,24 @@ public class AttendanceController : ControllerBase
         var empId = _currentUser.EmployeeId.Value;
         var nowUtc = DateTime.UtcNow;
 
+        var emp = await _context.Employees.FirstOrDefaultAsync(e => e.EmployeeId == empId, ct);
+        if (emp != null && !emp.IsActive)
+        {
+            return BadRequest(ApiResponse<object>.Fail("REGULARIZATION_BLOCKED: Employee account is deactivated/separated. Cannot request regularization."));
+        }
+
+        var exitRecord = await _context.ExitRecords.FirstOrDefaultAsync(x => x.EmployeeId == empId && x.Status != ExitStatus.Closed && x.Status != ExitStatus.Withdrawn, ct);
+        if (exitRecord != null)
+        {
+            var lwd = exitRecord.ConfirmedLwd ?? exitRecord.ProposedLwd;
+            if (req.Date > lwd)
+            {
+                return BadRequest(ApiResponse<object>.Fail($"REGULARIZATION_BLOCKED: Cannot regularize attendance beyond your Last Working Day (LWD: {lwd:dd MMM yyyy})."));
+            }
+        }
+
         var targetDateTimeIst = req.Date.ToDateTime(req.Time);
+
         var targetDateTimeUtc = TimeZoneInfo.ConvertTimeToUtc(targetDateTimeIst, GetIstTimeZone());
 
         var regularization = new AttendanceRegularization

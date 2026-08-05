@@ -438,3 +438,77 @@ public enum CandidateSource
     ResumeParser,
     Other
 }
+
+public enum ExitType
+{
+    Voluntary,
+    Retirement,
+    ContractEnd,
+    Absconding,
+    Involuntary
+}
+
+public enum ExitStatus
+{
+    ResignationSubmitted,
+    ManagerAcknowledged,
+    NoticePeriod,
+    ClearanceInProgress,
+    FFSProcessing,
+    DocumentsPending,
+    Closed,
+    Withdrawn
+}
+
+public enum CounterOfferResponse
+{
+    Pending,
+    Accepted,
+    Declined
+}
+
+public enum ClearanceDepartment
+{
+    IT,
+    Asset,
+    Finance,
+    Admin,
+    HR,
+    Manager,
+    Security
+}
+
+public enum DeptClearanceStatus
+{
+    Pending,
+    Cleared,
+    DuesPending,
+    NA
+}
+
+public enum ExitDocumentType
+{
+    ResignationAcceptance,
+    RelievingLetter,
+    ExperienceLetter,
+    FFSStatement,
+    NOC
+}
+
+public enum ExitConductRemark
+{
+    Satisfactory,
+    Good,
+    Excellent,
+    Poor,
+    NotApplicable
+}
+
+public enum FFSStatus
+{
+    Calculated,
+    Approved,
+    Disbursed,
+    Held
+}
+
