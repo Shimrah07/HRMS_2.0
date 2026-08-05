@@ -213,12 +213,12 @@ public class PayrollRunController : ControllerBase
             var statResult = await _statCalc.CalculateAsync(statInput, ct);
 
             // HRMS-012: Active Loan EMI deduction
-            decimal loanEmiDeduction = await _context.EmployeeLoans
+            decimal loanEmiDeduction = await _ctx.EmployeeLoans
                 .Where(l => l.EmployeeId == emp.EmployeeId && l.Status == "Active" && l.BalanceAmount > 0)
                 .SumAsync(l => (decimal?)l.MonthlyEMI, ct) ?? 0m;
 
             // HRMS-032: Overdue Travel Advance recovery
-            decimal travelAdvanceDeduction = await _context.TravelAdvances
+            decimal travelAdvanceDeduction = await _ctx.TravelAdvances
                 .Where(t => t.EmployeeId == emp.EmployeeId && (t.Status == "Disbursed" || t.Status == "OverdueRecovery"))
                 .SumAsync(t => (decimal?)t.AmountDisbursed, ct) ?? 0m;
 
